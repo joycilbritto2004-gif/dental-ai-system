@@ -1,0 +1,136 @@
+.dashboard-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--bg-main);
+}
+
+.dashboard-sidebar {
+  width: var(--sidebar-width);
+  background-color: var(--primary); /* Deep Navy */
+  color: white;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 40;
+  box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+}
+
+.sidebar-brand {
+  height: var(--nav-height);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 2rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.brand-icon {
+  color: var(--secondary);
+}
+
+.sidebar-nav {
+  padding: 2rem 1rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.875rem 1rem;
+  border-radius: var(--radius-md);
+  color: rgba(255,255,255,0.7);
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.sidebar-link:hover, .sidebar-link.active {
+  background-color: rgba(255,255,255,0.05);
+  color: white;
+}
+
+.sidebar-link.active {
+  background-color: var(--secondary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+}
+
+.sidebar-footer {
+  padding: 1.5rem 1rem;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.text-logout {
+  color: rgba(255,255,255,0.7);
+}
+.text-logout:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+}
+
+/* Main Area */
+.dashboard-main {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-header-top {
+  height: var(--nav-height);
+  background-color: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.header-title h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.user-avatar-circle {
+  color: var(--secondary);
+  display: flex;
+  align-items: center;
+}
+
+.user-name {
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: var(--text-main);
+}
+
+.dashboard-content {
+  padding: 2.5rem;
+  flex: 1;
+}
+
+@media (max-width: 1024px) {
+  .dashboard-sidebar {
+    transform: translateX(-100%);
+  }
+  .dashboard-main {
+    margin-left: 0;
+  }
+}

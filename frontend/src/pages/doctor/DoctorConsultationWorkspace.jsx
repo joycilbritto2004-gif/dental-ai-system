@@ -1,0 +1,203 @@
+import { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { UserCircle, BrainCircuit, Scan, CheckCircle2, AlertTriangle, Send, CreditCard, ChevronLeft, ShieldCheck, Zap } from 'lucide-react';
+import '../Dashboard.css';
+
+const DoctorConsultationWorkspace = () => {
+  const { id } = useParams();
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [paymentRequested, setPaymentRequested] = useState(false);
+  const [consultation, setConsultation] = useState(null);
+
+  useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem('dental_consultations') || '[]');
+    const record = stored.find(c => c.id.toString() === id.toString());
+    
+    if (record) {
+      setConsultation(record);
+      if (record.status === 'Completed') setIsCompleted(true);
+    } else {
+      setConsultation({
+        patientName: "Jane Doe",
+        date: "2023-10-24",
+        time: "10:30 AM",
+        message: "I have been experiencing pain in my lower right tooth...",
+        condition: "Caries",
+        confidence: "92%"
+      });
+    }
+  }, [id]);
+
+  const handleComplete = () => {
+    setIsCompleted(true);
+    if (consultation && consultation.id) {
+      const stored = JSON.parse(localStorage.getItem('dental_consultations') || '[]');
+      const updated = stored.map(c => c.id === consultation.id ? { ...c, status: 'Completed' } : c);
+      localStorage.setItem('dental_consultations', JSON.stringify(updated));
+    }
+  };
+
+  const stagger = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+  const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
+
+  if (!consultation) return <div className="dashboard-view">Loading AI Workspace...</div>;
+
+  return (
+    <motion.div className="dashboard-view" initial="hidden" animate="show" variants={stagger}>
+      <motion.div variants={item} className="dashboard-header mb-6">
+        <div className="flex-align-center gap-2 mb-2">
+          <Link to="/dashboard/doctor/consultations" className="text-muted hover:text-primary flex-align-center gap-1">
+            <ChevronLeft size={16} /> Dashboard
+          </Link>
+        </div>
+        <h2>Diagnostic Workspace</h2>
+        <p>Review AI imaging, verify diagnosis, and prescribe treatments.</p>
+      </motion.div>
+
+      {isCompleted && (
+        <motion.div variants={item} className="card mb-6 flex-align-center gap-3" style={{ padding: '1rem 1.5rem', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '12px' }}>
+          <CheckCircle2 size={28} className="text-success" />
+          <div className="flex-1">
+            <h4 className="text-success font-bold" style={{ fontSize: '1.1rem' }}>Clinical Assessment Completed</h4>
+            <p className="text-sm text-success" style={{ opacity: 0.9 }}>The final diagnostic report and prescription have been securely transmitted to the patient.</p>
+          </div>
+        </motion.div>
+      )}
+
+      {paymentRequested && !isCompleted && (
+        <motion.div variants={item} className="card mb-6 flex-align-center gap-3" style={{ padding: '1rem 1.5rem', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '12px' }}>
+          <CreditCard size={28} className="text-warning" />
+          <div className="flex-1">
+            <h4 className="text-warning font-bold" style={{ fontSize: '1.1rem' }}>Payment Authorization Pending</h4>
+            <p className="text-sm text-warning" style={{ opacity: 0.9 }}>Awaiting patient clearance of financial obligations before transmitting final clinical report.</p>
+          </div>
+        </motion.div>
+      )}
+
+      <div className="dashboard-grid">
+        {/* LEFT SIDE: Patient Image & Info */}
+        <div className="dashboard-left-col">
+          <motion.div variants={item} className="patient-meta-box glass-card" style={{ background: 'var(--bg-card)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border-glass)', marginBottom: '24px' }}>
+            <div className="flex-between">
+              <div className="patient-id-group flex-align-center gap-4">
+                <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--secondary), var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 10px rgba(0, 210, 255, 0.2)' }}>
+                  <UserCircle size={32} />
+                </div>
+                <div>
+                  <h4 className="font-bold text-primary" style={{ fontSize: '1.25rem' }}>{consultation.patientName}</h4>
+                  <p className="text-sm text-muted">Internal UID: P-{consultation.id ? consultation.id.substring(0,6) : '98214X'}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-bold text-primary" style={{ background: 'rgba(0, 210, 255, 0.1)', padding: '6px 12px', borderRadius: '8px' }}>{consultation.date} @ {consultation.time}</p>
+                <p className="text-sm text-muted mt-2 flex-align-center gap-1 justify-end"><ShieldCheck size={14}/> Secure Channel</p>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div variants={item} className="xray-preview-large mb-6" style={{ background: 'var(--bg-dark)', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(0, 210, 255, 0.2)', position: 'relative' }}>
+            <div className="xray-placeholder-scan" style={{ padding: '4rem 2rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '300px' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'radial-gradient(circle, rgba(0, 210, 255, 0.1) 0%, transparent 60%)', zIndex: 0 }}></div>
+              <Scan size={64} color="#00f0ff" className="mb-4" style={{ filter: 'drop-shadow(0 0 10px rgba(0, 210, 255, 0.5))', zIndex: 1 }} />
+              <span className="text-white font-bold" style={{ zIndex: 1, textTransform: 'uppercase', letterSpacing: '2px' }}>Encrypted Imaging Data</span>
+              <div style={{ position: 'absolute', top: '50%', left: 0, width: '100%', height: '2px', background: 'rgba(0, 240, 255, 0.4)', boxShadow: '0 0 20px #00f0ff', zIndex: 2, animation: 'scanBounce 4s infinite linear' }}></div>
+            </div>
+          </motion.div>
+
+          <motion.div variants={item} className="card glass-card" style={{ background: 'rgba(0, 210, 255, 0.05)', border: '1px solid rgba(0, 210, 255, 0.2)', borderRadius: '12px', padding: '20px' }}>
+            <h4 className="font-bold text-primary mb-2 flex-align-center gap-2"><Zap size={18} className="text-secondary"/> Patient's Primary Complaint</h4>
+            <p className="text-main" style={{ fontStyle: 'italic', lineHeight: 1.6, padding: '12px', background: 'rgba(255,255,255,0.6)', borderRadius: '8px' }}>
+              "{consultation.message || 'No additional concerns provided by the patient.'}"
+            </p>
+          </motion.div>
+        </div>
+
+        {/* RIGHT SIDE: AI & Verification */}
+        <div className="dashboard-right-col">
+          {/* AI Analysis Result */}
+          <motion.div variants={item} className="card ai-result-box mb-6" style={{ background: 'var(--bg-dark)', color: 'white', borderRadius: '16px', border: '1px solid rgba(0, 210, 255, 0.4)', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '50%', background: 'radial-gradient(circle at right, rgba(0, 210, 255, 0.15), transparent 70%)', pointerEvents: 'none' }}></div>
+            
+            <div className="result-header mb-4 flex-align-center gap-2">
+              <BrainCircuit size={24} color="#00f0ff" />
+              <span className="font-bold" style={{ color: '#00f0ff', textTransform: 'uppercase', letterSpacing: '1px' }}>Neural Net Diagnosis</span>
+            </div>
+            
+            <div style={{ background: 'rgba(255,255,255,0.05)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', marginBottom: '20px', position: 'relative', zIndex: 2 }}>
+              <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '1px' }}>Identified Pathology</span>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: 'white', marginTop: '4px', textTransform: 'capitalize' }}>
+                {consultation.condition}
+              </div>
+            </div>
+            
+            <div style={{ background: 'rgba(255,255,255,0.05)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', position: 'relative', zIndex: 2 }}>
+              <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '1px' }}>Algorithmic Confidence</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
+                <div style={{ fontSize: '24px', fontWeight: 800, color: '#00f0ff' }}>{consultation.confidence}</div>
+                <div style={{ flex: 1, height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
+                  <motion.div initial={{ width: 0 }} animate={{ width: consultation.confidence === 'N/A' ? '0%' : consultation.confidence }} transition={{ duration: 1 }} style={{ height: '100%', background: '#00f0ff', boxShadow: '0 0 10px #00f0ff' }}></motion.div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* DOCTOR VERIFICATION */}
+          <motion.div variants={item} className="card verification-form glass-card" style={{ padding: '24px', borderRadius: '16px' }}>
+            <h4 className="form-section-title font-bold text-primary mb-6" style={{ fontSize: '1.2rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>Physician Verification</h4>
+            
+            <div className="form-group mb-5">
+              <label className="form-label font-bold text-primary">Diagnose / Override AI</label>
+              <select className="form-input" disabled={isCompleted} style={{ background: 'rgba(255,255,255,0.8)' }}>
+                <option>System Confirmed: Caries</option>
+                <option>Calculus</option>
+                <option>Gingivitis</option>
+                <option>No Pathological Issues</option>
+              </select>
+            </div>
+            
+            <div className="form-group mb-6">
+              <label className="form-label font-bold text-primary">Treatment Plan & Prescription</label>
+              <textarea 
+                className="form-input" 
+                rows="5" 
+                placeholder="Detail the clinical recommendations here..."
+                disabled={isCompleted}
+                defaultValue="Early stage caries confirmed. Recommend scheduling an appointment for a composite filling. In the meantime, avoid extremely cold or sweet foods."
+                style={{ background: 'rgba(255,255,255,0.8)', resize: 'vertical' }}
+              ></textarea>
+            </div>
+
+            {!isCompleted && (
+              <div className="action-buttons-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <button className="btn btn-outline flex-align-center justify-center gap-2" style={{ padding: '12px' }}>
+                  <AlertTriangle size={18} /> Flag False Positive
+                </button>
+                <button 
+                  className="btn btn-warning flex-align-center justify-center gap-2 text-white" 
+                  style={{ backgroundColor: '#f59e0b', borderColor: '#f59e0b', padding: '12px' }}
+                  onClick={() => setPaymentRequested(true)}
+                  disabled={paymentRequested}
+                >
+                  <CreditCard size={18} /> Require Remittance
+                </button>
+                <button 
+                  className="btn btn-primary flex-align-center justify-center gap-2 pulse-glow" 
+                  style={{ gridColumn: '1 / -1', padding: '14px', fontSize: '1.1rem' }}
+                  onClick={handleComplete}
+                >
+                  <Send size={20} /> Authorize & Dispatch Report
+                </button>
+              </div>
+            )}
+          </motion.div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+export default DoctorConsultationWorkspace;

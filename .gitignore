@@ -1,0 +1,40 @@
+# Node.js dependencies
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# Environment Variables
+.env
+.env.*
+
+# Python Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Build and Dist folders
+build/
+dist/
+frontend/dist/
+frontend/build/
+
+# Uploads
+uploads/
+backend/uploads/
+
+# AI Model Checkpoints & Python Caches
+*.h5
+*.hdf5
+*.ckpt
+*.pt
+*.pth
+*.pkl
+__pycache__/
+*.pyc
+
+# IDEs and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

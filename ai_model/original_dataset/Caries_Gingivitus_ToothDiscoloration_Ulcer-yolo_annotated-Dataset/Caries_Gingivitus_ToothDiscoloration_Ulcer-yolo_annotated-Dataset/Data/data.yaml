@@ -1,0 +1,71 @@
+# YOLOv5 experiment name
+name: dental_calculus_detection
+
+# Path to directory containing training and validation images
+train: ./images/train
+val: ./images/val
+
+# Path to YAML file containing class names
+nc: 1
+names: ['Caries','Ulcer', 'Tooth Discoloration','Gingivitis']
+
+# YOLOv5 model architecture
+model:
+  # Model architecture
+  architecture: yolov5s
+  # Number of output anchor boxes
+  anchors:
+  - [10, 13, 16, 30, 33, 23]
+  - [30, 61, 62, 45, 59, 119]
+  - [116, 90, 156, 198, 373, 326]
+  # Model hyperparameters
+  hyperparameters:
+    # Number of classes
+    nc: 1
+    # Number of input channels
+    channels: 3
+    # Anchor box scaling factor
+    anchor_scale: 4
+    # Loss function weights
+    loss:
+      xy: 1.0
+      wh: 1.0
+      cls: 1.0
+      obj: 1.0
+      l2: 0.05
+
+# Training hyperparameters
+train_params:
+  # Batch size
+  batch_size: 16
+  # Number of epochs
+  epochs: 50
+  # Learning rate
+  lr: 0.01
+  # Momentum
+  momentum: 0.937
+  # Weight decay
+  weight_decay: 0.0005
+  # Scheduler
+  scheduler:
+    name: cosine
+    warmup_epochs: 3
+    cosine_epochs: 47
+    final_lr: 0.0001
+
+# Augmentation parameters
+augmentation:
+  # Horizontal flip probability
+  hflip_prob: 0.5
+  # Vertical flip probability
+  vflip_prob: 0.0
+  # Random crop probability
+  crop_prob: 0.5
+  # Random resize probability
+  resize_prob: 0.5
+  # Color jitter probability
+  jitter_prob: 0.1
+  # Color distortion probability
+  distortion_prob: 0.5
+  # Gaussian blur probability
+  blur_prob: 0.1
