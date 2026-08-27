@@ -25,6 +25,11 @@ import MessagesUI from './pages/shared/MessagesUI';
 import DoctorConsultations from './pages/doctor/DoctorConsultations';
 import DoctorConsultationWorkspace from './pages/doctor/DoctorConsultationWorkspace';
 import DoctorPayments from './pages/doctor/DoctorPayments';
+import DoctorPendingReviews from './pages/doctor/DoctorPendingReviews';
+import DoctorPatientCases from './pages/doctor/DoctorPatientCases';
+import DoctorVerifiedCases from './pages/doctor/DoctorVerifiedCases';
+import DoctorConsultationHistory from './pages/doctor/DoctorConsultationHistory';
+import DoctorProfileView from './pages/doctor/DoctorProfileView';
 
 import './index.css';
 
@@ -63,11 +68,15 @@ function App() {
           <Route path="/dashboard/patient/payment/checkout" element={<PatientPaymentCheckout />} />
           
           <Route path="/dashboard/doctor" element={<DoctorDashboard />} />
+          <Route path="/dashboard/doctor/reviews" element={<DoctorPendingReviews />} />
+          <Route path="/dashboard/doctor/cases" element={<DoctorPatientCases />} />
+          <Route path="/dashboard/doctor/verified" element={<DoctorVerifiedCases />} />
           <Route path="/dashboard/doctor/consultations" element={<DoctorConsultations />} />
           <Route path="/dashboard/doctor/consultation/:id" element={<DoctorConsultationWorkspace />} />
           <Route path="/dashboard/doctor/messages" element={<MessagesUI role="doctor" />} />
           <Route path="/dashboard/doctor/payments" element={<DoctorPayments />} />
-          <Route path="/dashboard/doctor/history" element={<DoctorDashboard />} /> {/* Placeholder history */}
+          <Route path="/dashboard/doctor/history" element={<DoctorConsultationHistory />} />
+          <Route path="/dashboard/doctor/profile" element={<DoctorProfileView />} />
 
           <Route path="/dashboard/admin" element={<AdminDashboard />} />
         </Route>

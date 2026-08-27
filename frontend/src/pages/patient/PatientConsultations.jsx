@@ -1,44 +1,44 @@
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Video, Calendar, Clock, CreditCard, MessageSquare, Eye } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import '../Dashboard.css';
 
-const consultations = [
-  {
-    id: 1,
-    doctor: "Dr. Ananya Sharma",
-    clinic: "SmileCare Dental Clinic",
-    condition: "Caries",
-    date: "Oct 25, 2023",
-    fee: 500,
-    paymentStatus: "Pending",
-    status: "Payment Requested",
-    statusType: "warning"
-  },
-  {
-    id: 2,
-    doctor: "Dr. Rahul Nair",
-    clinic: "Dental Care Clinic",
-    condition: "Calculus",
-    date: "Oct 20, 2023",
-    fee: 600,
-    paymentStatus: "Paid",
-    status: "Completed",
-    statusType: "success"
-  },
-  {
-    id: 3,
-    doctor: "Dr. Priya Menon",
-    clinic: "Healthy Smile Clinic",
-    condition: "Gingivitis",
-    date: "Oct 26, 2023",
-    fee: 400,
-    paymentStatus: "Paid",
-    status: "Accepted",
-    statusType: "primary"
-  }
-];
-
 const PatientConsultations = () => {
+  const [expandedRow, setExpandedRow] = useState(null);
+  
+  let consultations = [];
+
+  try {
+    const savedData = localStorage.getItem("dental_consultations");
+    consultations = savedData ? JSON.parse(savedData) : [];
+    if (!Array.isArray(consultations)) consultations = [];
+  } catch (error) {
+    console.error("Failed to load consultations:", error);
+    consultations = [];
+  }
+
+  // Fallback function for status color
+  const getStatusType = (status) => {
+    switch (status) {
+      case 'Completed':
+      case 'Verified':
+        return 'success';
+      case 'Payment Requested':
+      case 'Pending Request':
+        return 'warning';
+      case 'Accepted':
+        return 'primary';
+      default:
+        return 'secondary';
+    }
+  };
+
+  const toggleRow = (id) => {
+    if (expandedRow === id) setExpandedRow(null);
+    else setExpandedRow(id);
+  };
+
   return (
     <div className="dashboard-view animate-fade-in">
       <div className="dashboard-header mb-6">
@@ -46,9 +46,9 @@ const PatientConsultations = () => {
         <p>Track your consultation requests, upcoming appointments, and past history.</p>
       </div>
 
-      <div className="card">
-        <div className="card-header mb-4 flex-between">
-          <h3>Consultation History</h3>
+      <div className="card glass-card" style={{ padding: '2rem' }}>
+        <div className="card-header mb-6 flex-between">
+          <h3 className="text-primary font-bold">Consultation History</h3>
           <Link to="/dashboard/patient/doctors" className="btn btn-outline btn-sm">Find New Doctor</Link>
         </div>
 
@@ -65,39 +65,103 @@ const PatientConsultations = () => {
               </tr>
             </thead>
             <tbody>
-              {consultations.map(cons => (
-                <tr key={cons.id}>
-                  <td>
-                    <div className="font-semibold text-primary">{cons.doctor}</div>
-                    <div className="text-sm text-muted">{cons.clinic}</div>
-                  </td>
-                  <td><span className="badge bg-blue-light text-blue">{cons.condition}</span></td>
-                  <td>
-                    <div className="flex-align-center gap-1 text-muted text-sm">
-                      <Calendar size={14} /> {cons.date}
-                    </div>
-                  </td>
-                  <td className="font-semibold">₹{cons.fee}</td>
-                  <td>
-                    <span className={`badge badge-${cons.statusType}`}>{cons.status}</span>
-                  </td>
-                  <td>
-                    <div className="flex-align-center gap-2">
-                      {cons.status === 'Payment Requested' && (
-                        <Link to="/dashboard/patient/payments" className="btn btn-primary btn-sm flex-align-center gap-1">
-                          <CreditCard size={14} /> Pay Now
-                        </Link>
-                      )}
-                      {cons.status === 'Accepted' && (
-                        <Link to="/dashboard/patient/messages" className="btn btn-success btn-sm flex-align-center gap-1">
-                          <MessageSquare size={14} /> Chat
-                        </Link>
-                      )}
-                      <button className="icon-btn"><Eye size={18} /></button>
-                    </div>
+              {consultations.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="text-center text-muted" style={{ padding: '3rem' }}>
+                    <h4 className="font-bold text-primary mb-2">No consultations found.</h4>
+                    <p>Select a doctor and start a new consultation request.</p>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                consultations.map(cons => {
+                  const doctorName = cons?.doctorName || cons?.doctor || 'Unknown Doctor';
+                  const clinicName = cons?.doctorSpecialization || cons?.clinic || 'Unknown Clinic';
+                  const condition = cons?.condition || 'N/A';
+                  const dateStr = cons?.date || 'N/A';
+                  const timeStr = cons?.time || '';
+                  const fee = cons?.fee || cons?.totalAmount || 0;
+                  const status = cons?.status || 'Pending';
+                  const statusType = cons?.statusType || getStatusType(status);
+                  const isExpanded = expandedRow === cons.id;
+
+                  return (
+                    <React.Fragment key={cons?.id || Math.random().toString()}>
+                      <motion.tr whileHover={{ backgroundColor: 'rgba(0, 210, 255, 0.05)' }} style={{ cursor: 'pointer' }} onClick={() => toggleRow(cons.id)}>
+                        <td>
+                          <div className="font-semibold text-primary">{doctorName}</div>
+                          <div className="text-sm text-muted">{clinicName}</div>
+                        </td>
+                        <td><span className="badge bg-blue-light text-blue">{condition}</span></td>
+                        <td>
+                          <div className="flex-align-center gap-1 text-muted text-sm">
+                            <Calendar size={14} /> {dateStr} {timeStr && `at ${timeStr}`}
+                          </div>
+                        </td>
+                        <td className="font-semibold">₹{fee}</td>
+                        <td>
+                          <span className={`badge badge-${statusType}`}>{status}</span>
+                        </td>
+                        <td>
+                          <div className="flex-align-center gap-2">
+                            {status === 'Payment Requested' && (
+                              <Link to="/dashboard/patient/payments" className="btn btn-primary btn-sm flex-align-center gap-1">
+                                <CreditCard size={14} /> Pay Now
+                              </Link>
+                            )}
+                            {status === 'Accepted' && (
+                              <Link to="/dashboard/patient/messages" className="btn btn-success btn-sm flex-align-center gap-1">
+                                <MessageSquare size={14} /> Chat
+                              </Link>
+                            )}
+                            <button className="icon-btn text-primary" onClick={(e) => { e.stopPropagation(); toggleRow(cons.id); }}>
+                              <Eye size={18} />
+                            </button>
+                          </div>
+                        </td>
+                      </motion.tr>
+                      
+                      {isExpanded && (
+                        <tr>
+                          <td colSpan="6" style={{ padding: 0, border: 'none' }}>
+                            <AnimatePresence>
+                              <motion.div 
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                style={{ overflow: 'hidden' }}
+                              >
+                                <div style={{ background: 'var(--bg-dark)', padding: '1.5rem', borderBottom: '1px solid var(--border-glass)' }}>
+                                  {status === 'Completed' || status === 'Verified' ? (
+                                    <div className="card glass-card" style={{ background: 'rgba(0, 210, 255, 0.05)', padding: '1.5rem', borderRadius: '12px' }}>
+                                      <h4 className="text-secondary font-bold mb-2 flex-align-center gap-2">
+                                        <MessageSquare size={18} /> Physician's Final Diagnosis
+                                      </h4>
+                                      <p className="text-main mb-4" style={{ lineHeight: 1.6, background: 'rgba(255,255,255,0.6)', padding: '12px', borderRadius: '8px', fontStyle: 'italic' }}>
+                                        {cons.finalDiagnosis || 'No specific diagnosis was documented.'}
+                                      </p>
+                                      
+                                      <h4 className="text-secondary font-bold mb-2 flex-align-center gap-2">
+                                        <Clock size={18} /> Treatment Plan & Recommendations
+                                      </h4>
+                                      <p className="text-main" style={{ lineHeight: 1.6, background: 'rgba(255,255,255,0.6)', padding: '12px', borderRadius: '8px', whiteSpace: 'pre-line' }}>
+                                        {cons.doctorNotes || 'No additional treatment plan was prescribed.'}
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <div className="text-center text-muted" style={{ padding: '1rem' }}>
+                                      This consultation is currently marked as <strong>{status}</strong>. Please wait for the doctor to review your case and provide a final diagnosis.
+                                    </div>
+                                  )}
+                                </div>
+                              </motion.div>
+                            </AnimatePresence>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

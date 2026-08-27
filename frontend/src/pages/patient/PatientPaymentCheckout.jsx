@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CheckCircle2, ChevronLeft, CreditCard, Lock, ShieldCheck, Smartphone, Landmark, Loader2 } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, CreditCard, Lock, ShieldCheck, Smartphone, Landmark, Loader2, Info } from 'lucide-react';
 import '../Dashboard.css';
 
 const PatientPaymentCheckout = () => {

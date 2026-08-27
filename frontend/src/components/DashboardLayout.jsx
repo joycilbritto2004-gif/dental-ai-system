@@ -60,15 +60,15 @@ const DashboardLayout = () => {
 
           {role === 'doctor' && (
             <>
-              <Link to="#" className="sidebar-link">
+              <Link to="/dashboard/doctor/reviews" className={`sidebar-link ${currentPath.includes('/doctor/reviews') ? 'active' : ''}`}>
                 <Stethoscope size={20} />
                 <span>Pending Reviews</span>
               </Link>
-              <Link to="#" className="sidebar-link">
+              <Link to="/dashboard/doctor/cases" className={`sidebar-link ${currentPath.includes('/doctor/cases') ? 'active' : ''}`}>
                 <Users size={20} />
                 <span>Patient Cases</span>
               </Link>
-              <Link to="#" className="sidebar-link">
+              <Link to="/dashboard/doctor/verified" className={`sidebar-link ${currentPath.includes('/doctor/verified') ? 'active' : ''}`}>
                 <CheckCircle2 size={20} />
                 <span>Verified Cases</span>
               </Link>
@@ -132,7 +132,7 @@ const DashboardLayout = () => {
           )}
 
           {role !== 'admin' && (
-            <Link to="#" className="sidebar-link">
+            <Link to={role === 'doctor' ? '/dashboard/doctor/profile' : '#'} className={`sidebar-link ${currentPath.includes('/profile') ? 'active' : ''}`}>
               <UserCircle size={20} />
               <span>My Profile</span>
             </Link>
