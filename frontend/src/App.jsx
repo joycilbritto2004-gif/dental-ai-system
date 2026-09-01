@@ -17,6 +17,9 @@ import ConsultationRequest from './pages/patient/ConsultationRequest';
 import PatientPayments from './pages/patient/PatientPayments';
 import PatientPaymentCheckout from './pages/patient/PatientPaymentCheckout';
 import PatientConsultations from './pages/patient/PatientConsultations';
+import PatientHealthTips from './pages/patient/PatientHealthTips';
+import PatientReports from './pages/patient/PatientReports';
+import PatientReportDetails from './pages/patient/PatientReportDetails';
 
 // Shared
 import MessagesUI from './pages/shared/MessagesUI';
@@ -58,8 +61,12 @@ function App() {
         {/* Dashboard Routes with Sidebar */}
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard/patient" element={<PatientDashboard />} />
-          <Route path="/dashboard/patient/doctors" element={<RecommendedDoctors />} />
+
+          <Route path="/dashboard/patient/recommended-doctors" element={<RecommendedDoctors />} />
+          <Route path="/dashboard/patient/reports" element={<PatientReports />} />
+          <Route path="/dashboard/patient/reports/:id" element={<PatientReportDetails />} />
           <Route path="/dashboard/patient/predictions" element={<PatientPredictions />} />
+          <Route path="/dashboard/patient/health-tips" element={<PatientHealthTips />} />
           <Route path="/dashboard/patient/doctor/:id" element={<DoctorProfile />} />
           <Route path="/dashboard/patient/consult-request/:id" element={<ConsultationRequest />} />
           <Route path="/dashboard/patient/consultations" element={<PatientConsultations />} />

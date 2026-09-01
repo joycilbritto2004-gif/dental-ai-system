@@ -2,6 +2,7 @@
   display: flex;
   min-height: 100vh;
   background-color: var(--bg-main);
+  color: var(--text-main);
 }
 
 .dashboard-sidebar {
@@ -60,7 +61,8 @@
 .sidebar-link.active {
   background-color: var(--secondary);
   color: white;
-  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+  box-shadow: 0 4px 12px rgba(6, 198, 232, 0.3);
+  font-weight: 600;
 }
 
 .sidebar-footer {
@@ -84,17 +86,32 @@
   flex-direction: column;
 }
 
+.patient-dashboard-main {
+  position: relative;
+  background-image: 
+    linear-gradient(
+      rgba(245, 248, 252, 0.92), 
+      rgba(245, 248, 252, 0.95)
+    ), 
+    url("../assets/doctor-patient-bg.png");
+  background-size: cover;
+  background-position: center right;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
 .dashboard-header-top {
   height: var(--nav-height);
-  background-color: var(--bg-card);
+  background-color: white;
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 2rem;
+  padding: 0 2.5rem;
   position: sticky;
   top: 0;
   z-index: 30;
+  box-shadow: var(--shadow-sm);
 }
 
 .header-title h3 {

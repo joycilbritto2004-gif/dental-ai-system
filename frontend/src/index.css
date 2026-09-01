@@ -1,25 +1,25 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-  /* Premium 3D Futuristic Medical Palette */
-  --primary: #0a192f;       /* Deep Medical Blue */
-  --primary-light: #172a45;
-  --secondary: #00d2ff;     /* Futuristic Cyan */
-  --secondary-hover: #00b4db;
-  --accent: #3a86ff;        /* Vibrant Blue */
+  /* Premium Modern Dental/Healthcare Aesthetic */
+  --primary: #071A33;       /* Deep Navy */
+  --primary-light: #0B1F3A; /* Lighter Navy */
+  --secondary: #06C6E8;     /* Modern Cyan */
+  --secondary-hover: #00A3C4;
+  --accent: #00BFA6;        /* Teal */
   
-  --bg-main: #f4f8fb;       /* Soft clinic white */
-  --bg-card: rgba(255, 255, 255, 0.85); /* Glassmorphism base */
-  --bg-dark: #040c18;       /* Deep space for dark sections */
+  --bg-main: #F5F8FC;       /* Light clean dashboard background */
+  --bg-card: #FFFFFF;       /* Clean white cards */
+  --bg-dark: #071A33;       /* Very deep for hero sections */
   
-  --text-main: #0f172a;     
+  --text-main: #071A33;     
   --text-muted: #64748b;    
   --text-inverse: #ffffff;
   
-  --border-color: rgba(226, 232, 240, 0.6);
-  --border-glass: rgba(255, 255, 255, 0.5);
+  --border-color: rgba(7, 26, 51, 0.1);
+  --border-glass: rgba(7, 26, 51, 0.05);
   
-  --success: #10b981; /* Premium Emerald */
+  --success: #10b981;
   --warning: #f59e0b;
   --danger: #ef4444;
 
@@ -28,22 +28,22 @@
   --font-heading: 'Outfit', system-ui, sans-serif;
   
   /* Layout */
-  --nav-height: 72px;
-  --sidebar-width: 260px;
+  --nav-height: 80px; /* Slightly taller for premium feel */
+  --sidebar-width: 280px; /* More spacious */
   
-  /* Modern Corners */
+  /* Smooth Modern Corners */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 24px;
   
-  /* Soft, 3D Shadows */
-  --shadow-sm: 0 2px 8px rgba(10, 25, 47, 0.04);
-  --shadow-md: 0 8px 20px rgba(10, 25, 47, 0.06), inset 0 1px 0 rgba(255,255,255,0.6);
-  --shadow-lg: 0 15px 35px rgba(10, 25, 47, 0.08), inset 0 1px 0 rgba(255,255,255,0.8);
+  /* Soft, Premium Shadows */
+  --shadow-sm: 0 2px 4px rgba(7, 26, 51, 0.04);
+  --shadow-md: 0 4px 12px rgba(7, 26, 51, 0.06);
+  --shadow-lg: 0 10px 25px rgba(7, 26, 51, 0.08);
   
   /* Gradients */
-  --gradient-primary: linear-gradient(135deg, var(--primary) 0%, #1e3a8a 100%);
+  --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
   --gradient-secondary: linear-gradient(135deg, var(--secondary) 0%, var(--accent) 100%);
 }
 
@@ -150,11 +150,11 @@ button {
   transform: translateY(-1px);
 }
 
-/* Solid Professional Glassmorphic Cards */
+/* Solid Professional Cards */
 .card {
-  background-color: var(--bg-card);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   padding: 1.5rem;

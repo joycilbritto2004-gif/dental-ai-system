@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, Activity, Image as ImageIcon, HeartPulse, CheckCircle2, Clock, Info, X, ShieldCheck, Search, User, MapPin, Calendar, DollarSign, Star, Zap, AlertCircle } from 'lucide-react';
+import { Upload, Activity, Image as ImageIcon, HeartPulse, CheckCircle2, Clock, Info, X, ShieldCheck, Search, User, MapPin, Calendar, DollarSign, Star, Zap, AlertCircle, AlertTriangle } from 'lucide-react';
 import './Dashboard.css';
 
 const recommendedDoctors = [
@@ -45,6 +45,12 @@ const PatientDashboard = () => {
     show: { opacity: 1, transition: { staggerChildren: 0.1 } }
   };
   const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
+
+  // Calculate Dynamic KPIs
+  const totalScans = scanHistory.length;
+  const verifiedScans = scanHistory.filter(s => s.confidence > 90).length;
+  const pendingScans = scanHistory.filter(s => s.confidence > 70 && s.confidence <= 90).length;
+  const healthStatus = totalScans === 0 ? "N/A" : (scanHistory[0].confidence > 90 ? "Good" : scanHistory[0].confidence > 70 ? "Attention" : "Critical");
 
   const handleImageChange = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -112,7 +118,7 @@ const PatientDashboard = () => {
               confidence: data.confidence,
               recommendation: data.recommendation,
               scanId,
-              imagePath: 'uploaded_image' // Hardcoded for demo if no real upload path
+              imagePath: data.imagePath || 'uploaded_image' // Use path from AI or fallback
             };
 
             const saveRes = await fetch('http://localhost:5000/api/scans', {
@@ -145,17 +151,26 @@ const PatientDashboard = () => {
       animate="show"
       variants={stagger}
     >
-      <motion.div variants={item} className="dashboard-header">
-        <h2>Welcome back 👋</h2>
-        <p>Monitor your dental health with advanced AI insights.</p>
+      <motion.div variants={item} className="dashboard-header" style={{
+        position: 'relative',
+        padding: '2.5rem',
+        background: 'linear-gradient(135deg, rgba(6, 198, 232, 0.05) 0%, rgba(0, 191, 166, 0.05) 100%)',
+        border: '1px solid rgba(6, 198, 232, 0.1)',
+        borderRadius: 'var(--radius-lg)',
+        overflow: 'hidden',
+        marginBottom: '2rem'
+      }}>
+        <div style={{ position: 'absolute', top: '-50%', right: '-10%', width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(6,198,232,0.1) 0%, transparent 70%)', filter: 'blur(40px)' }}></div>
+        <h2 style={{ position: 'relative', zIndex: 1, fontSize: '2.5rem', color: 'var(--primary)' }}>Welcome back, 👋</h2>
+        <p style={{ position: 'relative', zIndex: 1, color: 'var(--text-muted)' }}>Monitor your dental health with advanced AI insights.</p>
       </motion.div>
 
       {/* KPI Cards */}
       <motion.div variants={stagger} className="kpi-grid">
-        <KPICard icon={<ImageIcon size={24} />} value="12" label="Total Scans" color="blue" />
-        <KPICard icon={<Clock size={24} />} value="2" label="Pending Review" color="warning" />
-        <KPICard icon={<CheckCircle2 size={24} />} value="10" label="Verified Results" color="success" />
-        <KPICard icon={<HeartPulse size={24} />} value="Good" label="Health Status" color="primary" />
+        <KPICard icon={<ImageIcon size={24} />} value={totalScans.toString()} label="Total Scans" color="secondary" />
+        <KPICard icon={<Clock size={24} />} value={pendingScans.toString()} label="Pending Reviews" color="warning" />
+        <KPICard icon={<CheckCircle2 size={24} />} value={verifiedScans.toString()} label="Verified Results" color="success" />
+        <KPICard icon={<HeartPulse size={24} />} value={healthStatus} label="Health Status" color="primary" />
       </motion.div>
 
       <div className="dashboard-grid mt-6">
@@ -251,37 +266,37 @@ const PatientDashboard = () => {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="prediction-result mt-6" 
-                style={{ padding: '24px', background: 'var(--bg-dark)', border: '1px solid rgba(0, 210, 255, 0.3)', borderRadius: '16px', color: 'white', position: 'relative', overflow: 'hidden' }}
+                style={{ padding: '24px', background: 'white', border: '1px solid rgba(6, 198, 232, 0.3)', borderRadius: '16px', color: 'var(--primary)', position: 'relative', overflow: 'hidden', boxShadow: 'var(--shadow-md)' }}
               >
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(circle at top right, rgba(0, 210, 255, 0.15), transparent 70%)', pointerEvents: 'none' }}></div>
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(circle at top right, rgba(6, 198, 232, 0.05), transparent 70%)', pointerEvents: 'none' }}></div>
                 
-                <h4 style={{ margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: '8px', color: '#00f0ff' }}>
+                <h4 style={{ margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--secondary)' }}>
                   <ShieldCheck size={24} /> Neural Network Analysis Complete
                 </h4>
                 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px', position: 'relative', zIndex: 2 }}>
-                  <div style={{ background: 'rgba(255,255,255,0.05)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '1px' }}>Detected Anomaly</span>
-                    <div style={{ fontSize: '20px', fontWeight: 700, color: 'white', marginTop: '4px', textTransform: 'capitalize' }}>
+                  <div style={{ background: 'var(--bg-main)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-glass)' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Detected Anomaly</span>
+                    <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--primary)', marginTop: '4px', textTransform: 'capitalize' }}>
                       {predictionResult.condition?.replace('_', ' ')}
                     </div>
                   </div>
-                  <div style={{ background: 'rgba(255,255,255,0.05)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '1px' }}>Confidence Score</span>
+                  <div style={{ background: 'var(--bg-main)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-glass)' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Confidence Score</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
-                      <div style={{ fontSize: '20px', fontWeight: 700, color: '#00f0ff' }}>{predictionResult.confidence}%</div>
-                      <div style={{ flex: 1, height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
-                        <motion.div initial={{ width: 0 }} animate={{ width: `${predictionResult.confidence}%` }} transition={{ duration: 1 }} style={{ height: '100%', background: '#00f0ff', boxShadow: '0 0 10px #00f0ff' }}></motion.div>
+                      <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--secondary)' }}>{predictionResult.confidence}%</div>
+                      <div style={{ flex: 1, height: '4px', background: 'rgba(6, 198, 232, 0.1)', borderRadius: '2px', overflow: 'hidden' }}>
+                        <motion.div initial={{ width: 0 }} animate={{ width: `${predictionResult.confidence}%` }} transition={{ duration: 1 }} style={{ height: '100%', background: 'var(--secondary)', boxShadow: '0 0 10px var(--secondary)' }}></motion.div>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div style={{ background: 'rgba(0, 210, 255, 0.05)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(0, 210, 255, 0.2)', position: 'relative', zIndex: 2 }}>
-                  <span style={{ fontSize: '12px', color: '#00f0ff', textTransform: 'uppercase', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ background: 'rgba(6, 198, 232, 0.05)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(6, 198, 232, 0.2)', position: 'relative', zIndex: 2 }}>
+                  <span style={{ fontSize: '12px', color: 'var(--secondary)', textTransform: 'uppercase', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Info size={14} /> Clinical Recommendation
                   </span>
-                  <p style={{ margin: '8px 0 0 0', fontSize: '14px', color: 'rgba(255,255,255,0.8)', lineHeight: '1.6' }}>
+                  <p style={{ margin: '8px 0 0 0', fontSize: '14px', color: 'var(--text-main)', lineHeight: '1.6' }}>
                     {predictionResult.recommendation}
                   </p>
                 </div>
@@ -306,10 +321,10 @@ const PatientDashboard = () => {
                 <h4 style={{ margin: '0 0 20px 0', color: 'var(--primary)', fontSize: '1.25rem', fontWeight: 700 }}>Recommended Specialists</h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   {recommendedDoctors.map((doc) => (
-                    <motion.div key={doc.id} variants={item} whileHover={{ y: -5 }} style={{ display: 'flex', flexDirection: 'column', padding: '20px', background: 'var(--bg-card)', border: '1px solid var(--border-glass)', borderRadius: '16px', boxShadow: 'var(--shadow-sm)', backdropFilter: 'blur(20px)' }}>
+                    <motion.div key={doc.id} variants={item} whileHover={{ y: -5 }} style={{ display: 'flex', flexDirection: 'column', padding: '20px', background: 'white', border: '1px solid var(--border-glass)', borderRadius: '16px', boxShadow: 'var(--shadow-sm)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                          <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--secondary), var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 10px rgba(0, 210, 255, 0.3)' }}>
+                          <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--secondary), var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 10px rgba(6, 198, 232, 0.3)' }}>
                             <User size={28} />
                           </div>
                           <div>
@@ -322,7 +337,7 @@ const PatientDashboard = () => {
                         </div>
                       </div>
                       
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px', fontSize: '14px', color: 'var(--text-main)', background: 'rgba(255,255,255,0.5)', padding: '12px', borderRadius: '8px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px', fontSize: '14px', color: 'var(--text-main)', background: 'var(--bg-main)', padding: '12px', borderRadius: '8px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Calendar size={16} className="text-secondary" /> {doc.exp} exp.</div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><MapPin size={16} className="text-secondary" /> {doc.loc}</div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><DollarSign size={16} className="text-secondary" /> {doc.fee} / visit</div>
@@ -342,13 +357,13 @@ const PatientDashboard = () => {
 
         {/* Right Column */}
         <div className="dashboard-right-col">
-          <motion.div variants={item} className="card health-tip-card" style={{ background: 'linear-gradient(135deg, rgba(0, 210, 255, 0.1), rgba(255, 255, 255, 0.8))', border: '1px solid rgba(0, 210, 255, 0.2)' }}>
-            <div className="tip-icon" style={{ background: 'var(--primary)', color: '#00f0ff' }}>
+          <motion.div variants={item} className="card health-tip-card" style={{ background: 'linear-gradient(135deg, rgba(6, 198, 232, 0.1), rgba(255, 255, 255, 0.8))', border: '1px solid rgba(6, 198, 232, 0.2)' }}>
+            <div className="tip-icon" style={{ background: 'white', color: 'var(--secondary)', boxShadow: '0 2px 8px rgba(6, 198, 232, 0.2)' }}>
               <Info size={24} />
             </div>
             <div className="tip-content">
               <h4 style={{ color: 'var(--primary)' }}>System Tip</h4>
-              <p>For the most accurate AI prediction, ensure your intraoral images are well-lit and clearly focused on the affected area.</p>
+              <p style={{ color: 'var(--text-muted)' }}>For the most accurate AI prediction, ensure your intraoral images are well-lit and clearly focused on the affected area.</p>
             </div>
           </motion.div>
 
@@ -366,15 +381,15 @@ const PatientDashboard = () => {
                 scanHistory.slice(0, 5).map((scan) => {
                   const dateObj = new Date(scan.createdAt);
                   const color = scan.confidence > 90 ? 'success' : scan.confidence > 70 ? 'warning' : 'danger';
-                  const icon = scan.confidence > 90 ? <ShieldCheck size={18} /> : scan.confidence > 70 ? <Clock size={18} /> : <AlertCircle size={18} />;
+                  const icon = scan.confidence > 90 ? <ShieldCheck size={18} /> : scan.confidence > 70 ? <Clock size={18} /> : <AlertTriangle size={18} />;
                   return (
-                    <div key={scan._id || scan.scanId} className="list-item" style={{ background: 'rgba(255,255,255,0.5)' }}>
+                    <div key={scan._id || scan.scanId} className="list-item" style={{ background: 'var(--bg-main)' }}>
                       <div className="list-info">
                         <div className={`list-icon`} style={{ background: `var(--${color})`, opacity: 0.1, position: 'absolute', width: '36px', height: '36px', borderRadius: '8px' }}></div>
                         <div className="list-icon" style={{ color: `var(--${color})`, position: 'relative' }}>{icon}</div>
                         <div>
                           <h4 style={{ color: 'var(--primary)' }}>{scan.condition.replace('_', ' ')} <span style={{fontSize:'0.8rem', opacity:0.7}}>({scan.confidence}%)</span></h4>
-                          <p>{dateObj.toLocaleDateString()}</p>
+                          <p style={{ color: 'var(--text-muted)' }}>{dateObj.toLocaleDateString()}</p>
                         </div>
                       </div>
                     </div>
@@ -391,17 +406,17 @@ const PatientDashboard = () => {
 
 const KPICard = ({ icon, value, label, color }) => (
   <motion.div 
-    className="kpi-card glass-card"
+    className="kpi-card"
     variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }}
     whileHover={{ y: -5 }}
-    style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '24px', background: 'var(--bg-card)' }}
+    style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '24px', background: 'rgba(255, 255, 255, 0.88)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', borderRadius: '16px', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-glass)' }}
   >
     <div style={{ position: 'relative', width: '60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ position: 'absolute', inset: 0, background: `var(--${color})`, opacity: 0.1, borderRadius: '16px' }}></div>
+      <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(135deg, var(--${color}) 0%, transparent 100%)`, opacity: 0.1, borderRadius: '16px' }}></div>
       <div style={{ color: color === 'primary' ? 'var(--secondary)' : `var(--${color})`, zIndex: 1 }}>{icon}</div>
     </div>
     <div>
-      <span style={{ display: 'block', fontSize: '28px', fontWeight: 800, color: 'var(--primary)', lineHeight: 1.2 }}>{value}</span>
+      <span style={{ display: 'block', fontSize: '32px', fontWeight: 800, color: 'var(--primary)', lineHeight: 1.2 }}>{value}</span>
       <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 600 }}>{label}</span>
     </div>
   </motion.div>

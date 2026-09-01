@@ -59,27 +59,28 @@
 
 /* Upload Zone */
 .upload-zone {
-  border: 2px dashed rgba(0, 210, 255, 0.4);
+  border: 2px dashed rgba(6, 198, 232, 0.4);
   border-radius: var(--radius-lg);
   padding: 3rem 2rem;
   text-align: center;
-  background-color: rgba(0, 210, 255, 0.05);
+  background-color: rgba(6, 198, 232, 0.05);
   transition: all 0.3s ease;
 }
 .upload-zone:hover {
   border-color: var(--secondary);
-  background-color: rgba(0, 210, 255, 0.1);
+  background-color: rgba(6, 198, 232, 0.1);
 }
 .upload-icon-wrapper {
   width: 72px;
   height: 72px;
   background: white;
+  color: var(--secondary);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 1.5rem;
-  box-shadow: 0 10px 25px rgba(0, 210, 255, 0.2);
+  box-shadow: 0 10px 25px rgba(6, 198, 232, 0.2);
 }
 .upload-zone h4 {
   font-size: 1.25rem;
@@ -108,7 +109,6 @@
   border-radius: var(--radius-md);
   border: 1px solid var(--border-glass);
   background: var(--bg-card);
-  backdrop-filter: blur(10px);
 }
 .list-info, .queue-info {
   display: flex;
@@ -123,7 +123,7 @@
   align-items: center;
   justify-content: center;
 }
-.list-info h4 { font-size: 1.05rem; font-weight: 700; }
+.list-info h4 { font-size: 1.05rem; font-weight: 700; color: var(--primary); }
 .list-info p { font-size: 0.9rem; color: var(--text-muted); }
 .list-action { display: flex; align-items: center; gap: 1rem; }
 
@@ -139,7 +139,7 @@
 
 .bg-warning-light { background-color: rgba(245, 158, 11, 0.1); }
 .bg-success-light { background-color: rgba(16, 185, 129, 0.1); }
-.bg-blue-light { background-color: rgba(0, 210, 255, 0.1); }
+.bg-blue-light { background-color: rgba(6, 182, 212, 0.1); }
 .bg-danger-light { background-color: rgba(239, 68, 68, 0.1); }
 
 .text-warning { color: #d97706; }
@@ -148,6 +148,7 @@
 .text-danger { color: #dc2626; }
 .text-primary { color: var(--primary); }
 .text-secondary { color: var(--secondary); }
+.text-muted { color: var(--text-muted); }
 
 /* Doctor Workspace New Layout */
 .review-workspace-card {

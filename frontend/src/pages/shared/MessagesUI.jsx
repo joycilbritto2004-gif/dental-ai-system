@@ -1,10 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Send, Image as ImageIcon, BrainCircuit, Search, MoreVertical, FileText, X, Info, CreditCard, CheckCircle2, MessageSquare } from 'lucide-react';
 import '../Dashboard.css';
 
 const MessagesUI = ({ role = 'patient' }) => {
+  const { state } = useLocation();
+  const initialConsultationId = state?.consultationId || null;
+
   const [consultations, setConsultations] = useState([]);
-  const [selectedConsultationId, setSelectedConsultationId] = useState(null);
+  const [selectedConsultationId, setSelectedConsultationId] = useState(initialConsultationId);
   
   const [allMessages, setAllMessages] = useState([]);
   const [inputText, setInputText] = useState('');
@@ -13,48 +17,65 @@ const MessagesUI = ({ role = 'patient' }) => {
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
+  // Fetch Consultations from backend
   useEffect(() => {
-    // Load consultations
-    try {
-      const storedConsultations = JSON.parse(localStorage.getItem('dental_consultations') || '[]');
-      
-      let relevantConsultations = storedConsultations;
-      if (role === 'doctor') {
-        relevantConsultations = storedConsultations.filter(c => c.doctorId === "1");
+    const fetchConsultations = async () => {
+      try {
+        const url = role === 'doctor' 
+          ? 'http://localhost:5000/api/consultations?doctorId=3'
+          : 'http://localhost:5000/api/consultations';
+        
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Failed to fetch consultations');
+        
+        const data = await res.json();
+        
+        // Filter out Pending Requests and Rejected as they haven't started a chat yet
+        const activeConsultations = data.filter(c => 
+          c.status === 'Accepted' || 
+          c.status === 'Payment Requested' || 
+          c.status === 'Paid' || 
+          c.status === 'Completed' ||
+          c.status === 'Verified' ||
+          c.paymentStatus === 'Paid'
+        );
+
+        // Sort by newest first
+        activeConsultations.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        setConsultations(activeConsultations);
+        
+        if (activeConsultations.length > 0 && !selectedConsultationId) {
+          setSelectedConsultationId(activeConsultations[0].id);
+        }
+      } catch (e) {
+        console.error("Error loading consultations:", e);
       }
+    };
+    fetchConsultations();
+  }, [role, selectedConsultationId]);
 
-      // Filter out Pending Requests and Rejected as they haven't started a chat yet
-      const activeConsultations = relevantConsultations.filter(c => 
-        c.status === 'Accepted' || 
-        c.status === 'Payment Requested' || 
-        c.status === 'Paid' || 
-        c.status === 'Completed' ||
-        c.status === 'Verified' ||
-        c.paymentStatus === 'Paid'
-      );
+  // Fetch Messages for selected consultation
+  useEffect(() => {
+    if (!selectedConsultationId) return;
 
-      // Sort by newest first
-      activeConsultations.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-
-      setConsultations(activeConsultations);
-      
-      if (activeConsultations.length > 0 && !selectedConsultationId) {
-        setSelectedConsultationId(activeConsultations[0].id);
+    const fetchMessages = async () => {
+      try {
+        const res = await fetch(`http://localhost:5000/api/messages/${selectedConsultationId}`);
+        if (!res.ok) throw new Error('Failed to fetch messages');
+        const data = await res.json();
+        setAllMessages(data);
+      } catch (e) {
+        console.error("Error loading messages:", e);
       }
-    } catch (e) {
-      console.error("Error loading consultations:", e);
-    }
+    };
 
-    // Load messages
-    try {
-      const storedMessages = JSON.parse(localStorage.getItem('dental_messages') || '[]');
-      setAllMessages(storedMessages);
-    } catch (e) {
-      console.error("Error loading messages:", e);
-    }
-  }, [role]);
+    fetchMessages();
+    // Optional: implement polling for real-time messages here
+    const interval = setInterval(fetchMessages, 3000);
+    return () => clearInterval(interval);
+  }, [selectedConsultationId]);
 
-  const activeMessages = allMessages.filter(m => String(m.consultationId) === String(selectedConsultationId));
+  const activeMessages = allMessages;
   const activeConsultation = consultations.find(c => String(c.id) === String(selectedConsultationId));
 
   const scrollToBottom = () => {
@@ -65,14 +86,23 @@ const MessagesUI = ({ role = 'patient' }) => {
     scrollToBottom();
   }, [activeMessages.length, selectedConsultationId]);
 
-  const saveMessage = (newMessageObj) => {
-    const updatedMessages = [...allMessages, newMessageObj];
-    setAllMessages(updatedMessages);
-    localStorage.setItem('dental_messages', JSON.stringify(updatedMessages));
-  };
-
   const getFormattedTime = () => {
     return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const saveMessage = async (newMessageObj) => {
+    try {
+      const res = await fetch('http://localhost:5000/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newMessageObj)
+      });
+      if (!res.ok) throw new Error('Failed to save message');
+      const savedMessage = await res.json();
+      setAllMessages(prev => [...prev, savedMessage]);
+    } catch (e) {
+      console.error("Error saving message:", e);
+    }
   };
 
   const handleSend = (e) => {
@@ -82,26 +112,22 @@ const MessagesUI = ({ role = 'patient' }) => {
 
     if (selectedImage) {
       saveMessage({
-        id: Date.now(),
         consultationId: selectedConsultationId,
         type: 'image',
         sender: role,
         image: selectedImage,
-        time: getFormattedTime(),
-        timestamp: new Date().toISOString()
+        time: getFormattedTime()
       });
       setSelectedImage(null);
     }
     
     if (inputText.trim()) {
       saveMessage({
-        id: Date.now() + 1,
         consultationId: selectedConsultationId,
         type: 'text',
         sender: role,
         text: inputText.trim(),
-        time: getFormattedTime(),
-        timestamp: new Date().toISOString()
+        time: getFormattedTime()
       });
       setInputText('');
     }
@@ -109,15 +135,20 @@ const MessagesUI = ({ role = 'patient' }) => {
 
   const handleImageChange = (e) => {
     if (e.target.files && e.target.files[0]) {
-      setSelectedImage(URL.createObjectURL(e.target.files[0]));
+      // In a real app, upload the file to a server and get URL. 
+      // For this demo, using Data URL.
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setSelectedImage(event.target.result);
+      };
+      reader.readAsDataURL(e.target.files[0]);
     }
   };
 
   const shareAiReport = () => {
     if (!activeConsultation) return;
     
-    saveMessage({ 
-      id: Date.now(), 
+    saveMessage({
       consultationId: selectedConsultationId,
       type: 'ai-report',
       sender: role, 
@@ -126,8 +157,7 @@ const MessagesUI = ({ role = 'patient' }) => {
         confidence: activeConsultation.confidence || '0%',
         status: 'Awaiting Doctor Verification'
       },
-      time: getFormattedTime(),
-      timestamp: new Date().toISOString()
+      time: getFormattedTime()
     });
   };
 
@@ -135,13 +165,11 @@ const MessagesUI = ({ role = 'patient' }) => {
     if (!activeConsultation) return;
     
     saveMessage({
-      id: Date.now(),
       consultationId: selectedConsultationId,
       type: 'payment-request',
       sender: 'doctor',
       amount: activeConsultation.fee || activeConsultation.totalAmount || 500,
-      time: getFormattedTime(),
-      timestamp: new Date().toISOString()
+      time: getFormattedTime()
     });
     setShowPaymentModal(false);
   };
@@ -152,7 +180,7 @@ const MessagesUI = ({ role = 'patient' }) => {
     : 'Select a conversation';
   
   const chatPartnerTitle = activeConsultation
-    ? (role === 'patient' ? (activeConsultation.doctorSpecialization || 'Dentist') : `Patient ID: P-${activeConsultation.id.toString().substring(0, 5)}`)
+    ? (role === 'patient' ? (activeConsultation.doctorSpecialization || 'Dentist') : `Patient ID: P-${activeConsultation.id?.toString().substring(0, 5) || '00000'}`)
     : '';
 
   const getPartnerInitials = (name) => {
@@ -192,14 +220,12 @@ const MessagesUI = ({ role = 'patient' }) => {
             ) : (
               consultations.map(c => {
                 const partnerName = role === 'patient' ? (c.doctorName || 'Doctor') : (c.patientName || 'Patient');
-                const partnerTitle = role === 'patient' ? (c.doctorSpecialization || 'Dentist') : `ID: P-${c.id.toString().substring(0, 5)}`;
+                const partnerTitle = role === 'patient' ? (c.doctorSpecialization || 'Dentist') : `ID: P-${c.id?.toString().substring(0, 5) || '00000'}`;
                 const initials = getPartnerInitials(partnerName);
                 const isActive = String(c.id) === String(selectedConsultationId);
                 
-                // Find last message for this consultation
-                const cMessages = allMessages.filter(m => String(m.consultationId) === String(c.id));
-                const lastMessage = cMessages.length > 0 ? cMessages[cMessages.length - 1] : null;
-
+                // Assuming we don't have lastMessage fetched for ALL consultations here directly,
+                // we can just show 'Click to chat' or the condition.
                 return (
                   <div 
                     key={c.id} 
@@ -214,11 +240,11 @@ const MessagesUI = ({ role = 'patient' }) => {
                       <div className="flex-1" style={{ overflow: 'hidden' }}>
                         <div className="flex-between mb-1">
                           <span className="font-semibold text-primary" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{partnerName}</span>
-                          <span className="text-xs text-muted">{lastMessage ? lastMessage.time : c.date}</span>
+                          <span className="text-xs text-muted">{c.time || c.date}</span>
                         </div>
                         <div className="text-xs text-muted mb-1">{partnerTitle}</div>
                         <p className="text-sm text-muted" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {lastMessage ? (lastMessage.type === 'text' ? lastMessage.text : (lastMessage.type === 'image' ? '📸 Image' : '📄 Report/Request')) : 'Click to start chatting...'}
+                          Condition: {c.condition || 'N/A'}
                         </p>
                       </div>
                     </div>
@@ -310,15 +336,15 @@ const MessagesUI = ({ role = 'patient' }) => {
                             </div>
                             <div className="mb-2">
                               <span className="text-xs text-muted block mb-1">Detected Condition:</span>
-                              <span className="font-bold text-main">{msg.report.condition}</span>
+                              <span className="font-bold text-main">{msg.report?.condition}</span>
                             </div>
                             <div className="mb-2">
                               <span className="text-xs text-muted block mb-1">AI Confidence:</span>
-                              <span className="font-bold text-secondary">{msg.report.confidence}</span>
+                              <span className="font-bold text-secondary">{msg.report?.confidence}</span>
                             </div>
                             <div className="mb-3">
                               <span className="text-xs text-muted block mb-1">Status:</span>
-                              <span className="badge badge-warning">{msg.report.status}</span>
+                              <span className="badge badge-warning">{msg.report?.status}</span>
                             </div>
                             <div className="bg-main p-2 rounded text-center text-xs text-muted mt-2">
                               <ImageIcon size={14} className="inline mr-1" /> Uploaded Image Available

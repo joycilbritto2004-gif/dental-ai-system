@@ -14,32 +14,43 @@ const DoctorConsultationWorkspace = () => {
   const [doctorNotes, setDoctorNotes] = useState('');
 
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem('dental_consultations') || '[]');
-    const record = stored.find(c => c.id.toString() === id.toString());
-    
-    if (record) {
-      setConsultation(record);
-      setFinalDiagnosis(record.finalDiagnosis || '');
-      setDoctorNotes(record.doctorNotes || '');
-      if (record.status === 'Completed' || record.status === 'Verified') setIsCompleted(true);
-    }
+    const fetchConsultation = async () => {
+      try {
+        const res = await fetch(`http://localhost:5000/api/consultations/${id}`);
+        if (!res.ok) throw new Error('Failed to fetch');
+        const record = await res.json();
+        
+        if (record) {
+          setConsultation(record);
+          setFinalDiagnosis(record.finalDiagnosis || '');
+          setDoctorNotes(record.doctorNotes || '');
+          if (record.status === 'Completed' || record.status === 'Verified') setIsCompleted(true);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchConsultation();
   }, [id]);
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     if (!finalDiagnosis) {
       alert("Please enter a final diagnosis before completing.");
       return;
     }
     
-    setIsCompleted(true);
-    if (consultation && consultation.id) {
-      const stored = JSON.parse(localStorage.getItem('dental_consultations') || '[]');
-      const updated = stored.map(c => 
-        c.id === consultation.id 
-        ? { ...c, status: 'Completed', finalDiagnosis, doctorNotes } 
-        : c
-      );
-      localStorage.setItem('dental_consultations', JSON.stringify(updated));
+    try {
+      const res = await fetch(`http://localhost:5000/api/consultations/${consultation.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Completed', finalDiagnosis, doctorNotes })
+      });
+      if (!res.ok) throw new Error('Failed to update');
+      setIsCompleted(true);
+      setConsultation(prev => ({ ...prev, status: 'Completed', finalDiagnosis, doctorNotes }));
+    } catch (err) {
+      console.error(err);
+      alert('Failed to save consultation data.');
     }
   };
 
@@ -114,8 +125,12 @@ const DoctorConsultationWorkspace = () => {
           </motion.div>
 
           <motion.div variants={item} className="xray-preview-large mb-6" style={{ background: 'var(--bg-dark)', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(0, 210, 255, 0.2)', position: 'relative' }}>
-            {consultation.imageReference ? (
-              <img src={consultation.imageReference} alt="Patient Dental Scan" style={{ width: '100%', height: 'auto', objectFit: 'cover' }} />
+            {(consultation.scanId?.imagePath && consultation.scanId?.imagePath !== 'uploaded_image') || consultation.imageReference ? (
+              <img 
+                src={(consultation.scanId?.imagePath?.startsWith('http') ? consultation.scanId.imagePath : (consultation.scanId?.imagePath ? `http://localhost:5000${consultation.scanId.imagePath}` : null)) || consultation.imageReference} 
+                alt="Patient Dental Scan" 
+                style={{ width: '100%', height: 'auto', objectFit: 'cover' }} 
+              />
             ) : (
               <div className="xray-placeholder-scan" style={{ padding: '4rem 2rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '300px' }}>
                 <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'radial-gradient(circle, rgba(0, 210, 255, 0.1) 0%, transparent 60%)', zIndex: 0 }}></div>
@@ -148,18 +163,29 @@ const DoctorConsultationWorkspace = () => {
             <div style={{ background: 'rgba(255,255,255,0.05)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', marginBottom: '20px', position: 'relative', zIndex: 2 }}>
               <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '1px' }}>Identified Pathology</span>
               <div style={{ fontSize: '24px', fontWeight: 800, color: 'white', marginTop: '4px', textTransform: 'capitalize' }}>
-                {consultation.condition || 'N/A'}
+                {consultation.scanId?.condition?.replace('_', ' ') || consultation.condition || 'N/A'}
               </div>
             </div>
             
-            <div style={{ background: 'rgba(255,255,255,0.05)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', position: 'relative', zIndex: 2 }}>
+            <div style={{ background: 'rgba(255,255,255,0.05)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', marginBottom: '20px', position: 'relative', zIndex: 2 }}>
               <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '1px' }}>Algorithmic Confidence</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
-                <div style={{ fontSize: '24px', fontWeight: 800, color: '#00f0ff' }}>{consultation.confidence || '0%'}</div>
+                <div style={{ fontSize: '24px', fontWeight: 800, color: '#00f0ff' }}>
+                  {consultation.scanId?.confidence ? `${consultation.scanId.confidence}%` : (consultation.confidence || '0%')}
+                </div>
                 <div style={{ flex: 1, height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
-                  <motion.div initial={{ width: 0 }} animate={{ width: consultation.confidence === 'N/A' || !consultation.confidence ? '0%' : consultation.confidence }} transition={{ duration: 1 }} style={{ height: '100%', background: '#00f0ff', boxShadow: '0 0 10px #00f0ff' }}></motion.div>
+                  <motion.div initial={{ width: 0 }} animate={{ width: (consultation.scanId?.confidence ? `${consultation.scanId.confidence}%` : (consultation.confidence === 'N/A' || !consultation.confidence ? '0%' : consultation.confidence)) }} transition={{ duration: 1 }} style={{ height: '100%', background: '#00f0ff', boxShadow: '0 0 10px #00f0ff' }}></motion.div>
                 </div>
               </div>
+            </div>
+
+            <div style={{ background: 'rgba(0, 210, 255, 0.05)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(0, 210, 255, 0.2)', position: 'relative', zIndex: 2 }}>
+              <span style={{ fontSize: '12px', color: '#00f0ff', textTransform: 'uppercase', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <AlertCircle size={14} /> AI Recommendation
+              </span>
+              <p style={{ margin: '8px 0 0 0', fontSize: '14px', color: 'rgba(255,255,255,0.8)', lineHeight: '1.6' }}>
+                {consultation.scanId?.recommendation || consultation.recommendation || 'No specific recommendations provided.'}
+              </p>
             </div>
           </motion.div>
 

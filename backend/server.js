@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 
@@ -15,9 +16,14 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static files from the uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/scans', require('./routes/scanHistoryRoutes'));
+app.use('/api/consultations', require('./routes/consultationRoutes'));
+app.use('/api/messages', require('./routes/messageRoutes'));
 
 // Basic route
 app.get('/', (req, res) => {

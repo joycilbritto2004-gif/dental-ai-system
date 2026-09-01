@@ -37,16 +37,26 @@ const PatientPaymentCheckout = () => {
     setIsProcessing(true);
     
     // Simulate secure network transaction delay
-    setTimeout(() => {
+    setTimeout(async () => {
       const txnId = `TXN-AI-${Math.floor(Math.random() * 1000000000)}`;
       
+      let dynamicPatientName = "Patient";
+      try {
+        const userStr = localStorage.getItem('dentaai_user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          dynamicPatientName = user.name || user.firstName || user.username || "Patient";
+        }
+      } catch (e) {}
+
       const newConsultation = {
         id: Date.now().toString(),
         transactionId: txnId,
-        patientName: "Jane Doe", 
+        patientName: dynamicPatientName, 
         doctorId: doctor.id,
         doctorName: doctor.name,
         doctorSpecialization: doctor.specialization,
+        scanId: predictionResult ? (predictionResult._id || predictionResult.id) : undefined,
         condition: predictionResult?.condition?.replace('_', ' ') || "N/A",
         confidence: predictionResult ? `${predictionResult.confidence}%` : "N/A",
         recommendation: predictionResult?.recommendation || "",
@@ -62,12 +72,27 @@ const PatientPaymentCheckout = () => {
         createdAt: new Date().toISOString()
       };
 
-      const existing = JSON.parse(localStorage.getItem('dental_consultations') || '[]');
-      localStorage.setItem('dental_consultations', JSON.stringify([...existing, newConsultation]));
+      try {
+        const response = await fetch('http://localhost:5000/api/consultations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(newConsultation),
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to create consultation');
+        }
 
-      setTransactionId(txnId);
-      setIsProcessing(false);
-      setIsSuccess(true);
+        setTransactionId(txnId);
+        setIsProcessing(false);
+        setIsSuccess(true);
+      } catch (err) {
+        console.error("Error creating consultation", err);
+        setIsProcessing(false);
+        alert("Failed to submit consultation request. Please try again.");
+      }
     }, 2500);
   };
 

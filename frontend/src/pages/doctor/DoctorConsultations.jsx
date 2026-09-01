@@ -8,32 +8,45 @@ const DoctorConsultations = () => {
   const [requests, setRequests] = useState([]);
 
   useEffect(() => {
-    const DOCTOR_ID = "1";
-    const stored = JSON.parse(localStorage.getItem('dental_consultations') || '[]');
-    const myConsultations = stored.filter(req => req.doctorId === DOCTOR_ID);
-    
-    const formatted = myConsultations.map(c => ({
-      id: c.id,
-      patient: c.patientName,
-      condition: c.condition,
-      confidence: c.confidence,
-      date: `${c.date} at ${c.time}`,
-      status: c.status,
-      message: c.message
-    }));
+    const fetchConsultations = async () => {
+      try {
+        const DOCTOR_ID = "3";
+        const res = await fetch(`http://localhost:5000/api/consultations?doctorId=${DOCTOR_ID}`);
+        if (!res.ok) throw new Error('Failed to fetch consultations');
+        const myConsultations = await res.json();
+        
+        const formatted = myConsultations.map(c => ({
+          id: c.id,
+          patient: c.patientName,
+          condition: c.condition,
+          confidence: c.confidence,
+          date: `${c.date} at ${c.time}`,
+          status: c.status,
+          message: c.message
+        }));
 
-    // Sort to show newest first
-    formatted.sort((a, b) => new Date(b.id) - new Date(a.id));
-
-    setRequests(formatted);
+        formatted.sort((a, b) => new Date(b.id) - new Date(a.id));
+        setRequests(formatted);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchConsultations();
   }, []);
 
-  const handleAction = (id, newStatus) => {
-    setRequests(requests.map(req => req.id === id ? { ...req, status: newStatus } : req));
-    
-    const stored = JSON.parse(localStorage.getItem('dental_consultations') || '[]');
-    const updated = stored.map(c => c.id === id ? { ...c, status: newStatus } : c);
-    localStorage.setItem('dental_consultations', JSON.stringify(updated));
+  const handleAction = async (id, newStatus) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/consultations/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (!res.ok) throw new Error('Failed to update status');
+      setRequests(requests.map(req => req.id === id ? { ...req, status: newStatus } : req));
+    } catch (err) {
+      console.error(err);
+      alert('Failed to update status.');
+    }
   };
 
   const stagger = {
@@ -132,7 +145,7 @@ const DoctorConsultations = () => {
                         <Link to={`/dashboard/doctor/consultation/${req.id}`} className="btn btn-primary flex-align-center justify-center gap-2" style={{ padding: '10px' }}>
                           <Eye size={18} /> Open Workspace
                         </Link>
-                        <Link to="/dashboard/doctor/messages" className="btn btn-outline flex-align-center justify-center gap-2" style={{ padding: '10px' }}>
+                        <Link to="/dashboard/doctor/messages" state={{ consultationId: req.id }} className="btn btn-outline flex-align-center justify-center gap-2" style={{ padding: '10px' }}>
                           <MessageSquare size={18} /> Message Patient
                         </Link>
                       </>

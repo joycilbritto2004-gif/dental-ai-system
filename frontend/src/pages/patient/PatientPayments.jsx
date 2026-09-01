@@ -8,30 +8,28 @@ const PatientPayments = () => {
   const [outstandingBalance, setOutstandingBalance] = useState(0);
 
   useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem('dental_consultations') || '[]');
-      
-      // In a real app we would filter by logged-in patient ID
-      // For this demo, we'll show all payments from localStorage
-      // or we can assume all records in local storage belong to the current user
-      const myPayments = stored;
+    const fetchPayments = async () => {
+      try {
+        const res = await fetch('http://localhost:5000/api/consultations');
+        if (!res.ok) throw new Error('Failed to fetch payments');
+        const myPayments = await res.json();
 
-      // Sort by newest
-      myPayments.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        myPayments.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        setPayments(myPayments);
 
-      setPayments(myPayments);
+        const outstanding = myPayments.reduce((acc, curr) => {
+          if (curr.paymentStatus === 'Pending') {
+            return acc + (Number(curr.fee) || Number(curr.totalAmount) || 0);
+          }
+          return acc;
+        }, 0);
 
-      const outstanding = myPayments.reduce((acc, curr) => {
-        if (curr.paymentStatus === 'Pending') {
-          return acc + (Number(curr.fee) || Number(curr.totalAmount) || 0);
-        }
-        return acc;
-      }, 0);
-
-      setOutstandingBalance(outstanding);
-    } catch (e) {
-      console.error("Error loading payment history:", e);
-    }
+        setOutstandingBalance(outstanding);
+      } catch (err) {
+        console.error("Error loading payment history:", err);
+      }
+    };
+    fetchPayments();
   }, []);
 
   const handleDownloadReceipt = (payment) => {

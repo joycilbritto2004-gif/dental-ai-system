@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Video, Calendar, Clock, CreditCard, MessageSquare, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -6,17 +6,25 @@ import '../Dashboard.css';
 
 const PatientConsultations = () => {
   const [expandedRow, setExpandedRow] = useState(null);
-  
-  let consultations = [];
+  const [consultations, setConsultations] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  try {
-    const savedData = localStorage.getItem("dental_consultations");
-    consultations = savedData ? JSON.parse(savedData) : [];
-    if (!Array.isArray(consultations)) consultations = [];
-  } catch (error) {
-    console.error("Failed to load consultations:", error);
-    consultations = [];
-  }
+  useEffect(() => {
+    const fetchConsultations = async () => {
+      try {
+        const res = await fetch('http://localhost:5000/api/consultations');
+        if (!res.ok) throw new Error('Failed to fetch consultations');
+        const data = await res.json();
+        setConsultations(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchConsultations();
+  }, []);
 
   // Fallback function for status color
   const getStatusType = (status) => {
@@ -52,28 +60,27 @@ const PatientConsultations = () => {
           <Link to="/dashboard/patient/doctors" className="btn btn-outline btn-sm">Find New Doctor</Link>
         </div>
 
-        <div className="table-responsive">
-          <table className="modern-table">
-            <thead>
-              <tr>
-                <th>Doctor / Clinic</th>
-                <th>AI Condition</th>
-                <th>Date</th>
-                <th>Fee</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {consultations.length === 0 ? (
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '3rem' }}>
+            <div className="animate-spin inline-block w-8 h-8 border-4 border-current border-t-transparent text-primary rounded-full" role="status">
+              <span className="sr-only">Loading...</span>
+            </div>
+          </div>
+        ) : consultations.length > 0 ? (
+          <div className="table-responsive">
+            <table className="modern-table">
+              <thead>
                 <tr>
-                  <td colSpan="6" className="text-center text-muted" style={{ padding: '3rem' }}>
-                    <h4 className="font-bold text-primary mb-2">No consultations found.</h4>
-                    <p>Select a doctor and start a new consultation request.</p>
-                  </td>
+                  <th>Doctor / Clinic</th>
+                  <th>AI Condition</th>
+                  <th>Date</th>
+                  <th>Fee</th>
+                  <th>Status</th>
+                  <th>Actions</th>
                 </tr>
-              ) : (
-                consultations.map(cons => {
+              </thead>
+              <tbody>
+                {consultations.map(cons => {
                   const doctorName = cons?.doctorName || cons?.doctor || 'Unknown Doctor';
                   const clinicName = cons?.doctorSpecialization || cons?.clinic || 'Unknown Clinic';
                   const condition = cons?.condition || 'N/A';
@@ -109,7 +116,7 @@ const PatientConsultations = () => {
                               </Link>
                             )}
                             {status === 'Accepted' && (
-                              <Link to="/dashboard/patient/messages" className="btn btn-success btn-sm flex-align-center gap-1">
+                              <Link to="/dashboard/patient/messages" state={{ consultationId: cons.id }} className="btn btn-success btn-sm flex-align-center gap-1">
                                 <MessageSquare size={14} /> Chat
                               </Link>
                             )}
@@ -160,11 +167,16 @@ const PatientConsultations = () => {
                       )}
                     </React.Fragment>
                   );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '3rem 1rem', background: 'rgba(255,255,255,0.3)', borderRadius: '12px', border: '1px dashed var(--border-color)' }}>
+            <h4 className="font-bold text-primary mb-2">No consultations found.</h4>
+            <p>Select a doctor and start a new consultation request.</p>
+          </div>
+        )}
       </div>
     </div>
   );

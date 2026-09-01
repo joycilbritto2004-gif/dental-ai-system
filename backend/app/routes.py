@@ -1,5 +1,11 @@
 from flask import Blueprint, request, jsonify
+import os
+import uuid
+from werkzeug.utils import secure_filename
 from .ai_inference import predict_image
+
+UPLOAD_FOLDER = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'uploads'))
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 ai_bp = Blueprint('ai', __name__, url_prefix='/api/ai')
 
@@ -27,7 +33,15 @@ def predict():
         
     if file and allowed_file(file.filename):
         try:
-            result = predict_image(file)
+            filename = secure_filename(file.filename)
+            unique_filename = f"{uuid.uuid4()}_{filename}"
+            file_path = os.path.join(UPLOAD_FOLDER, unique_filename)
+            file.save(file_path)
+            
+            # Predict using the saved file path
+            result = predict_image(file_path)
+            result['imagePath'] = f"/uploads/{unique_filename}"
+            
             return jsonify(result), 200
         except Exception as e:
             return jsonify({"error": str(e)}), 500

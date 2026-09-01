@@ -8,16 +8,21 @@ const DoctorPendingReviews = () => {
   const [requests, setRequests] = useState([]);
 
   useEffect(() => {
-    try {
-      const DOCTOR_ID = "1";
-      const stored = JSON.parse(localStorage.getItem('dental_consultations') || '[]');
-      const myPending = stored.filter(c => c.doctorId === DOCTOR_ID && c.status === "Pending Request");
-      
-      myPending.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-      setRequests(myPending);
-    } catch (e) {
-      console.error("Error loading pending reviews:", e);
-    }
+    const fetchPending = async () => {
+      try {
+        const DOCTOR_ID = "3";
+        const res = await fetch(`http://localhost:5000/api/consultations?doctorId=${DOCTOR_ID}`);
+        if (!res.ok) throw new Error('Failed to fetch');
+        const stored = await res.json();
+        const myPending = stored.filter(c => c.status === "Pending Request");
+        
+        myPending.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        setRequests(myPending);
+      } catch (e) {
+        console.error("Error loading pending reviews:", e);
+      }
+    };
+    fetchPending();
   }, []);
 
   const stagger = {

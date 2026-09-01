@@ -14,55 +14,57 @@ const DoctorDashboard = () => {
   const [pendingCases, setPendingCases] = useState([]);
 
   useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem('dental_consultations') || '[]');
-      // Current doctor's ID
-      const DOCTOR_ID = "1";
-      const myConsultations = stored.filter(c => c.doctorId === DOCTOR_ID);
+    const fetchConsultations = async () => {
+      try {
+        // Current doctor's ID
+        const DOCTOR_ID = "3";
+        const res = await fetch(`http://localhost:5000/api/consultations?doctorId=${DOCTOR_ID}`);
+        if (!res.ok) throw new Error('Failed to fetch');
+        const myConsultations = await res.json();
 
-      const today = new Date().toISOString().split('T')[0];
+        const today = new Date().toISOString().split('T')[0];
 
-      let pending = 0;
-      let todayCount = 0;
-      let verifiedCount = 0;
-      let earningsTotal = 0;
+        let pending = 0;
+        let todayCount = 0;
+        let verifiedCount = 0;
+        let earningsTotal = 0;
 
-      const pendingList = [];
+        const pendingList = [];
 
-      myConsultations.forEach(c => {
-        if (c.status === "Pending Request") {
-          pending++;
-          pendingList.push(c);
-        }
-        if (c.status === "Completed" || c.status === "Verified") {
-          verifiedCount++;
-        }
-        if (c.status === "Completed" || c.paymentStatus === "Paid" || c.paymentStatus === "Verified") {
-          earningsTotal += Number(c.fee) || 0;
-        }
-        
-        // Parse date for "Cases Today" logic
-        // Assuming c.date is like '2023-10-24' or we use createdAt
-        const caseDate = c.createdAt ? c.createdAt.split('T')[0] : '';
-        if (caseDate === today || c.date === today) {
-          todayCount++;
-        }
-      });
+        myConsultations.forEach(c => {
+          if (c.status === "Pending Request") {
+            pending++;
+            pendingList.push(c);
+          }
+          if (c.status === "Completed" || c.status === "Verified") {
+            verifiedCount++;
+          }
+          if (c.status === "Completed" || c.paymentStatus === "Paid" || c.paymentStatus === "Verified") {
+            earningsTotal += Number(c.fee) || 0;
+          }
+          
+          const caseDate = c.createdAt ? c.createdAt.split('T')[0] : '';
+          if (caseDate === today || c.date === today) {
+            todayCount++;
+          }
+        });
 
-      setStats({
-        pending,
-        casesToday: todayCount || myConsultations.length, // Fallback to all cases if dates don't match perfectly for demo
-        verified: verifiedCount,
-        earnings: earningsTotal
-      });
+        setStats({
+          pending,
+          casesToday: todayCount || myConsultations.length,
+          verified: verifiedCount,
+          earnings: earningsTotal
+        });
 
-      // Sort pending list by newest
-      pendingList.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-      setPendingCases(pendingList.slice(0, 5)); // Show top 5 pending
+        pendingList.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        setPendingCases(pendingList.slice(0, 5));
 
-    } catch (e) {
-      console.error("Failed to parse consultations", e);
-    }
+      } catch (e) {
+        console.error("Failed to parse consultations", e);
+      }
+    };
+    
+    fetchConsultations();
   }, []);
 
   const stagger = {
@@ -76,7 +78,7 @@ const DoctorDashboard = () => {
       {/* 1. Header */}
       <motion.div variants={item} className="dashboard-header mb-6">
         <h2>Doctor Portal</h2>
-        <p>Welcome back, Dr. Smith. Review pending AI diagnostics and provide clinical verification.</p>
+        <p>Welcome back, Dr. Priya Menon. Review pending AI diagnostics and provide clinical verification.</p>
       </motion.div>
 
       {/* 2. Statistics Cards */}

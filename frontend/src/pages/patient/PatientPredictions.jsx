@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Activity, Clock, ShieldCheck, AlertCircle, Calendar } from 'lucide-react';
+import { Activity, Clock, ShieldCheck, AlertTriangle, Calendar } from 'lucide-react';
 import '../Dashboard.css';
 
 const PatientPredictions = () => {
@@ -44,7 +44,7 @@ const PatientPredictions = () => {
   const getStatusIcon = (confidence) => {
     if (confidence > 90) return <ShieldCheck size={20} />;
     if (confidence > 70) return <Clock size={20} />;
-    return <AlertCircle size={20} />;
+    return <AlertTriangle size={20} />;
   };
 
   const stagger = {

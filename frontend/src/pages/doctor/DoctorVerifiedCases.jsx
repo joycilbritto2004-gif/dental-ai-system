@@ -8,17 +8,22 @@ const DoctorVerifiedCases = () => {
   const [verifiedCases, setVerifiedCases] = useState([]);
 
   useEffect(() => {
-    try {
-      const DOCTOR_ID = "1";
-      const stored = JSON.parse(localStorage.getItem('dental_consultations') || '[]');
-      // Filter for Verified or Completed cases
-      const myVerified = stored.filter(c => c.doctorId === DOCTOR_ID && (c.status === "Verified" || c.status === "Completed"));
-      
-      myVerified.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-      setVerifiedCases(myVerified);
-    } catch (e) {
-      console.error("Error loading verified cases:", e);
-    }
+    const fetchVerified = async () => {
+      try {
+        const DOCTOR_ID = "3";
+        const res = await fetch(`http://localhost:5000/api/consultations?doctorId=${DOCTOR_ID}`);
+        if (!res.ok) throw new Error('Failed to fetch');
+        const stored = await res.json();
+        
+        const myVerified = stored.filter(c => c.status === "Verified" || c.status === "Completed");
+        
+        myVerified.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        setVerifiedCases(myVerified);
+      } catch (e) {
+        console.error("Error loading verified cases:", e);
+      }
+    };
+    fetchVerified();
   }, []);
 
   const stagger = {
