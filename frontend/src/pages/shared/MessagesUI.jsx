@@ -13,7 +13,9 @@ const MessagesUI = ({ role = 'patient' }) => {
   const [allMessages, setAllMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [finalDiagnosis, setFinalDiagnosis] = useState('');
+  const [treatmentPlan, setTreatmentPlan] = useState('');
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -174,17 +176,37 @@ const MessagesUI = ({ role = 'patient' }) => {
     });
   };
 
-  const requestPayment = () => {
-    if (!activeConsultation) return;
+
+
+  const handleCompleteConsultation = async () => {
+    if (!finalDiagnosis || !treatmentPlan) {
+      alert("Please enter both a final diagnosis and a treatment plan before completing.");
+      return;
+    }
     
-    saveMessage({
-      consultationId: selectedConsultationId,
-      type: 'payment-request',
-      sender: 'doctor',
-      amount: activeConsultation.fee || activeConsultation.totalAmount || 500,
-      time: getFormattedTime()
-    });
-    setShowPaymentModal(false);
+    try {
+      const res = await fetch(`http://localhost:5000/api/consultations/${selectedConsultationId}/complete`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ finalDiagnosis, treatmentPlan })
+      });
+      if (!res.ok) throw new Error('Failed to update');
+      
+      const updated = await res.json();
+      
+      // Update local state
+      setConsultations(prev => prev.map(c => 
+        String(c.id) === String(selectedConsultationId) 
+          ? { ...c, status: 'Completed', finalDiagnosis, treatmentPlan } 
+          : c
+      ));
+      
+      setShowCompletionModal(false);
+      alert('Consultation completed successfully.');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to save consultation data.');
+    }
   };
 
   const chatPartnerName = activeConsultation 
@@ -290,8 +312,8 @@ const MessagesUI = ({ role = 'patient' }) => {
                     <button className="btn btn-outline btn-sm">View Doctor Profile</button>
                   ) : (
                     <>
-                      {activeConsultation.paymentStatus !== 'Paid' && (
-                        <span className="badge badge-warning mr-2">Payment Required</span>
+                      {activeConsultation.paymentStatus === 'Paid' && (
+                        <span className="badge badge-success mr-2">Payment Confirmed</span>
                       )}
                       <button className="btn btn-outline btn-sm flex-align-center gap-1"><FileText size={14}/> View AI Report</button>
                     </>
@@ -395,10 +417,11 @@ const MessagesUI = ({ role = 'patient' }) => {
                 {/* Doctor Actions */}
                 {role === 'doctor' && (
                   <div className="flex-align-center gap-3 mb-3">
-                    <button className="btn btn-outline btn-sm text-warning flex-align-center gap-1" style={{ borderColor: '#fcd34d' }} onClick={() => setShowPaymentModal(true)}>
-                      <CreditCard size={16} /> Request Consultation Payment
-                    </button>
-                    <button className="btn btn-outline btn-sm text-success flex-align-center gap-1" style={{ borderColor: '#86efac' }}>
+                    <button 
+                      className="btn btn-outline btn-sm text-success flex-align-center gap-1" 
+                      style={{ borderColor: '#86efac' }}
+                      onClick={() => setShowCompletionModal(true)}
+                    >
                       <CheckCircle2 size={16} /> Complete Consultation
                     </button>
                   </div>
@@ -458,16 +481,46 @@ const MessagesUI = ({ role = 'patient' }) => {
         </div>
       </div>
 
-      {/* Payment Request Modal (Doctor Side) */}
-      {showPaymentModal && role === 'doctor' && activeConsultation && (
+
+
+      {/* Completion Modal (Doctor Side) */}
+      {showCompletionModal && role === 'doctor' && activeConsultation && (
         <div className="modal-overlay" style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div className="card" style={{ width: '400px', padding: '2rem', textAlign: 'center' }}>
-            <h3 className="mb-2">Consultation Fee</h3>
-            <div className="font-bold text-primary mb-4" style={{ fontSize: '2.5rem' }}>₹{activeConsultation.fee || activeConsultation.totalAmount || 500}</div>
-            <p className="text-muted mb-6">Payment is required before continuing with the paid consultation.</p>
+          <div className="card" style={{ width: '500px', padding: '2rem' }}>
+            <div className="flex-between mb-4">
+              <h3 className="font-bold text-primary">Complete Consultation</h3>
+              <button className="icon-btn" onClick={() => setShowCompletionModal(false)}><X size={20} /></button>
+            </div>
+            <p className="text-muted mb-6 text-sm">Please provide your final clinical assessment before closing this session. These notes will be saved and sent to the patient.</p>
+            
+            <div className="form-group mb-4">
+              <label className="form-label font-bold text-primary">Final Diagnosis</label>
+              <input 
+                type="text"
+                className="form-input"
+                placeholder="e.g. Early stage caries"
+                value={finalDiagnosis}
+                onChange={(e) => setFinalDiagnosis(e.target.value)}
+              />
+            </div>
+            
+            <div className="form-group mb-6">
+              <label className="form-label font-bold text-primary">Treatment Plan & Prescription</label>
+              <textarea 
+                className="form-input" 
+                rows="4" 
+                placeholder="Detail the clinical recommendations here..."
+                value={treatmentPlan}
+                onChange={(e) => setTreatmentPlan(e.target.value)}
+                style={{ resize: 'vertical' }}
+              ></textarea>
+            </div>
+
             <div className="flex-align-center gap-3">
-              <button className="btn btn-outline flex-1" onClick={() => setShowPaymentModal(false)}>Cancel</button>
-              <button className="btn btn-primary flex-1" onClick={requestPayment}>Request Payment</button>
+              <button className="btn btn-outline flex-1" onClick={() => setShowCompletionModal(false)}>Cancel</button>
+              <button className="btn btn-success flex-1 pulse-glow flex-align-center justify-center gap-2" onClick={handleCompleteConsultation}>
+                <CheckCircle2 size={18} /> Authorize & Complete
+              </button>
             </div>
           </div>
         </div>

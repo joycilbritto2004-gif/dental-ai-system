@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Video, Calendar, Clock, CreditCard, MessageSquare, Eye } from 'lucide-react';
+import { Video, Calendar, Clock, CreditCard, MessageSquare, Eye, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import jsPDF from 'jspdf';
 import '../Dashboard.css';
 
 const PatientConsultations = () => {
@@ -33,9 +34,10 @@ const PatientConsultations = () => {
       case 'Verified':
         return 'success';
       case 'Payment Requested':
-      case 'Pending Request':
+      case 'Pending':
         return 'warning';
       case 'Accepted':
+      case 'In Consultation':
         return 'primary';
       default:
         return 'secondary';
@@ -45,6 +47,106 @@ const PatientConsultations = () => {
   const toggleRow = (id) => {
     if (expandedRow === id) setExpandedRow(null);
     else setExpandedRow(id);
+  };
+
+  const generatePDF = (cons) => {
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFontSize(22);
+    doc.setTextColor(0, 160, 255); // Brand color (similar to #00d2ff)
+    doc.text("DentaAI Clinical Report", 105, 20, null, null, "center");
+    
+    doc.setFontSize(12);
+    doc.setTextColor(100);
+    doc.text(`Date: ${cons.date || 'N/A'}`, 105, 30, null, null, "center");
+    
+    doc.setLineWidth(0.5);
+    doc.setDrawColor(200);
+    doc.line(20, 35, 190, 35);
+    
+    // Details
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+    doc.text("Consultation Details", 20, 45);
+    
+    doc.setFontSize(12);
+    doc.setTextColor(60);
+    doc.text(`Patient Name: ${cons.patientName || 'Unknown'}`, 20, 55);
+    doc.text(`Attending Specialist: ${cons.doctorName || cons.doctor || 'Unknown'}`, 20, 65);
+    
+    // AI Section
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+    doc.text("AI Diagnostic Prediction", 20, 80);
+    
+    doc.setFontSize(12);
+    doc.setTextColor(60);
+    const aiCondition = cons.scanId?.condition?.replace('_', ' ') || cons.condition || 'N/A';
+    doc.text(`Identified Pathology: ${aiCondition}`, 20, 90);
+    
+    const confidence = cons.scanId?.confidence || cons.confidence || 'N/A';
+    doc.text(`Algorithmic Confidence: ${confidence}%`, 20, 100);
+    
+    // Clinical Section
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+    doc.text("Clinical Verification", 20, 115);
+    
+    doc.setFontSize(12);
+    doc.setTextColor(60);
+    doc.text("Final Diagnosis:", 20, 125);
+    
+    const splitDiagnosis = doc.splitTextToSize(cons.finalDiagnosis || 'None provided', 170);
+    doc.text(splitDiagnosis, 20, 135);
+    
+    let currentY = 135 + (splitDiagnosis.length * 7);
+    
+    doc.text("Treatment Plan & Prescription:", 20, currentY + 10);
+    const splitTreatment = doc.splitTextToSize(cons.treatmentPlan || 'None provided', 170);
+    doc.text(splitTreatment, 20, currentY + 20);
+    
+    currentY = currentY + 20 + (splitTreatment.length * 7);
+    
+    // Image Section
+    const imagePath = cons.scanId?.imagePath;
+    if (imagePath && imagePath !== 'uploaded_image') {
+      doc.text("Uploaded Intraoral Scan:", 20, currentY + 10);
+      
+      const img = new Image();
+      img.crossOrigin = "Anonymous";
+      img.src = imagePath.startsWith('http') ? imagePath : `http://localhost:5000${imagePath}`;
+      
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        const dataUrl = canvas.toDataURL("image/jpeg");
+        
+        // Keep image proportionally within limits (max width 120)
+        const maxW = 120;
+        const ratio = img.height / img.width;
+        const h = maxW * ratio;
+        
+        // Ensure it doesn't flow off the page
+        if (currentY + 20 + h > 280) {
+          doc.addPage();
+          currentY = 10;
+        }
+        
+        doc.addImage(dataUrl, "JPEG", 20, currentY + 20, maxW, h);
+        doc.save(`DentaAI_Report_${cons.id}.pdf`);
+      };
+      
+      img.onerror = () => {
+        // Just save text if image fails due to CORS or missing
+        doc.save(`DentaAI_Report_${cons.id}.pdf`);
+      };
+    } else {
+      doc.save(`DentaAI_Report_${cons.id}.pdf`);
+    }
   };
 
   return (
@@ -115,7 +217,7 @@ const PatientConsultations = () => {
                                 <CreditCard size={14} /> Pay Now
                               </Link>
                             )}
-                            {status === 'Accepted' && (
+                            {(status === 'Accepted' || status === 'In Consultation') && (
                               <Link to="/dashboard/patient/messages" state={{ consultationId: cons.id }} className="btn btn-success btn-sm flex-align-center gap-1">
                                 <MessageSquare size={14} /> Chat
                               </Link>
@@ -151,8 +253,17 @@ const PatientConsultations = () => {
                                         <Clock size={18} /> Treatment Plan & Recommendations
                                       </h4>
                                       <p className="text-main" style={{ lineHeight: 1.6, background: 'rgba(255,255,255,0.6)', padding: '12px', borderRadius: '8px', whiteSpace: 'pre-line' }}>
-                                        {cons.doctorNotes || 'No additional treatment plan was prescribed.'}
+                                        {cons.treatmentPlan || 'No additional treatment plan was prescribed.'}
                                       </p>
+                                      
+                                      <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
+                                        <button 
+                                          className="btn btn-primary pulse-glow flex-align-center gap-2"
+                                          onClick={() => generatePDF(cons)}
+                                        >
+                                          <Download size={18} /> Download Final Report
+                                        </button>
+                                      </div>
                                     </div>
                                   ) : (
                                     <div className="text-center text-muted" style={{ padding: '1rem' }}>

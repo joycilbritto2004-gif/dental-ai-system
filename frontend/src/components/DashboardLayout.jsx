@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Link, useLocation, Outlet } from 'react-router-dom';
-import { Activity, Image as ImageIcon, UserCircle, LogOut, LayoutDashboard, HeartPulse, Stethoscope, BriefcaseMedical, Users, CheckCircle2, BrainCircuit, Settings, FileText, MessageSquare, CreditCard, History, Video } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
+import { Activity, Image as ImageIcon, UserCircle, LogOut, LayoutDashboard, HeartPulse, Stethoscope, BriefcaseMedical, Users, CheckCircle2, BrainCircuit, Settings, FileText, MessageSquare, CreditCard, History, Video, Bell } from 'lucide-react';
 import './DashboardLayout.css';
 
 const DashboardLayout = () => {
@@ -12,17 +12,74 @@ const DashboardLayout = () => {
   if (currentPath.startsWith('/dashboard/doctor')) role = 'doctor';
   if (currentPath.startsWith('/dashboard/admin')) role = 'admin';
 
+  const [userId, setUserId] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const dropdownRef = useRef(null);
+  const navigate = useNavigate();
+
   useEffect(() => {
     const userStr = localStorage.getItem('dentaai_user');
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
         setUserName(user.name || user.firstName || user.username || '');
+        setUserId(user._id || user.id);
       } catch (e) {
         console.error('Error parsing user data:', e);
       }
     }
   }, []);
+
+  const fetchNotifications = async () => {
+    if (!userId) return;
+    try {
+      const res = await fetch(`http://localhost:5000/api/notifications/${userId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data);
+      }
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 5000); // Poll every 5s
+    return () => clearInterval(interval);
+  }, [userId]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleNotificationClick = async (notif) => {
+    try {
+      await fetch(`http://localhost:5000/api/notifications/${notif.id || notif._id}/read`, {
+        method: 'PUT'
+      });
+      fetchNotifications();
+      setShowNotifications(false);
+      if (notif.consultationId) {
+        if (role === 'doctor') {
+          navigate(`/dashboard/doctor/consultation/${notif.consultationId}`);
+        } else {
+          navigate(`/dashboard/patient/consultations`);
+        }
+      }
+    } catch (err) {
+      console.error('Error marking read:', err);
+    }
+  };
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
     <div className="dashboard-layout">
@@ -165,6 +222,57 @@ const DashboardLayout = () => {
             <h3>{role.charAt(0).toUpperCase() + role.slice(1)} Portal</h3>
           </div>
           <div className="header-user">
+            
+            {/* Notification Bell */}
+            <div className="notification-bell-container" ref={dropdownRef} style={{ position: 'relative', marginRight: '1rem' }}>
+              <button 
+                onClick={() => setShowNotifications(!showNotifications)}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', borderRadius: '50%', color: 'var(--text-main)', transition: 'background 0.2s' }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(6, 198, 232, 0.1)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                <Bell size={20} />
+                {unreadCount > 0 && (
+                  <span style={{ position: 'absolute', top: '5px', right: '5px', background: 'var(--danger)', color: 'white', fontSize: '10px', fontWeight: 'bold', minWidth: '16px', height: '16px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+              
+              {showNotifications && (
+                <div style={{ position: 'absolute', top: '50px', right: '0', width: '320px', background: 'white', borderRadius: '12px', boxShadow: 'var(--shadow-lg)', border: '1px solid var(--border-glass)', zIndex: 100, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ padding: '16px', borderBottom: '1px solid var(--border-glass)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-main)' }}>
+                    <h4 style={{ margin: 0, fontSize: '16px', color: 'var(--primary)' }}>Notifications</h4>
+                    {unreadCount > 0 && <span style={{ fontSize: '12px', color: 'var(--secondary)', fontWeight: 'bold' }}>{unreadCount} New</span>}
+                  </div>
+                  
+                  <div style={{ maxHeight: '360px', overflowY: 'auto' }}>
+                    {notifications.length === 0 ? (
+                      <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <p style={{ margin: 0 }}>No notifications yet</p>
+                      </div>
+                    ) : (
+                      notifications.map(notif => (
+                        <div 
+                          key={notif._id || notif.id}
+                          onClick={() => handleNotificationClick(notif)}
+                          style={{ padding: '16px', borderBottom: '1px solid var(--border-light)', cursor: 'pointer', background: notif.isRead ? 'transparent' : 'rgba(6, 198, 232, 0.05)', transition: 'background 0.2s' }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(6, 198, 232, 0.1)'}
+                          onMouseLeave={(e) => e.currentTarget.style.background = notif.isRead ? 'transparent' : 'rgba(6, 198, 232, 0.05)'}
+                        >
+                          <h5 style={{ margin: '0 0 4px 0', fontSize: '14px', color: notif.isRead ? 'var(--text-main)' : 'var(--primary)' }}>{notif.title}</h5>
+                          <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.4' }}>{notif.message}</p>
+                          <span style={{ display: 'block', marginTop: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                            {new Date(notif.createdAt).toLocaleString()}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="user-info">
               <span className="user-name">Welcome, {userName || (role === 'patient' ? 'Patient' : role === 'doctor' ? 'Dr. Smith' : 'Admin')}</span>
             </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { UserCircle, Calendar, Eye, Activity } from 'lucide-react';
+import { UserCircle, Calendar, Eye, Activity, CheckCircle2 } from 'lucide-react';
 import '../Dashboard.css';
 
 const DoctorPendingReviews = () => {
@@ -14,7 +14,7 @@ const DoctorPendingReviews = () => {
         const res = await fetch(`http://localhost:5000/api/consultations?doctorId=${DOCTOR_ID}`);
         if (!res.ok) throw new Error('Failed to fetch');
         const stored = await res.json();
-        const myPending = stored.filter(c => c.status === "Pending Request");
+        const myPending = stored.filter(c => c.status === "Pending");
         
         myPending.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
         setRequests(myPending);
@@ -86,9 +86,23 @@ const DoctorPendingReviews = () => {
                     </td>
                     <td><span className="badge" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#d97706', border: '1px solid rgba(245, 158, 11, 0.3)' }}>{req.status}</span></td>
                     <td>
-                      <Link to={`/dashboard/doctor/consultation/${req.id}`} className="btn btn-primary btn-sm flex-align-center gap-1">
-                        <Eye size={14} /> Review Case
-                      </Link>
+                      <button 
+                        onClick={async () => {
+                          try {
+                            const res = await fetch(`http://localhost:5000/api/consultations/${req.id}/accept`, {
+                              method: 'PUT'
+                            });
+                            if (!res.ok) throw new Error('Failed to accept consultation');
+                            setRequests(prev => prev.filter(r => r.id !== req.id));
+                          } catch (e) {
+                            console.error(e);
+                            alert('Failed to accept consultation.');
+                          }
+                        }}
+                        className="btn btn-primary btn-sm flex-align-center gap-1"
+                      >
+                        <CheckCircle2 size={14} /> Accept Consultation
+                      </button>
                     </td>
                   </motion.tr>
                 ))

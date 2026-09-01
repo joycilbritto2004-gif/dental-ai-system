@@ -52,6 +52,7 @@ const PatientPaymentCheckout = () => {
       const newConsultation = {
         id: Date.now().toString(),
         transactionId: txnId,
+        patientId: userStr ? JSON.parse(userStr)._id || JSON.parse(userStr).id : undefined,
         patientName: dynamicPatientName, 
         doctorId: doctor.id,
         doctorName: doctor.name,
@@ -67,8 +68,8 @@ const PatientPaymentCheckout = () => {
         fee: doctor.fee,
         platformFee,
         totalAmount,
-        paymentStatus: "Verified",
-        status: "Pending Request",
+        paymentStatus: "Paid",
+        status: "Pending",
         createdAt: new Date().toISOString()
       };
 

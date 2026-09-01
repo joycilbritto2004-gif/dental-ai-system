@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const consultationSchema = new mongoose.Schema({
   transactionId: { type: String, required: true },
+  patientId: { type: String },
   patientName: { type: String, required: true },
   doctorId: { type: String, required: true },
   doctorName: { type: String, required: true },
@@ -17,10 +18,10 @@ const consultationSchema = new mongoose.Schema({
   fee: { type: Number },
   platformFee: { type: Number },
   totalAmount: { type: Number },
-  paymentStatus: { type: String, default: 'Verified' },
-  status: { type: String, default: 'Pending Request' },
+  paymentStatus: { type: String, default: 'Paid' },
+  status: { type: String, default: 'Pending', enum: ['Pending', 'Accepted', 'In Consultation', 'Completed', 'Rejected'] },
   finalDiagnosis: { type: String },
-  doctorNotes: { type: String }
+  treatmentPlan: { type: String }
 }, { timestamps: true });
 
 // We transform _id to id so frontend can just use .id

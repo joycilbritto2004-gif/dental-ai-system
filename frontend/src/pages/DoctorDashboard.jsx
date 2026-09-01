@@ -1,63 +1,68 @@
-import { useState, useEffect } from 'react';
-import { ShieldCheck, Clock, CheckCircle2, AlertTriangle, UserCircle, ChevronRight, Activity, BrainCircuit, Scan, Eye, Save } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { ShieldCheck, Clock, CheckCircle2, AlertTriangle, UserCircle, ChevronRight, Activity, BrainCircuit, Scan, Eye, Save, LineChart as LineChartIcon, PieChart as PieChartIcon, BarChart as BarChartIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  PieChart, Pie, Cell,
+  BarChart, Bar
+} from 'recharts';
 import './Dashboard.css';
 
 const DoctorDashboard = () => {
   const [stats, setStats] = useState({
+    total: 0,
     pending: 0,
-    casesToday: 0,
-    verified: 0,
-    earnings: 0
+    active: 0,
+    completed: 0,
+    avgConfidence: 0
   });
-  const [pendingCases, setPendingCases] = useState([]);
+  
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [rawConsultations, setRawConsultations] = useState([]);
 
   useEffect(() => {
     const fetchConsultations = async () => {
       try {
-        // Current doctor's ID
         const DOCTOR_ID = "3";
         const res = await fetch(`http://localhost:5000/api/consultations?doctorId=${DOCTOR_ID}`);
         if (!res.ok) throw new Error('Failed to fetch');
         const myConsultations = await res.json();
-
-        const today = new Date().toISOString().split('T')[0];
+        
+        setRawConsultations(myConsultations);
 
         let pending = 0;
-        let todayCount = 0;
-        let verifiedCount = 0;
-        let earningsTotal = 0;
-
-        const pendingList = [];
+        let active = 0;
+        let completed = 0;
+        let confidenceSum = 0;
+        let confidenceCount = 0;
 
         myConsultations.forEach(c => {
-          if (c.status === "Pending Request") {
-            pending++;
-            pendingList.push(c);
-          }
-          if (c.status === "Completed" || c.status === "Verified") {
-            verifiedCount++;
-          }
-          if (c.status === "Completed" || c.paymentStatus === "Paid" || c.paymentStatus === "Verified") {
-            earningsTotal += Number(c.fee) || 0;
-          }
+          if (c.status === "Pending") pending++;
+          else if (c.status === "Accepted" || c.status === "In Consultation") active++;
+          else if (c.status === "Completed") completed++;
           
-          const caseDate = c.createdAt ? c.createdAt.split('T')[0] : '';
-          if (caseDate === today || c.date === today) {
-            todayCount++;
+          // Parse confidence
+          const confStr = c.scanId?.confidence || c.confidence;
+          if (confStr && confStr !== 'N/A') {
+            const val = parseFloat(String(confStr).replace('%', ''));
+            if (!isNaN(val)) {
+              confidenceSum += val;
+              confidenceCount++;
+            }
           }
         });
 
         setStats({
+          total: myConsultations.length,
           pending,
-          casesToday: todayCount || myConsultations.length,
-          verified: verifiedCount,
-          earnings: earningsTotal
+          active,
+          completed,
+          avgConfidence: confidenceCount > 0 ? Math.round(confidenceSum / confidenceCount) : 0
         });
 
-        pendingList.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-        setPendingCases(pendingList.slice(0, 5));
+        const sorted = [...myConsultations].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        setRecentActivity(sorted.slice(0, 6));
 
       } catch (e) {
         console.error("Failed to parse consultations", e);
@@ -67,6 +72,52 @@ const DoctorDashboard = () => {
     fetchConsultations();
   }, []);
 
+  // Compute Chart Data
+  const statusData = useMemo(() => {
+    return [
+      { name: 'Pending', value: stats.pending, color: '#f59e0b' },
+      { name: 'Active', value: stats.active, color: '#3b82f6' },
+      { name: 'Completed', value: stats.completed, color: '#10b981' }
+    ].filter(d => d.value > 0);
+  }, [stats]);
+
+  const conditionData = useMemo(() => {
+    const counts = {};
+    rawConsultations.forEach(c => {
+      const cond = c.scanId?.condition?.replace('_', ' ') || c.condition;
+      if (cond && cond !== 'N/A') {
+        const name = cond.charAt(0).toUpperCase() + cond.slice(1);
+        counts[name] = (counts[name] || 0) + 1;
+      }
+    });
+    
+    return Object.entries(counts)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5); // top 5
+  }, [rawConsultations]);
+
+  const timelineData = useMemo(() => {
+    const dates = {};
+    rawConsultations.forEach(c => {
+      const date = c.createdAt ? c.createdAt.split('T')[0] : c.date;
+      if (date) {
+        dates[date] = (dates[date] || 0) + 1;
+      }
+    });
+    
+    // Sort chronologically and take last 7 active days
+    return Object.entries(dates)
+      .sort((a, b) => new Date(a[0]) - new Date(b[0]))
+      .slice(-7)
+      .map(([date, count]) => {
+        // Format date to DD MMM
+        const d = new Date(date);
+        const dateStr = !isNaN(d.getTime()) ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : date;
+        return { date: dateStr, Consultations: count };
+      });
+  }, [rawConsultations]);
+
   const stagger = {
     hidden: { opacity: 0 },
     show: { opacity: 1, transition: { staggerChildren: 0.1 } }
@@ -74,156 +125,131 @@ const DoctorDashboard = () => {
   const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
 
   return (
-    <motion.div className="dashboard-view" initial="hidden" animate="show" variants={stagger}>
+    <motion.div className="dashboard-view animate-fade-in" initial="hidden" animate="show" variants={stagger}>
       {/* 1. Header */}
       <motion.div variants={item} className="dashboard-header mb-6">
-        <h2>Doctor Portal</h2>
-        <p>Welcome back, Dr. Priya Menon. Review pending AI diagnostics and provide clinical verification.</p>
+        <h2>Doctor Analytics</h2>
+        <p>Welcome back, Dr. Priya Menon. Here is an overview of your clinical activity.</p>
       </motion.div>
 
       {/* 2. Statistics Cards */}
       <motion.div variants={item} className="kpi-grid mb-6">
+        <div className="kpi-card glass-card" style={{ borderLeft: '4px solid var(--primary)' }}>
+          <div className="kpi-icon text-white" style={{ borderRadius: '12px', background: 'var(--primary)' }}><Activity size={28} /></div>
+          <div className="kpi-content">
+            <span className="kpi-value text-primary">{stats.total}</span>
+            <span className="kpi-label">Total Cases</span>
+          </div>
+        </div>
         <div className="kpi-card glass-card" style={{ borderLeft: '4px solid #f59e0b' }}>
           <div className="kpi-icon bg-warning-light text-warning" style={{ borderRadius: '12px', background: 'rgba(245, 158, 11, 0.1)' }}><Clock size={28} /></div>
           <div className="kpi-content">
             <span className="kpi-value text-primary">{stats.pending}</span>
-            <span className="kpi-label">Pending Reviews</span>
-          </div>
-        </div>
-        <div className="kpi-card glass-card" style={{ borderLeft: '4px solid var(--secondary)' }}>
-          <div className="kpi-icon bg-blue-light text-blue" style={{ borderRadius: '12px', background: 'rgba(0, 210, 255, 0.1)' }}><Activity size={28} /></div>
-          <div className="kpi-content">
-            <span className="kpi-value text-primary">{stats.casesToday}</span>
-            <span className="kpi-label">Active Cases</span>
+            <span className="kpi-label">Pending Review</span>
           </div>
         </div>
         <div className="kpi-card glass-card" style={{ borderLeft: '4px solid #10b981' }}>
           <div className="kpi-icon bg-success-light text-success" style={{ borderRadius: '12px', background: 'rgba(16, 185, 129, 0.1)' }}><CheckCircle2 size={28} /></div>
           <div className="kpi-content">
-            <span className="kpi-value text-primary">{stats.verified}</span>
-            <span className="kpi-label">Verified Cases</span>
+            <span className="kpi-value text-primary">{stats.completed}</span>
+            <span className="kpi-label">Completed</span>
           </div>
         </div>
         <div className="kpi-card glass-card" style={{ borderLeft: '4px solid var(--accent)' }}>
           <div className="kpi-icon text-white" style={{ borderRadius: '12px', background: 'linear-gradient(135deg, var(--secondary), var(--accent))' }}><BrainCircuit size={28} /></div>
           <div className="kpi-content">
-            <span className="kpi-value text-primary">₹{stats.earnings}</span>
-            <span className="kpi-label">Total Earnings</span>
+            <span className="kpi-value text-primary">{stats.avgConfidence}%</span>
+            <span className="kpi-label">Avg AI Confidence</span>
           </div>
         </div>
       </motion.div>
 
-      <div className="dashboard-grid mt-6">
-        {/* 3. Main Review Workspace (Top Pending Case) */}
-        <motion.div variants={item} className="card review-workspace-card glass-card" style={{ padding: '2rem' }}>
-          <div className="card-header flex-between mb-6">
-            <h3 className="font-bold text-primary flex-align-center gap-2" style={{ fontSize: '1.25rem' }}>
-              <ShieldCheck size={24} className="text-secondary" /> Active Case Review
-            </h3>
-            <span className="badge" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#d97706', border: '1px solid rgba(245, 158, 11, 0.3)' }}>Awaiting Verification</span>
+      {/* 3. Analytics Charts Grid */}
+      <motion.div variants={item} className="dashboard-grid mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
+        
+        {/* Status Distribution */}
+        <div className="card glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+          <h3 className="font-bold text-primary mb-4 flex-align-center gap-2" style={{ fontSize: '1.1rem' }}>
+            <PieChartIcon size={20} className="text-secondary" /> Status Distribution
+          </h3>
+          <div style={{ flex: 1, minHeight: '250px' }}>
+            {statusData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={statusData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {statusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend verticalAlign="bottom" height={36} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex-align-center justify-center text-muted" style={{ height: '100%' }}>No data available</div>
+            )}
           </div>
-          
-          <div className="workspace-two-col">
-            {/* LEFT SIDE: Patient Image */}
-            <div className="workspace-left">
-              <div className="patient-meta-box glass-card" style={{ background: 'var(--bg-card)', marginBottom: '1.5rem', borderRadius: '16px', padding: '1.5rem' }}>
-                <div className="flex-between">
-                  <div className="patient-id-group flex-align-center gap-3">
-                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--secondary), var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                      <UserCircle size={24} />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-primary" style={{ fontSize: '1.1rem' }}>{pendingCases.length > 0 ? pendingCases[0].patientName : "Jane Doe"}</h4>
-                      <p className="text-sm text-muted">ID: {pendingCases.length > 0 ? `P-${pendingCases[0].id.substring(0, 5)}` : "P-98214"}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-primary" style={{ background: 'rgba(0, 210, 255, 0.1)', padding: '4px 10px', borderRadius: '6px' }}>{pendingCases.length > 0 ? pendingCases[0].date : "Oct 24, 2023"}</p>
-                    <p className="text-sm text-muted mt-1">Intraoral X-Ray</p>
-                  </div>
-                </div>
-              </div>
+        </div>
 
-              <div className="xray-preview-large" style={{ background: 'var(--bg-dark)', borderRadius: '16px', position: 'relative', overflow: 'hidden' }}>
-                <div className="xray-placeholder-scan" style={{ height: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'radial-gradient(circle, rgba(0, 210, 255, 0.1) 0%, transparent 70%)' }}></div>
-                  <Scan size={56} color="#00f0ff" className="mb-4" style={{ filter: 'drop-shadow(0 0 10px rgba(0, 210, 255, 0.5))', zIndex: 1 }} />
-                  <span className="text-white font-bold" style={{ zIndex: 1, letterSpacing: '1px', textTransform: 'uppercase' }}>Encrypted Dental Imaging</span>
-                  <div style={{ position: 'absolute', top: '50%', width: '100%', height: '2px', background: 'rgba(0, 240, 255, 0.4)', boxShadow: '0 0 15px #00f0ff', zIndex: 2, animation: 'scanBounce 3s infinite linear' }}></div>
-                </div>
-              </div>
-            </div>
-
-            {/* RIGHT SIDE: AI & Verification */}
-            <div className="workspace-right">
-              {/* AI Analysis Result */}
-              <div className="ai-result-box mb-6" style={{ background: 'var(--bg-dark)', color: 'white', borderRadius: '16px', border: '1px solid rgba(0, 210, 255, 0.3)' }}>
-                <div className="result-header mb-4 flex-align-center gap-2">
-                  <BrainCircuit size={20} color="#00f0ff" />
-                  <span className="font-bold" style={{ color: '#00f0ff', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.9rem' }}>Neural Net Diagnosis</span>
-                </div>
-                
-                <div style={{ background: 'rgba(255,255,255,0.05)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', marginBottom: '16px' }}>
-                  <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '1px' }}>Identified Pathology</span>
-                  <div className="disease-name-lg mt-1" style={{ fontSize: '2rem', color: 'white' }}>{pendingCases.length > 0 ? pendingCases[0].condition : "Caries"}</div>
-                </div>
-                
-                <div style={{ background: 'rgba(255,255,255,0.05)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                  <div className="confidence-label mb-2">
-                    <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '1px' }}>Algorithmic Confidence</span>
-                    <span className="font-bold text-secondary" style={{ fontSize: '1.2rem' }}>{pendingCases.length > 0 ? pendingCases[0].confidence : "92%"}</span>
-                  </div>
-                  <div className="progress-bar-lg" style={{ height: '8px', background: 'rgba(255,255,255,0.1)' }}>
-                    <motion.div initial={{ width: 0 }} animate={{ width: pendingCases.length > 0 ? pendingCases[0].confidence : '92%' }} transition={{ duration: 1 }} className="progress-fill" style={{ background: '#00f0ff', boxShadow: '0 0 10px #00f0ff' }}></motion.div>
-                  </div>
-                </div>
-                
-                <p className="text-sm mt-4" style={{ color: 'rgba(255,255,255,0.5)', fontStyle: 'italic' }}>
-                  * AI provides assisted preliminary detection. Final diagnosis requires clinical verification.
-                </p>
-              </div>
-
-              {/* DOCTOR VERIFICATION */}
-              <div className="verification-form glass-card" style={{ padding: '1.5rem', borderRadius: '16px' }}>
-                <h4 className="form-section-title font-bold text-primary mb-4" style={{ fontSize: '1.1rem' }}>Clinical Verification</h4>
-                
-                <div className="form-group mb-4">
-                  <label className="form-label font-bold text-primary">Final Diagnosis</label>
-                  <select className="form-input" style={{ background: 'rgba(255,255,255,0.8)' }}>
-                    <option>Confirm AI: {pendingCases.length > 0 ? pendingCases[0].condition : "Caries"}</option>
-                    <option>Calculus</option>
-                    <option>Gingivitis</option>
-                    <option>Hypodontia</option>
-                    <option>Mouth Ulcer</option>
-                    <option>Tooth Discoloration</option>
-                    <option>No Issues Detected</option>
-                  </select>
-                </div>
-                
-                <div className="form-group mb-5">
-                  <label className="form-label font-bold text-primary">Clinical Remarks</label>
-                  <textarea className="form-input" rows="3" placeholder="Enter treatment plan or notes for the patient..." style={{ background: 'rgba(255,255,255,0.8)', resize: 'vertical' }}></textarea>
-                </div>
-
-                <div className="verification-actions flex gap-3">
-                  <button className="btn btn-success flex-1 flex-align-center justify-center gap-2 pulse-glow" style={{ padding: '12px' }}>
-                    <CheckCircle2 size={18} /> Verify Result
-                  </button>
-                  <button className="btn btn-outline flex-1 flex-align-center justify-center gap-2 text-danger" style={{ padding: '12px' }}>
-                    <AlertTriangle size={18} /> Override AI
-                  </button>
-                </div>
-              </div>
-            </div>
+        {/* Top Conditions */}
+        <div className="card glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+          <h3 className="font-bold text-primary mb-4 flex-align-center gap-2" style={{ fontSize: '1.1rem' }}>
+            <BarChartIcon size={20} className="text-secondary" /> Common Conditions
+          </h3>
+          <div style={{ flex: 1, minHeight: '250px' }}>
+            {conditionData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={conditionData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
+                  <XAxis dataKey="name" tick={{ fontSize: 12 }} tickMargin={10} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <Tooltip cursor={{ fill: 'rgba(0, 210, 255, 0.05)' }} />
+                  <Bar dataKey="count" fill="var(--secondary)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex-align-center justify-center text-muted" style={{ height: '100%' }}>No data available</div>
+            )}
           </div>
-        </motion.div>
-      </div>
+        </div>
 
-      {/* 4. Pending Cases Queue */}
-      <motion.div variants={item} className="dashboard-grid mt-6">
+        {/* Timeline */}
+        <div className="card glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+          <h3 className="font-bold text-primary mb-4 flex-align-center gap-2" style={{ fontSize: '1.1rem' }}>
+            <LineChartIcon size={20} className="text-secondary" /> Case Volume
+          </h3>
+          <div style={{ flex: 1, minHeight: '250px' }}>
+            {timelineData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={timelineData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
+                  <XAxis dataKey="date" tick={{ fontSize: 12 }} tickMargin={10} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="Consultations" stroke="var(--accent)" strokeWidth={3} dot={{ r: 4, fill: 'var(--accent)' }} activeDot={{ r: 6 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex-align-center justify-center text-muted" style={{ height: '100%' }}>No data available</div>
+            )}
+          </div>
+        </div>
+      </motion.div>
+
+      {/* 4. Recent Activity */}
+      <motion.div variants={item}>
         <div className="card glass-card" style={{ padding: '2rem' }}>
-          <div className="card-header mb-6">
-            <h3 className="font-bold text-primary" style={{ fontSize: '1.25rem' }}>Recent Pending Requests</h3>
+          <div className="card-header mb-6 flex-between">
+            <h3 className="font-bold text-primary" style={{ fontSize: '1.25rem' }}>Recent Patient Activity</h3>
+            <Link to="/dashboard/doctor/consultations" className="btn btn-outline btn-sm">View All</Link>
           </div>
           
           <div className="table-responsive">
@@ -232,14 +258,13 @@ const DoctorDashboard = () => {
                 <tr>
                   <th>Patient</th>
                   <th>AI Prediction</th>
-                  <th>Confidence</th>
                   <th>Date</th>
                   <th>Status</th>
                   <th>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {pendingCases.length > 0 ? pendingCases.map(req => (
+                {recentActivity.length > 0 ? recentActivity.map(req => (
                   <motion.tr key={req.id} whileHover={{ backgroundColor: 'rgba(0, 210, 255, 0.05)' }}>
                     <td>
                       <div className="flex-align-center gap-3">
@@ -249,21 +274,25 @@ const DoctorDashboard = () => {
                         <span className="font-bold text-primary">{req.patientName}</span>
                       </div>
                     </td>
-                    <td className="text-main font-bold">{req.condition}</td>
                     <td>
-                      <span className="confidence-pill" style={{ background: 'rgba(0, 210, 255, 0.1)', color: 'var(--secondary)' }}>{req.confidence}</span>
+                      <span className="text-main font-bold">{req.scanId?.condition?.replace('_', ' ') || req.condition || 'N/A'}</span>
+                      <div className="text-xs text-muted">{req.scanId?.confidence || req.confidence || '0'}% conf.</div>
                     </td>
-                    <td className="text-muted">{req.date}</td>
-                    <td><span className="badge" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#d97706', border: '1px solid rgba(245, 158, 11, 0.3)' }}>{req.status}</span></td>
+                    <td className="text-muted">{req.createdAt ? req.createdAt.split('T')[0] : req.date}</td>
                     <td>
-                      <Link to={`/dashboard/doctor/consultation/${req.id}`} className="btn btn-primary btn-sm flex-align-center gap-1">
-                        <Eye size={14} /> Review
+                      <span className={`badge badge-${req.status === 'Completed' ? 'success' : req.status === 'Pending' ? 'warning' : 'primary'}`}>
+                        {req.status}
+                      </span>
+                    </td>
+                    <td>
+                      <Link to={req.status === 'Completed' ? `/dashboard/doctor/consultations` : `/dashboard/doctor/consultation/${req.id}`} className="btn btn-primary btn-sm flex-align-center gap-1">
+                        <Eye size={14} /> View
                       </Link>
                     </td>
                   </motion.tr>
                 )) : (
                   <tr>
-                    <td colSpan="6" className="text-center text-muted" style={{ padding: '2rem' }}>No pending requests at the moment.</td>
+                    <td colSpan="5" className="text-center text-muted" style={{ padding: '2rem' }}>No recent activity.</td>
                   </tr>
                 )}
               </tbody>

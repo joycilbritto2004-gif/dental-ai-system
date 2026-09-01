@@ -15,15 +15,17 @@ const DoctorConsultations = () => {
         if (!res.ok) throw new Error('Failed to fetch consultations');
         const myConsultations = await res.json();
         
-        const formatted = myConsultations.map(c => ({
-          id: c.id,
-          patient: c.patientName,
-          condition: c.condition,
-          confidence: c.confidence,
-          date: `${c.date} at ${c.time}`,
-          status: c.status,
-          message: c.message
-        }));
+        const formatted = myConsultations
+          .filter(c => c.status === 'Accepted' || c.status === 'In Consultation')
+          .map(c => ({
+            id: c.id,
+            patient: c.patientName,
+            condition: c.condition,
+            confidence: c.confidence,
+            date: `${c.date} at ${c.time}`,
+            status: c.status,
+            message: c.message
+          }));
 
         formatted.sort((a, b) => new Date(b.id) - new Date(a.id));
         setRequests(formatted);
@@ -98,9 +100,9 @@ const DoctorConsultations = () => {
                         </div>
                       </div>
                       <span className="badge" style={{ 
-                        background: req.status === 'Pending Request' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-                        color: req.status === 'Pending Request' ? '#d97706' : '#059669',
-                        border: `1px solid ${req.status === 'Pending Request' ? 'rgba(245, 158, 11, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
+                        background: req.status === 'Accepted' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                        color: req.status === 'Accepted' ? '#2563eb' : '#059669',
+                        border: `1px solid ${req.status === 'Accepted' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
                         padding: '6px 12px', fontSize: '0.85rem'
                       }}>
                         {req.status}
@@ -131,15 +133,23 @@ const DoctorConsultations = () => {
                   </div>
 
                   <div className="action-buttons" style={{ display: 'flex', flexDirection: 'column', gap: '10px', minWidth: '180px', marginLeft: '2rem' }}>
-                    {req.status === 'Pending Request' ? (
-                      <>
-                        <button onClick={() => handleAction(req.id, 'Accepted')} className="btn btn-success flex-align-center justify-center gap-2 pulse-glow" style={{ padding: '10px' }}>
-                          <CheckCircle2 size={18} /> Accept Case
-                        </button>
-                        <button onClick={() => handleAction(req.id, 'Rejected')} className="btn btn-outline flex-align-center justify-center gap-2 text-danger" style={{ padding: '10px' }}>
-                          <XCircle size={18} /> Decline
-                        </button>
-                      </>
+                    {req.status === 'Accepted' ? (
+                      <button 
+                        onClick={async () => {
+                          try {
+                            const res = await fetch(`http://localhost:5000/api/consultations/${req.id}/start`, { method: 'PUT' });
+                            if (!res.ok) throw new Error('Failed to start');
+                            window.location.href = `/dashboard/doctor/consultation/${req.id}`;
+                          } catch (e) {
+                            console.error(e);
+                            alert('Failed to start consultation.');
+                          }
+                        }}
+                        className="btn btn-success flex-align-center justify-center gap-2 pulse-glow" 
+                        style={{ padding: '10px' }}
+                      >
+                        <CheckCircle2 size={18} /> Start Consultation
+                      </button>
                     ) : (
                       <>
                         <Link to={`/dashboard/doctor/consultation/${req.id}`} className="btn btn-primary flex-align-center justify-center gap-2" style={{ padding: '10px' }}>

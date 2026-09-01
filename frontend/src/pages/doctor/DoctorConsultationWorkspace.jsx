@@ -7,11 +7,10 @@ import '../Dashboard.css';
 const DoctorConsultationWorkspace = () => {
   const { id } = useParams();
   const [isCompleted, setIsCompleted] = useState(false);
-  const [paymentRequested, setPaymentRequested] = useState(false);
   const [consultation, setConsultation] = useState(null);
   
   const [finalDiagnosis, setFinalDiagnosis] = useState('');
-  const [doctorNotes, setDoctorNotes] = useState('');
+  const [treatmentPlan, setTreatmentPlan] = useState('');
 
   useEffect(() => {
     const fetchConsultation = async () => {
@@ -23,7 +22,7 @@ const DoctorConsultationWorkspace = () => {
         if (record) {
           setConsultation(record);
           setFinalDiagnosis(record.finalDiagnosis || '');
-          setDoctorNotes(record.doctorNotes || '');
+          setTreatmentPlan(record.treatmentPlan || '');
           if (record.status === 'Completed' || record.status === 'Verified') setIsCompleted(true);
         }
       } catch (err) {
@@ -34,20 +33,20 @@ const DoctorConsultationWorkspace = () => {
   }, [id]);
 
   const handleComplete = async () => {
-    if (!finalDiagnosis) {
-      alert("Please enter a final diagnosis before completing.");
+    if (!finalDiagnosis || !treatmentPlan) {
+      alert("Please enter both a final diagnosis and a treatment plan before completing.");
       return;
     }
     
     try {
-      const res = await fetch(`http://localhost:5000/api/consultations/${consultation.id}`, {
+      const res = await fetch(`http://localhost:5000/api/consultations/${consultation.id}/complete`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'Completed', finalDiagnosis, doctorNotes })
+        body: JSON.stringify({ finalDiagnosis, treatmentPlan })
       });
       if (!res.ok) throw new Error('Failed to update');
       setIsCompleted(true);
-      setConsultation(prev => ({ ...prev, status: 'Completed', finalDiagnosis, doctorNotes }));
+      setConsultation(prev => ({ ...prev, status: 'Completed', finalDiagnosis, treatmentPlan }));
     } catch (err) {
       console.error(err);
       alert('Failed to save consultation data.');
@@ -93,15 +92,7 @@ const DoctorConsultationWorkspace = () => {
         </motion.div>
       )}
 
-      {paymentRequested && !isCompleted && (
-        <motion.div variants={item} className="card mb-6 flex-align-center gap-3" style={{ padding: '1rem 1.5rem', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '12px' }}>
-          <CreditCard size={28} className="text-warning" />
-          <div className="flex-1">
-            <h4 className="text-warning font-bold" style={{ fontSize: '1.1rem' }}>Payment Authorization Pending</h4>
-            <p className="text-sm text-warning" style={{ opacity: 0.9 }}>Awaiting patient clearance of financial obligations before transmitting final clinical report.</p>
-          </div>
-        </motion.div>
-      )}
+
 
       <div className="dashboard-grid">
         {/* LEFT SIDE: Patient Image & Info */}
@@ -212,8 +203,8 @@ const DoctorConsultationWorkspace = () => {
                 className="form-input" 
                 rows="5" 
                 placeholder="Detail the clinical recommendations here..."
-                value={doctorNotes}
-                onChange={(e) => setDoctorNotes(e.target.value)}
+                value={treatmentPlan}
+                onChange={(e) => setTreatmentPlan(e.target.value)}
                 disabled={isCompleted}
                 style={{ background: 'rgba(255,255,255,0.8)', resize: 'vertical' }}
               ></textarea>
@@ -225,16 +216,8 @@ const DoctorConsultationWorkspace = () => {
                   <AlertTriangle size={18} /> Flag False Positive
                 </button>
                 <button 
-                  className="btn btn-warning flex-align-center justify-center gap-2 text-white" 
-                  style={{ backgroundColor: '#f59e0b', borderColor: '#f59e0b', padding: '12px' }}
-                  onClick={() => setPaymentRequested(true)}
-                  disabled={paymentRequested}
-                >
-                  <CreditCard size={18} /> Require Remittance
-                </button>
-                <button 
                   className="btn btn-primary flex-align-center justify-center gap-2 pulse-glow" 
-                  style={{ gridColumn: '1 / -1', padding: '14px', fontSize: '1.1rem' }}
+                  style={{ padding: '14px', fontSize: '1.1rem' }}
                   onClick={handleComplete}
                 >
                   <Send size={20} /> Authorize & Dispatch Report
