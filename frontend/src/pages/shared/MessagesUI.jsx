@@ -70,7 +70,7 @@ const MessagesUI = ({ role = 'patient' }) => {
     };
 
     fetchMessages();
-    // Optional: implement polling for real-time messages here
+    // 3 second polling for real-time messages
     const interval = setInterval(fetchMessages, 3000);
     return () => clearInterval(interval);
   }, [selectedConsultationId]);
@@ -92,10 +92,25 @@ const MessagesUI = ({ role = 'patient' }) => {
 
   const saveMessage = async (newMessageObj) => {
     try {
+      const userStr = localStorage.getItem('dentaai_user');
+      const user = userStr ? JSON.parse(userStr) : {};
+      
+      const currentSenderId = user.id || user._id || (role === 'doctor' ? "3" : "patient_1");
+      const receiverId = role === 'doctor' 
+        ? (activeConsultation?.scanId?.patientId || "patient_1") 
+        : (activeConsultation?.doctorId || "3");
+
+      const payload = {
+        ...newMessageObj,
+        senderId: currentSenderId,
+        receiverId: receiverId,
+        message: newMessageObj.text || newMessageObj.message || ""
+      };
+
       const res = await fetch('http://localhost:5000/api/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newMessageObj)
+        body: JSON.stringify(payload)
       });
       if (!res.ok) throw new Error('Failed to save message');
       const savedMessage = await res.json();
@@ -135,8 +150,6 @@ const MessagesUI = ({ role = 'patient' }) => {
 
   const handleImageChange = (e) => {
     if (e.target.files && e.target.files[0]) {
-      // In a real app, upload the file to a server and get URL. 
-      // For this demo, using Data URL.
       const reader = new FileReader();
       reader.onload = (event) => {
         setSelectedImage(event.target.result);
@@ -174,7 +187,6 @@ const MessagesUI = ({ role = 'patient' }) => {
     setShowPaymentModal(false);
   };
 
-  // Derived Info for Header based on active consultation
   const chatPartnerName = activeConsultation 
     ? (role === 'patient' ? (activeConsultation.doctorName || 'Doctor') : (activeConsultation.patientName || 'Patient'))
     : 'Select a conversation';
@@ -224,8 +236,6 @@ const MessagesUI = ({ role = 'patient' }) => {
                 const initials = getPartnerInitials(partnerName);
                 const isActive = String(c.id) === String(selectedConsultationId);
                 
-                // Assuming we don't have lastMessage fetched for ALL consultations here directly,
-                // we can just show 'Click to chat' or the condition.
                 return (
                   <div 
                     key={c.id} 
@@ -294,15 +304,16 @@ const MessagesUI = ({ role = 'patient' }) => {
                 {activeMessages.length === 0 ? (
                   <div className="text-center text-muted my-auto">
                     <MessageSquare size={48} className="mx-auto mb-3 opacity-50" />
-                    <h4>Start the conversation</h4>
-                    <p className="mt-2 text-sm">Send a message or share an AI report to begin.</p>
+                    <h4>No messages yet</h4>
+                    <p className="mt-2 text-sm">Start the conversation by sending a message.</p>
                   </div>
                 ) : (
                   activeMessages.map(msg => {
                     const isMine = msg.sender === role;
+                    const messageText = msg.message || msg.text; // Ensure both work
                     
                     return (
-                      <div key={msg.id} className="message-wrapper" style={{ display: 'flex', flexDirection: 'column', alignItems: isMine ? 'flex-end' : 'flex-start' }}>
+                      <div key={msg.id || msg._id} className="message-wrapper" style={{ display: 'flex', flexDirection: 'column', alignItems: isMine ? 'flex-end' : 'flex-start' }}>
                         
                         {/* TEXT MESSAGE */}
                         {msg.type === 'text' && (
@@ -316,7 +327,7 @@ const MessagesUI = ({ role = 'patient' }) => {
                               fontSize: '0.95rem',
                               lineHeight: '1.5'
                             }}>
-                            <p>{msg.text}</p>
+                            <p>{messageText}</p>
                           </div>
                         )}
 
@@ -428,9 +439,10 @@ const MessagesUI = ({ role = 'patient' }) => {
                     placeholder="Type a message..." 
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
+                    disabled={!selectedConsultationId}
                     style={{ borderRadius: '999px', padding: '0.75rem 1.25rem', backgroundColor: '#f8fafc', border: '1px solid var(--border-color)' }}
                   />
-                  <button type="submit" className="btn btn-primary shadow-sm" style={{ borderRadius: '50%', width: '46px', height: '46px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <button type="submit" className="btn btn-primary shadow-sm" disabled={!inputText.trim() && !selectedImage} style={{ borderRadius: '50%', width: '46px', height: '46px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: (!inputText.trim() && !selectedImage) ? 0.5 : 1 }}>
                     <Send size={20} />
                   </button>
                 </form>

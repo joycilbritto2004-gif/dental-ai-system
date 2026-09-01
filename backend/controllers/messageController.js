@@ -11,8 +11,15 @@ const getMessagesByConsultation = async (req, res) => {
 
 const createMessage = async (req, res) => {
   try {
-    const message = new Message(req.body);
-    const createdMessage = await message.save();
+    const { type, message, text, image, report, amount } = req.body;
+    
+    // Prevent saving purely empty text messages
+    if (type === 'text' && !message?.trim() && !text?.trim()) {
+      return res.status(400).json({ message: "Cannot send an empty message" });
+    }
+
+    const newMessage = new Message(req.body);
+    const createdMessage = await newMessage.save();
     res.status(201).json(createdMessage);
   } catch (error) {
     res.status(400).json({ message: error.message });
