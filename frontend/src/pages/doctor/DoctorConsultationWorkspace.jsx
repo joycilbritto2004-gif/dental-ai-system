@@ -1,16 +1,25 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { UserCircle, BrainCircuit, Scan, CheckCircle2, AlertTriangle, Send, CreditCard, ChevronLeft, ShieldCheck, Zap, AlertCircle } from 'lucide-react';
+import { UserCircle, BrainCircuit, Scan, CheckCircle2, AlertTriangle, Send, CreditCard, ChevronLeft, ShieldCheck, Zap, AlertCircle, MessageSquare } from 'lucide-react';
 import '../Dashboard.css';
 
 const DoctorConsultationWorkspace = () => {
   const { id } = useParams();
   const [isCompleted, setIsCompleted] = useState(false);
   const [consultation, setConsultation] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   
-  const [finalDiagnosis, setFinalDiagnosis] = useState('');
-  const [treatmentPlan, setTreatmentPlan] = useState('');
+  const [finalDiagnosis, setFinalDiagnosis] = useState(() => localStorage.getItem(`draft_diagnosis_${id}`) || '');
+  const [treatmentPlan, setTreatmentPlan] = useState(() => localStorage.getItem(`draft_treatment_${id}`) || '');
+
+  useEffect(() => {
+    localStorage.setItem(`draft_diagnosis_${id}`, finalDiagnosis);
+  }, [finalDiagnosis, id]);
+
+  useEffect(() => {
+    localStorage.setItem(`draft_treatment_${id}`, treatmentPlan);
+  }, [treatmentPlan, id]);
 
   useEffect(() => {
     const fetchConsultation = async () => {
@@ -21,12 +30,14 @@ const DoctorConsultationWorkspace = () => {
         
         if (record) {
           setConsultation(record);
-          setFinalDiagnosis(record.finalDiagnosis || '');
-          setTreatmentPlan(record.treatmentPlan || '');
+          setFinalDiagnosis(record.finalDiagnosis || localStorage.getItem(`draft_diagnosis_${id}`) || '');
+          setTreatmentPlan(record.treatmentPlan || localStorage.getItem(`draft_treatment_${id}`) || '');
           if (record.status === 'Completed' || record.status === 'Verified') setIsCompleted(true);
         }
       } catch (err) {
         console.error(err);
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchConsultation();
@@ -47,6 +58,8 @@ const DoctorConsultationWorkspace = () => {
       if (!res.ok) throw new Error('Failed to update');
       setIsCompleted(true);
       setConsultation(prev => ({ ...prev, status: 'Completed', finalDiagnosis, treatmentPlan }));
+      localStorage.removeItem(`draft_diagnosis_${id}`);
+      localStorage.removeItem(`draft_treatment_${id}`);
     } catch (err) {
       console.error(err);
       alert('Failed to save consultation data.');
@@ -58,6 +71,16 @@ const DoctorConsultationWorkspace = () => {
     show: { opacity: 1, transition: { staggerChildren: 0.1 } }
   };
   const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
+
+  if (isLoading) {
+    return (
+      <div className="dashboard-view flex-align-center justify-center" style={{ minHeight: '60vh' }}>
+        <div className="spin-anim" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <BrainCircuit size={48} color="#00f0ff" />
+        </div>
+      </div>
+    );
+  }
 
   if (!consultation) {
     return (
@@ -72,14 +95,24 @@ const DoctorConsultationWorkspace = () => {
 
   return (
     <motion.div className="dashboard-view" initial="hidden" animate="show" variants={stagger}>
-      <motion.div variants={item} className="dashboard-header mb-6">
-        <div className="flex-align-center gap-2 mb-2">
-          <Link to="/dashboard/doctor/consultations" className="text-muted hover:text-primary flex-align-center gap-1 transition-colors">
-            <ChevronLeft size={16} /> Dashboard
-          </Link>
+      <motion.div variants={item} className="dashboard-header mb-6 flex-between flex-align-start">
+        <div>
+          <div className="flex-align-center gap-2 mb-2">
+            <Link to="/dashboard/doctor/consultations" className="text-muted hover:text-primary flex-align-center gap-1 transition-colors">
+              <ChevronLeft size={16} /> Dashboard
+            </Link>
+          </div>
+          <h2>Diagnostic Workspace</h2>
+          <p>Review AI imaging, verify diagnosis, and prescribe treatments.</p>
         </div>
-        <h2>Diagnostic Workspace</h2>
-        <p>Review AI imaging, verify diagnosis, and prescribe treatments.</p>
+        <Link 
+          to="/dashboard/doctor/messages" 
+          state={{ consultationId: consultation.id }} 
+          className="btn btn-outline flex-align-center gap-2"
+          style={{ background: 'rgba(0, 210, 255, 0.1)' }}
+        >
+          <MessageSquare size={18} /> Chat with Patient
+        </Link>
       </motion.div>
 
       {isCompleted && (

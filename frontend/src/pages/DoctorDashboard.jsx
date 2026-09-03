@@ -20,11 +20,46 @@ const DoctorDashboard = () => {
   
   const [recentActivity, setRecentActivity] = useState([]);
   const [rawConsultations, setRawConsultations] = useState([]);
+  
+  const [currentUser, setCurrentUser] = useState(() => {
+    const userStr = localStorage.getItem('dentaai_user');
+    return userStr ? JSON.parse(userStr) : null;
+  });
+
+  useEffect(() => {
+    if (currentUser && (currentUser._id || currentUser.id)) {
+      fetch(`http://localhost:5000/api/doctors/${currentUser._id || currentUser.id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (!data.message) {
+            setCurrentUser(prev => ({...prev, verificationStatus: data.verificationStatus, accountStatus: data.accountStatus}));
+            
+            // Also update localStorage so other pages have the latest status
+            const userStr = localStorage.getItem('dentaai_user');
+            if (userStr) {
+              const storedUser = JSON.parse(userStr);
+              localStorage.setItem('dentaai_user', JSON.stringify({
+                ...storedUser,
+                verificationStatus: data.verificationStatus,
+                accountStatus: data.accountStatus
+              }));
+            }
+          }
+        })
+        .catch(console.error);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchConsultations = async () => {
       try {
-        const DOCTOR_ID = "3";
+        const userStr = localStorage.getItem('dentaai_user');
+        let DOCTOR_ID = "3"; // Fallback to demo doctor
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          DOCTOR_ID = user._id || user.id || "3";
+        }
+        
         const res = await fetch(`http://localhost:5000/api/consultations?doctorId=${DOCTOR_ID}`);
         if (!res.ok) throw new Error('Failed to fetch');
         const myConsultations = await res.json();
@@ -126,10 +161,20 @@ const DoctorDashboard = () => {
 
   return (
     <motion.div className="dashboard-view animate-fade-in" initial="hidden" animate="show" variants={stagger}>
+      {currentUser?.verificationStatus !== 'Approved' && (
+        <div className="alert mb-6" style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid #f59e0b', color: '#d97706', padding: '1rem', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <AlertTriangle size={20} />
+          <div>
+            <strong>Account Pending Approval</strong>
+            <p style={{ margin: 0, fontSize: '0.9rem' }}>Your doctor account is currently pending administrative review. You cannot accept new consultations until you are approved.</p>
+          </div>
+        </div>
+      )}
+
       {/* 1. Header */}
       <motion.div variants={item} className="dashboard-header mb-6">
         <h2>Doctor Analytics</h2>
-        <p>Welcome back, Dr. Priya Menon. Here is an overview of your clinical activity.</p>
+        <p>Welcome back, Dr. {currentUser?.name?.split(' ')[1] || 'Doctor'}. Here is an overview of your clinical activity.</p>
       </motion.div>
 
       {/* 2. Statistics Cards */}

@@ -21,8 +21,19 @@ const PatientDashboard = () => {
   const [scanHistory, setScanHistory] = useState([]);
   const fileInputRef = useRef(null);
 
+  const [userName, setUserName] = useState('');
+  
   useEffect(() => {
     fetchScanHistory();
+    const userStr = localStorage.getItem('dentaai_user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setUserName(user.name || '');
+      } catch (e) {
+        // ignore
+      }
+    }
   }, []);
 
   const fetchScanHistory = async () => {
@@ -130,6 +141,7 @@ const PatientDashboard = () => {
             if (saveRes.ok) {
               const newScan = await saveRes.json();
               setScanHistory(prev => [newScan, ...prev]);
+              setPredictionResult(prev => ({ ...prev, _id: newScan._id }));
             }
           }
         } catch (saveErr) {
@@ -161,7 +173,7 @@ const PatientDashboard = () => {
         marginBottom: '2rem'
       }}>
         <div style={{ position: 'absolute', top: '-50%', right: '-10%', width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(6,198,232,0.1) 0%, transparent 70%)', filter: 'blur(40px)' }}></div>
-        <h2 style={{ position: 'relative', zIndex: 1, fontSize: '2.5rem', color: 'var(--primary)' }}>Welcome back, 👋</h2>
+        <h2 style={{ position: 'relative', zIndex: 1, fontSize: '2.5rem', color: 'var(--primary)' }}>Welcome back{userName ? `, ${userName}` : ''} 👋</h2>
         <p style={{ position: 'relative', zIndex: 1, color: 'var(--text-muted)' }}>Monitor your dental health with advanced AI insights.</p>
       </motion.div>
 

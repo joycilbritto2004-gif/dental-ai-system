@@ -8,6 +8,17 @@ import Register from './pages/Register';
 import PatientDashboard from './pages/PatientDashboard';
 import DoctorDashboard from './pages/DoctorDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import ProtectedRoute from './components/ProtectedRoute';
+import TestAccountSwitcher from './components/TestAccountSwitcher';
+
+// Admin Pages
+import AdminUsers from './pages/admin/AdminUsers';
+import AdminDoctors from './pages/admin/AdminDoctors';
+import AdminPatients from './pages/admin/AdminPatients';
+import AdminAIModel from './pages/admin/AdminAIModel';
+import AdminPredictions from './pages/admin/AdminPredictions';
+import AdminActivity from './pages/admin/AdminActivity';
+import AdminSettings from './pages/admin/AdminSettings';
 
 // Patient Phase Routes
 import RecommendedDoctors from './pages/patient/RecommendedDoctors';
@@ -60,32 +71,47 @@ function App() {
 
         {/* Dashboard Routes with Sidebar */}
         <Route element={<DashboardLayout />}>
-          <Route path="/dashboard/patient" element={<PatientDashboard />} />
-
-          <Route path="/dashboard/patient/recommended-doctors" element={<RecommendedDoctors />} />
-          <Route path="/dashboard/patient/reports" element={<PatientReports />} />
-          <Route path="/dashboard/patient/reports/:id" element={<PatientReportDetails />} />
-          <Route path="/dashboard/patient/predictions" element={<PatientPredictions />} />
-          <Route path="/dashboard/patient/health-tips" element={<PatientHealthTips />} />
-          <Route path="/dashboard/patient/doctor/:id" element={<DoctorProfile />} />
-          <Route path="/dashboard/patient/consult-request/:id" element={<ConsultationRequest />} />
-          <Route path="/dashboard/patient/consultations" element={<PatientConsultations />} />
-          <Route path="/dashboard/patient/messages" element={<MessagesUI role="patient" />} />
-          <Route path="/dashboard/patient/payments" element={<PatientPayments />} />
-          <Route path="/dashboard/patient/payment/checkout" element={<PatientPaymentCheckout />} />
+          {/* Patient Routes */}
+          <Route element={<ProtectedRoute allowedRoles={['patient']} />}>
+            <Route path="/dashboard/patient" element={<PatientDashboard />} />
+            <Route path="/dashboard/patient/recommended-doctors" element={<RecommendedDoctors />} />
+            <Route path="/dashboard/patient/reports" element={<PatientReports />} />
+            <Route path="/dashboard/patient/reports/:id" element={<PatientReportDetails />} />
+            <Route path="/dashboard/patient/predictions" element={<PatientPredictions />} />
+            <Route path="/dashboard/patient/health-tips" element={<PatientHealthTips />} />
+            <Route path="/dashboard/patient/doctor/:id" element={<DoctorProfile />} />
+            <Route path="/dashboard/patient/consult-request/:id" element={<ConsultationRequest />} />
+            <Route path="/dashboard/patient/consultations" element={<PatientConsultations />} />
+            <Route path="/dashboard/patient/messages" element={<MessagesUI role="patient" />} />
+            <Route path="/dashboard/patient/payments" element={<PatientPayments />} />
+            <Route path="/dashboard/patient/payment/checkout" element={<PatientPaymentCheckout />} />
+          </Route>
           
-          <Route path="/dashboard/doctor" element={<DoctorDashboard />} />
-          <Route path="/dashboard/doctor/reviews" element={<DoctorPendingReviews />} />
-          <Route path="/dashboard/doctor/cases" element={<DoctorPatientCases />} />
-          <Route path="/dashboard/doctor/verified" element={<DoctorVerifiedCases />} />
-          <Route path="/dashboard/doctor/consultations" element={<DoctorConsultations />} />
-          <Route path="/dashboard/doctor/consultation/:id" element={<DoctorConsultationWorkspace />} />
-          <Route path="/dashboard/doctor/messages" element={<MessagesUI role="doctor" />} />
-          <Route path="/dashboard/doctor/payments" element={<DoctorPayments />} />
-          <Route path="/dashboard/doctor/history" element={<DoctorConsultationHistory />} />
-          <Route path="/dashboard/doctor/profile" element={<DoctorProfileView />} />
+          {/* Doctor Routes */}
+          <Route element={<ProtectedRoute allowedRoles={['doctor']} />}>
+            <Route path="/dashboard/doctor" element={<DoctorDashboard />} />
+            <Route path="/dashboard/doctor/reviews" element={<DoctorPendingReviews />} />
+            <Route path="/dashboard/doctor/cases" element={<DoctorPatientCases />} />
+            <Route path="/dashboard/doctor/verified" element={<DoctorVerifiedCases />} />
+            <Route path="/dashboard/doctor/consultations" element={<DoctorConsultations />} />
+            <Route path="/dashboard/doctor/consultation/:id" element={<DoctorConsultationWorkspace />} />
+            <Route path="/dashboard/doctor/messages" element={<MessagesUI role="doctor" />} />
+            <Route path="/dashboard/doctor/payments" element={<DoctorPayments />} />
+            <Route path="/dashboard/doctor/history" element={<DoctorConsultationHistory />} />
+            <Route path="/dashboard/doctor/profile" element={<DoctorProfileView />} />
+          </Route>
 
-          <Route path="/dashboard/admin" element={<AdminDashboard />} />
+          {/* Admin Routes */}
+          <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+            <Route path="/dashboard/admin" element={<AdminDashboard />} />
+            <Route path="/dashboard/admin/users" element={<AdminUsers />} />
+            <Route path="/dashboard/admin/doctors" element={<AdminDoctors />} />
+            <Route path="/dashboard/admin/patients" element={<AdminPatients />} />
+            <Route path="/dashboard/admin/ai-model" element={<AdminAIModel />} />
+            <Route path="/dashboard/admin/predictions" element={<AdminPredictions />} />
+            <Route path="/dashboard/admin/activity" element={<AdminActivity />} />
+            <Route path="/dashboard/admin/settings" element={<AdminSettings />} />
+          </Route>
         </Route>
       </Routes>
     </Router>

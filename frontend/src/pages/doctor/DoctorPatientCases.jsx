@@ -8,36 +8,49 @@ const DoctorPatientCases = () => {
   const [patients, setPatients] = useState([]);
 
   useEffect(() => {
-    try {
-      const DOCTOR_ID = "1";
-      const stored = JSON.parse(localStorage.getItem('dental_consultations') || '[]');
-      const myConsultations = stored.filter(c => c.doctorId === DOCTOR_ID);
-      
-      // Group by patient email or name to get unique patients
-      const patientMap = {};
-      myConsultations.forEach(c => {
-        const pKey = c.patientName; // Using name as key since email isn't always present
-        if (!patientMap[pKey]) {
-          patientMap[pKey] = {
-            name: c.patientName,
-            casesCount: 0,
-            latestCase: c
-          };
+    const fetchPatientCases = async () => {
+      try {
+        const userStr = localStorage.getItem('dentaai_user');
+        let DOCTOR_ID = "3"; // Fallback to demo doctor
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          DOCTOR_ID = user._id || user.id || "3";
         }
-        patientMap[pKey].casesCount += 1;
         
-        // Update latest case if this one is newer
-        if (new Date(c.createdAt || 0) > new Date(patientMap[pKey].latestCase.createdAt || 0)) {
-          patientMap[pKey].latestCase = c;
-        }
-      });
+        const res = await fetch(`http://localhost:5000/api/consultations?doctorId=${DOCTOR_ID}`);
+        if (!res.ok) throw new Error('Failed to fetch from backend');
+        const stored = await res.json();
+        
+        // Only include Accepted or In Consultation
+        const myConsultations = stored.filter(c => c.status === 'Accepted' || c.status === 'In Consultation');
+        
+        // Group by patient name to get unique patients
+        const patientMap = {};
+        myConsultations.forEach(c => {
+          const pKey = c.patientName || 'Unknown Patient';
+          if (!patientMap[pKey]) {
+            patientMap[pKey] = {
+              name: pKey,
+              casesCount: 0,
+              latestCase: c
+            };
+          }
+          patientMap[pKey].casesCount += 1;
+          
+          // Update latest case if this one is newer
+          if (new Date(c.createdAt || 0) > new Date(patientMap[pKey].latestCase.createdAt || 0)) {
+            patientMap[pKey].latestCase = c;
+          }
+        });
 
-      const uniquePatients = Object.values(patientMap);
-      uniquePatients.sort((a, b) => new Date(b.latestCase.createdAt || 0) - new Date(a.latestCase.createdAt || 0));
-      setPatients(uniquePatients);
-    } catch (e) {
-      console.error("Error loading patient cases:", e);
-    }
+        const uniquePatients = Object.values(patientMap);
+        uniquePatients.sort((a, b) => new Date(b.latestCase.createdAt || 0) - new Date(a.latestCase.createdAt || 0));
+        setPatients(uniquePatients);
+      } catch (e) {
+        console.error("Error loading patient cases:", e);
+      }
+    };
+    fetchPatientCases();
   }, []);
 
   const stagger = {

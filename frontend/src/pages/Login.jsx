@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { LogIn, User, Stethoscope, Shield, BriefcaseMedical, AlertCircle } from 'lucide-react';
@@ -11,6 +11,12 @@ const Login = () => {
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Clear any stale sessions when arriving at the login page
+  useEffect(() => {
+    localStorage.removeItem('dentaai_token');
+    localStorage.removeItem('dentaai_user');
+  }, []);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -29,7 +35,9 @@ const Login = () => {
         id: data._id,
         name: data.name,
         email: data.email,
-        role: data.role
+        role: data.role,
+        verificationStatus: data.verificationStatus,
+        accountStatus: data.accountStatus
       }));
 
       navigate(`/dashboard/${data.role}`);

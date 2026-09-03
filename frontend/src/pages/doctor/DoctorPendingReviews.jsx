@@ -6,11 +6,33 @@ import '../Dashboard.css';
 
 const DoctorPendingReviews = () => {
   const [requests, setRequests] = useState([]);
+  const [currentUser, setCurrentUser] = useState(() => {
+    const userStr = localStorage.getItem('dentaai_user');
+    return userStr ? JSON.parse(userStr) : null;
+  });
+
+  useEffect(() => {
+    if (currentUser && (currentUser._id || currentUser.id)) {
+      fetch(`http://localhost:5000/api/doctors/${currentUser._id || currentUser.id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (!data.message) {
+            setCurrentUser(prev => ({ ...prev, verificationStatus: data.verificationStatus }));
+          }
+        })
+        .catch(console.error);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchPending = async () => {
       try {
-        const DOCTOR_ID = "3";
+        const userStr = localStorage.getItem('dentaai_user');
+        let DOCTOR_ID = "3"; // Fallback to demo doctor
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          DOCTOR_ID = user._id || user.id || "3";
+        }
         const res = await fetch(`http://localhost:5000/api/consultations?doctorId=${DOCTOR_ID}`);
         if (!res.ok) throw new Error('Failed to fetch');
         const stored = await res.json();
@@ -86,23 +108,38 @@ const DoctorPendingReviews = () => {
                     </td>
                     <td><span className="badge" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#d97706', border: '1px solid rgba(245, 158, 11, 0.3)' }}>{req.status}</span></td>
                     <td>
-                      <button 
-                        onClick={async () => {
-                          try {
-                            const res = await fetch(`http://localhost:5000/api/consultations/${req.id}/accept`, {
-                              method: 'PUT'
-                            });
-                            if (!res.ok) throw new Error('Failed to accept consultation');
-                            setRequests(prev => prev.filter(r => r.id !== req.id));
-                          } catch (e) {
-                            console.error(e);
-                            alert('Failed to accept consultation.');
-                          }
-                        }}
-                        className="btn btn-primary btn-sm flex-align-center gap-1"
-                      >
-                        <CheckCircle2 size={14} /> Accept Consultation
-                      </button>
+                      {req.status === 'Pending' ? (
+                        <button 
+                          onClick={async () => {
+                            if (currentUser?.verificationStatus !== 'Approved') {
+                              alert('Your account is pending approval. You cannot accept new consultations yet.');
+                              return;
+                            }
+                            try {
+                              const res = await fetch(`http://localhost:5000/api/consultations/${req.id}/accept`, {
+                                method: 'PUT'
+                              });
+                              if (!res.ok) throw new Error('Failed to accept consultation');
+                              setRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: 'Accepted' } : r));
+                            } catch (e) {
+                              console.error(e);
+                              alert('Failed to accept consultation.');
+                            }
+                          }}
+                          className={`btn btn-sm flex-align-center gap-1 ${currentUser?.verificationStatus === 'Approved' ? 'btn-primary' : 'btn-outline'}`}
+                          disabled={currentUser?.verificationStatus !== 'Approved'}
+                          style={{ opacity: currentUser?.verificationStatus !== 'Approved' ? 0.5 : 1 }}
+                        >
+                          <CheckCircle2 size={14} /> Accept Consultation
+                        </button>
+                      ) : (
+                        <Link 
+                          to={`/dashboard/doctor/consultation/${req.id}`} 
+                          className="btn btn-secondary btn-sm flex-align-center gap-1"
+                        >
+                          <Eye size={14} /> Review Case
+                        </Link>
+                      )}
                     </td>
                   </motion.tr>
                 ))

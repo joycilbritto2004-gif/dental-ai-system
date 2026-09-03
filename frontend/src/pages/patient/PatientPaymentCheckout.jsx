@@ -30,7 +30,8 @@ const PatientPaymentCheckout = () => {
     );
   }
 
-  const totalAmount = doctor.fee + (platformFee || 0);
+  const docFee = doctor.fee || 500;
+  const totalAmount = docFee + (platformFee || 0);
 
   const handlePayment = (e) => {
     e.preventDefault();
@@ -41,18 +42,20 @@ const PatientPaymentCheckout = () => {
       const txnId = `TXN-AI-${Math.floor(Math.random() * 1000000000)}`;
       
       let dynamicPatientName = "Patient";
+      let dynamicPatientId = undefined;
       try {
         const userStr = localStorage.getItem('dentaai_user');
         if (userStr) {
           const user = JSON.parse(userStr);
           dynamicPatientName = user.name || user.firstName || user.username || "Patient";
+          dynamicPatientId = user._id || user.id;
         }
       } catch (e) {}
 
       const newConsultation = {
         id: Date.now().toString(),
         transactionId: txnId,
-        patientId: userStr ? JSON.parse(userStr)._id || JSON.parse(userStr).id : undefined,
+        patientId: dynamicPatientId,
         patientName: dynamicPatientName, 
         doctorId: doctor.id,
         doctorName: doctor.name,
@@ -65,7 +68,7 @@ const PatientPaymentCheckout = () => {
         consultationType,
         date,
         time,
-        fee: doctor.fee,
+        fee: docFee,
         platformFee,
         totalAmount,
         paymentStatus: "Paid",
@@ -250,9 +253,9 @@ const PatientPaymentCheckout = () => {
                 style={{ display: 'flex', gap: '10px', justifyContent: 'center', alignItems: 'center' }}
               >
                 {isProcessing ? (
-                  <><Loader2 size={20} className="animate-spin" /> Establishing Secure Connection...</>
+                  <><Loader2 size={20} className="animate-spin" /> Processing Payment...</>
                 ) : (
-                  <><Lock size={20} /> Authorize Payment of ₹{totalAmount}</>
+                  <><Lock size={20} /> Pay ₹{totalAmount}</>
                 )}
               </button>
             </form>

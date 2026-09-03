@@ -8,92 +8,46 @@ const DoctorProfile = () => {
   const location = useLocation();
   const predictionResult = location.state?.predictionResult;
   
-  const doctorsData = [
-    {
-      id: "1",
-      name: "Dr. Ananya Sharma",
-      qualifications: "BDS, MDS",
-      specialization: "General & Cosmetic Dentist",
-      experience: "12 years",
-      registration: "DCI Reg No: 84729",
-      languages: "English, Hindi, Kannada",
-      fee: 500,
-      rating: 4.8,
-      reviews: 124,
-      clinic: "SmileCare Dental Clinic",
-      loc: "Bengaluru, Karnataka",
-      address: "101, Health Avenue, Bengaluru, KA",
-      phone: "+91 98765 43210",
-      email: "dr.ananya@smilecare.in",
-      timings: "Mon - Sat: 10:00 AM - 08:00 PM",
-      services: ["Teeth Whitening", "Cosmetic Fillings", "Routine Checkup", "Dental Crowns"]
-    },
-    {
-      id: "2",
-      name: "Dr. Rahul Nair",
-      qualifications: "BDS, MDS",
-      specialization: "Endodontist",
-      experience: "10 years",
-      registration: "DCI Reg No: 84730",
-      languages: "English, Malayalam",
-      fee: 700,
-      rating: 4.9,
-      reviews: 89,
-      clinic: "DentalCare Advanced Clinic",
-      loc: "Kochi, Kerala",
-      address: "45 Downtown St, Kochi, KL",
-      phone: "+91 98765 43211",
-      email: "dr.rahul@dentalcare.in",
-      timings: "Mon - Fri: 09:00 AM - 06:00 PM",
-      services: ["Root Canal Treatment", "Endodontic Retreatment", "Apicoectomy", "Trauma Management"]
-    },
-    {
-      id: "3",
-      name: "Dr. Priya Menon",
-      qualifications: "BDS, MS Orthodontics",
-      specialization: "Orthodontist",
-      experience: "9 years",
-      registration: "DCI Reg No: 84731",
-      languages: "English, Malayalam, Tulu",
-      fee: 600,
-      rating: 4.7,
-      reviews: 215,
-      clinic: "Perfect Smile Dental Centre",
-      loc: "Mangaluru, Karnataka",
-      address: "128 MG Road, Mangaluru, KA",
-      phone: "+91 98765 43212",
-      email: "dr.priya@perfectsmile.in",
-      timings: "Mon - Sat: 08:00 AM - 05:00 PM",
-      services: ["Braces", "Invisalign", "Retainers", "Jaw Alignment"]
-    },
-    {
-      id: "4",
-      name: "Dr. Arjun Patel",
-      qualifications: "MDS - Oral Surgery",
-      specialization: "Oral & Maxillofacial Surgeon",
-      experience: "14 years",
-      registration: "DCI Reg No: 84732",
-      languages: "English, Hindi, Gujarati, Marathi",
-      fee: 900,
-      rating: 4.9,
-      reviews: 156,
-      clinic: "City Dental Hospital",
-      loc: "Mumbai, Maharashtra",
-      address: "56 SV Road, Mumbai, MH",
-      phone: "+91 98765 43213",
-      email: "dr.arjun@citydental.in",
-      timings: "Tue - Sun: 10:00 AM - 07:00 PM",
-      services: ["Tooth Extraction", "Dental Implants", "Jaw Surgery", "Cyst Removal"]
-    }
-  ];
+  const [doc, setDoc] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const doc = doctorsData.find(d => d.id === id) || doctorsData[0];
+  useEffect(() => {
+    const fetchDoctor = async () => {
+      try {
+        const res = await fetch(`http://localhost:5000/api/doctors/${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setDoc(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch doctor:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchDoctor();
+  }, [id]);
 
   const stagger = {
     hidden: { opacity: 0 },
     show: { opacity: 1, transition: { staggerChildren: 0.1 } }
   };
   const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
+
+  if (isLoading) {
+    return (
+      <div className="dashboard-view text-center pt-20">Loading profile...</div>
+    );
+  }
+
+  if (!doc) {
+    return (
+      <div className="dashboard-view text-center pt-20">
+        <h2 className="text-xl font-bold text-primary mb-4">Doctor Not Found</h2>
+        <Link to="/dashboard/patient/recommended-doctors" className="btn btn-outline">Back to Recommendations</Link>
+      </div>
+    );
+  }
 
   return (
     <motion.div className="dashboard-view" initial="hidden" animate="show" variants={stagger}>
@@ -132,13 +86,13 @@ const DoctorProfile = () => {
                 <span className="text-muted flex-align-center gap-2"><Award size={18} className="text-secondary"/> Registration</span>
                 <span className="font-semibold text-primary">{doc.registration}</span>
               </div>
-              <div className="model-detail-row" style={{ border: 'none', padding: '0.5rem' }}>
-                <span className="text-muted flex-align-center gap-2"><Languages size={18} className="text-secondary"/> Languages</span>
-                <span className="font-semibold text-primary">{doc.languages}</span>
+              <div>
+                <p className="text-xs text-muted mb-1 flex-align-center gap-1"><Languages size={14}/> Languages</p>
+                <p className="font-semibold">{doc.languages || 'English, Local'}</p>
               </div>
-              <div className="model-detail-row" style={{ border: 'none', padding: '0.5rem' }}>
-                <span className="text-muted flex-align-center gap-2"><Star size={18} className="text-warning"/> Rating</span>
-                <span className="font-semibold text-primary">{doc.rating} ({doc.reviews})</span>
+              <div>
+                <p className="text-xs text-muted mb-1 flex-align-center gap-1"><Star size={14} className="text-warning fill-warning"/> Rating</p>
+                <p className="font-semibold">{doc.rating} ({doc.reviews} Reviews)</p>
               </div>
             </div>
 

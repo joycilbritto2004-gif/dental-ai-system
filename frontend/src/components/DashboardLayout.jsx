@@ -23,13 +23,28 @@ const DashboardLayout = () => {
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
-        setUserName(user.name || user.firstName || user.username || '');
-        setUserId(user._id || user.id);
+        
+        if (user) {
+          setUserName(user.name || user.firstName || user.username || '');
+        }
+        
+        if (role === 'doctor') {
+          // If the logged in user is a doctor, use their ID. Otherwise fallback to demo doctor ID "3"
+          if (user.role === 'doctor') {
+            setUserId(user._id || user.id);
+          } else {
+            setUserId("3");
+          }
+        } else {
+          if (user.role === role) {
+            setUserId(user._id || user.id);
+          }
+        }
       } catch (e) {
         console.error('Error parsing user data:', e);
       }
     }
-  }, []);
+  }, [role]);
 
   const fetchNotifications = async () => {
     if (!userId) return;
@@ -161,31 +176,31 @@ const DashboardLayout = () => {
 
           {role === 'admin' && (
             <>
-              <Link to="#" className="sidebar-link">
+              <Link to="/dashboard/admin/users" className={`sidebar-link ${currentPath.includes('/admin/users') ? 'active' : ''}`}>
                 <Users size={20} />
                 <span>User Management</span>
               </Link>
-              <Link to="#" className="sidebar-link">
+              <Link to="/dashboard/admin/doctors" className={`sidebar-link ${currentPath.includes('/admin/doctors') ? 'active' : ''}`}>
                 <Stethoscope size={20} />
                 <span>Doctors</span>
               </Link>
-              <Link to="#" className="sidebar-link">
+              <Link to="/dashboard/admin/patients" className={`sidebar-link ${currentPath.includes('/admin/patients') ? 'active' : ''}`}>
                 <UserCircle size={20} />
                 <span>Patients</span>
               </Link>
-              <Link to="#" className="sidebar-link">
+              <Link to="/dashboard/admin/ai-model" className={`sidebar-link ${currentPath.includes('/admin/ai-model') ? 'active' : ''}`}>
                 <BrainCircuit size={20} />
                 <span>AI Model</span>
               </Link>
-              <Link to="#" className="sidebar-link">
+              <Link to="/dashboard/admin/predictions" className={`sidebar-link ${currentPath.includes('/admin/predictions') ? 'active' : ''}`}>
                 <Activity size={20} />
                 <span>Predictions</span>
               </Link>
-              <Link to="#" className="sidebar-link">
+              <Link to="/dashboard/admin/activity" className={`sidebar-link ${currentPath.includes('/admin/activity') ? 'active' : ''}`}>
                 <Activity size={20} />
                 <span>System Activity</span>
               </Link>
-              <Link to="#" className="sidebar-link">
+              <Link to="/dashboard/admin/settings" className={`sidebar-link ${currentPath.includes('/admin/settings') ? 'active' : ''}`}>
                 <Settings size={20} />
                 <span>Settings</span>
               </Link>
@@ -208,7 +223,14 @@ const DashboardLayout = () => {
         </nav>
 
         <div className="sidebar-footer">
-          <Link to="/" className="sidebar-link text-logout">
+          <Link 
+            to="/" 
+            className="sidebar-link text-logout"
+            onClick={() => {
+              localStorage.removeItem('dentaai_token');
+              localStorage.removeItem('dentaai_user');
+            }}
+          >
             <LogOut size={20} />
             <span>Logout</span>
           </Link>
@@ -274,7 +296,7 @@ const DashboardLayout = () => {
             </div>
 
             <div className="user-info">
-              <span className="user-name">Welcome, {userName || (role === 'patient' ? 'Patient' : role === 'doctor' ? 'Dr. Smith' : 'Admin')}</span>
+              <span className="user-name">Welcome, {userName || 'User'}</span>
             </div>
             <div className="user-avatar-circle">
               <UserCircle size={24} />

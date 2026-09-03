@@ -10,7 +10,12 @@ const DoctorConsultations = () => {
   useEffect(() => {
     const fetchConsultations = async () => {
       try {
-        const DOCTOR_ID = "3";
+        const userStr = localStorage.getItem('dentaai_user');
+        let DOCTOR_ID = "3"; // Fallback to demo doctor
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          DOCTOR_ID = user._id || user.id || "3";
+        }
         const res = await fetch(`http://localhost:5000/api/consultations?doctorId=${DOCTOR_ID}`);
         if (!res.ok) throw new Error('Failed to fetch consultations');
         const myConsultations = await res.json();

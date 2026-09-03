@@ -26,6 +26,16 @@ const userSchema = new mongoose.Schema({
   profileImage: {
     type: String,
   },
+  verificationStatus: {
+    type: String,
+    enum: ['Pending', 'Approved', 'Rejected'],
+    default: 'Pending',
+  },
+  accountStatus: {
+    type: String,
+    enum: ['Active', 'Blocked'],
+    default: 'Active',
+  },
 }, { timestamps: true });
 
 // Hash password before saving

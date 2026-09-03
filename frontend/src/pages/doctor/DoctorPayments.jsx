@@ -9,37 +9,52 @@ const DoctorPayments = () => {
   const [pendingSettlements, setPendingSettlements] = useState([]);
 
   useEffect(() => {
-    try {
-      const DOCTOR_ID = "1";
-      const stored = JSON.parse(localStorage.getItem('dental_consultations') || '[]');
-      const myConsultations = stored.filter(c => c.doctorId === DOCTOR_ID && c.fee);
-      
-      let earnings = 0;
-      const pending = [];
-      const history = [];
-
-      myConsultations.forEach(c => {
-        const amount = Number(c.fee) || 0;
-        
-        if (c.status === "Completed" || c.paymentStatus === "Paid" || c.paymentStatus === "Verified") {
-          earnings += amount;
-          history.push(c);
-        } else if (c.status === "Pending Request" || c.status === "Accepted") {
-          // Assuming the payment is locked/pending settlement
-          pending.push({ name: c.patientName, amount });
-          history.push(c);
+    const fetchPayments = async () => {
+      try {
+        const userStr = localStorage.getItem('dentaai_user');
+        let DOCTOR_ID = "3"; // Fallback to demo doctor
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          DOCTOR_ID = user._id || user.id || "3";
         }
-      });
+        
+        const res = await fetch(`http://localhost:5000/api/consultations?doctorId=${DOCTOR_ID}`);
+        if (!res.ok) throw new Error('Failed to fetch from backend');
+        const stored = await res.json();
+        
+        const myConsultations = stored.filter(c => c.fee);
+        
+        let earnings = 0;
+        const pending = [];
+        const history = [];
 
-      history.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-      
-      setPayments(history);
-      setTotalEarnings(earnings);
-      setPendingSettlements(pending);
+        myConsultations.forEach(c => {
+          const amount = Number(c.fee) || 0;
+          
+          if (c.status === "Completed" || c.paymentStatus === "Paid" || c.paymentStatus === "Verified") {
+            // Include paid/verified consultations in earnings and history
+            if (c.status === "Completed") {
+                earnings += amount;
+            }
+            history.push(c);
+          } else if (c.status === "Pending" || c.status === "Accepted" || c.status === "In Consultation") {
+            // Assuming the payment is locked/pending settlement until completed
+            pending.push({ name: c.patientName, amount });
+            history.push(c);
+          }
+        });
 
-    } catch (e) {
-      console.error("Error loading payments:", e);
-    }
+        history.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        
+        setPayments(history);
+        setTotalEarnings(earnings);
+        setPendingSettlements(pending);
+
+      } catch (e) {
+        console.error("Error loading payments:", e);
+      }
+    };
+    fetchPayments();
   }, []);
 
   const stagger = {

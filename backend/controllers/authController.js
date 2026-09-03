@@ -35,6 +35,8 @@ const registerUser = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        verificationStatus: user.verificationStatus,
+        accountStatus: user.accountStatus,
         token: generateToken(user._id),
       });
     } else {
@@ -55,11 +57,17 @@ const loginUser = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (user && (await user.matchPassword(password))) {
+      if (user.accountStatus === 'Blocked') {
+        return res.status(403).json({ message: 'Your account has been blocked. Please contact support.' });
+      }
+
       res.json({
         _id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
+        verificationStatus: user.verificationStatus,
+        accountStatus: user.accountStatus,
         token: generateToken(user._id),
       });
     } else {

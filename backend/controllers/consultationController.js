@@ -1,5 +1,6 @@
 const Consultation = require('../models/Consultation');
 const Notification = require('../models/Notification');
+const User = require('../models/User');
 
 // @desc    Create new consultation
 // @route   POST /api/consultations
@@ -94,6 +95,14 @@ const acceptConsultation = async (req, res) => {
   try {
     const consultation = await Consultation.findById(req.params.id);
     if (!consultation) return res.status(404).json({ message: 'Consultation not found' });
+    
+    // Verify Doctor Status
+    if (consultation.doctorId) {
+      const doctor = await User.findById(consultation.doctorId);
+      if (doctor && doctor.verificationStatus !== 'Approved') {
+        return res.status(403).json({ message: 'Your account must be approved by an Admin before accepting consultations.' });
+      }
+    }
     
     consultation.status = 'Accepted';
     await consultation.save();

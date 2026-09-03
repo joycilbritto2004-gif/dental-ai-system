@@ -1,13 +1,61 @@
+import { useState, useEffect } from 'react';
 import { Users, Stethoscope, Activity, CheckCircle2, AlertCircle, BrainCircuit, ShieldCheck, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import './Dashboard.css';
 
 const AdminDashboard = () => {
+  const [stats, setStats] = useState({
+    totalPatients: 0,
+    totalDoctors: 0,
+    totalPredictions: 0,
+    verifiedCases: 0,
+    pendingReviews: 0,
+    predictionsToday: 0,
+    newPatientsThisMonth: 0,
+    recentActivity: []
+  });
+  const [users, setUsers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAdminData = async () => {
+      try {
+        const userStr = localStorage.getItem('dentaai_user');
+        if (!userStr) return;
+        const user = JSON.parse(userStr);
+        const userId = user._id || user.id;
+
+        const [statsRes, usersRes] = await Promise.all([
+          fetch(`http://localhost:5000/api/admin/stats?userId=${userId}`),
+          fetch(`http://localhost:5000/api/admin/users?userId=${userId}`)
+        ]);
+
+        if (statsRes.ok && usersRes.ok) {
+          const statsData = await statsRes.json();
+          const usersData = await usersRes.json();
+          
+          setStats(statsData);
+          setUsers(usersData);
+        }
+      } catch (err) {
+        console.error("Failed to fetch admin data", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAdminData();
+  }, []);
+
   const stagger = {
     hidden: { opacity: 0 },
     show: { opacity: 1, transition: { staggerChildren: 0.1 } }
   };
   const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
+
+  if (isLoading) {
+    return <div className="p-8 text-center"><Activity className="animate-spin mx-auto text-primary mb-4" size={32} /> Loading Admin Data...</div>;
+  }
 
   return (
     <motion.div className="dashboard-view" initial="hidden" animate="show" variants={stagger}>
@@ -23,28 +71,28 @@ const AdminDashboard = () => {
         <div className="kpi-card glass-card" style={{ borderLeft: '4px solid var(--secondary)' }}>
           <div className="kpi-icon bg-blue-light text-blue" style={{ borderRadius: '12px', background: 'rgba(0, 210, 255, 0.1)' }}><Users size={28} /></div>
           <div className="kpi-content">
-            <span className="kpi-value text-primary">1,248</span>
+            <span className="kpi-value text-primary">{stats.totalPatients}</span>
             <span className="kpi-label">Total Patients</span>
           </div>
         </div>
         <div className="kpi-card glass-card" style={{ borderLeft: '4px solid var(--primary)' }}>
           <div className="kpi-icon bg-primary text-white" style={{ borderRadius: '12px', background: 'linear-gradient(135deg, var(--primary), #1e3a8a)' }}><Stethoscope size={28} /></div>
           <div className="kpi-content">
-            <span className="kpi-value text-primary">42</span>
+            <span className="kpi-value text-primary">{stats.totalDoctors}</span>
             <span className="kpi-label">Total Doctors</span>
           </div>
         </div>
         <div className="kpi-card glass-card" style={{ borderLeft: '4px solid #f59e0b' }}>
           <div className="kpi-icon bg-warning-light text-warning" style={{ borderRadius: '12px', background: 'rgba(245, 158, 11, 0.1)' }}><BrainCircuit size={28} /></div>
           <div className="kpi-content">
-            <span className="kpi-value text-primary">3,856</span>
+            <span className="kpi-value text-primary">{stats.totalPredictions}</span>
             <span className="kpi-label">AI Predictions</span>
           </div>
         </div>
         <div className="kpi-card glass-card" style={{ borderLeft: '4px solid #10b981' }}>
           <div className="kpi-icon bg-success-light text-success" style={{ borderRadius: '12px', background: 'rgba(16, 185, 129, 0.1)' }}><CheckCircle2 size={28} /></div>
           <div className="kpi-content">
-            <span className="kpi-value text-primary">2,941</span>
+            <span className="kpi-value text-primary">{stats.verifiedCases}</span>
             <span className="kpi-label">Verified Cases</span>
           </div>
         </div>
@@ -61,15 +109,15 @@ const AdminDashboard = () => {
             <div className="overview-grid">
               <div className="overview-item" style={{ background: 'var(--bg-card)' }}>
                 <span className="text-muted">Pending Doctor Reviews</span>
-                <h4 className="text-warning" style={{ color: '#d97706' }}>8</h4>
+                <h4 className="text-warning" style={{ color: '#d97706' }}>{stats.pendingReviews}</h4>
               </div>
               <div className="overview-item" style={{ background: 'var(--bg-card)' }}>
                 <span className="text-muted">Predictions Today</span>
-                <h4 className="text-secondary">24</h4>
+                <h4 className="text-secondary">{stats.predictionsToday}</h4>
               </div>
               <div className="overview-item" style={{ background: 'var(--bg-card)' }}>
                 <span className="text-muted">New Patients This Month</span>
-                <h4 className="text-primary">86</h4>
+                <h4 className="text-primary">{stats.newPatientsThisMonth}</h4>
               </div>
               <div className="overview-item" style={{ background: 'var(--bg-card)' }}>
                 <span className="text-muted">System Status</span>
@@ -98,27 +146,22 @@ const AdminDashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  <motion.tr whileHover={{ backgroundColor: 'rgba(0, 210, 255, 0.05)' }}>
-                    <td className="font-bold text-primary">Jane Doe</td>
-                    <td className="text-muted text-sm">john@email.com</td>
-                    <td><span className="badge" style={{ background: 'rgba(0, 210, 255, 0.1)', color: 'var(--secondary)' }}>Patient</span></td>
-                    <td><span className="badge" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#059669', border: '1px solid rgba(16, 185, 129, 0.3)' }}>Active</span></td>
-                    <td><button className="icon-btn text-muted hover:text-secondary"><ChevronRight size={18} /></button></td>
-                  </motion.tr>
-                  <motion.tr whileHover={{ backgroundColor: 'rgba(0, 210, 255, 0.05)' }}>
-                    <td className="font-bold text-primary">Dr. Smith</td>
-                    <td className="text-muted text-sm">drsmith@dentaai.com</td>
-                    <td><span className="badge" style={{ background: 'var(--primary)', color: 'white' }}>Doctor</span></td>
-                    <td><span className="badge" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#059669', border: '1px solid rgba(16, 185, 129, 0.3)' }}>Active</span></td>
-                    <td><button className="icon-btn text-muted hover:text-secondary"><ChevronRight size={18} /></button></td>
-                  </motion.tr>
-                  <motion.tr whileHover={{ backgroundColor: 'rgba(0, 210, 255, 0.05)' }}>
-                    <td className="font-bold text-primary">Michael Johnson</td>
-                    <td className="text-muted text-sm">michael@email.com</td>
-                    <td><span className="badge" style={{ background: 'rgba(0, 210, 255, 0.1)', color: 'var(--secondary)' }}>Patient</span></td>
-                    <td><span className="badge" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#059669', border: '1px solid rgba(16, 185, 129, 0.3)' }}>Active</span></td>
-                    <td><button className="icon-btn text-muted hover:text-secondary"><ChevronRight size={18} /></button></td>
-                  </motion.tr>
+                  {users.slice(0, 5).map(u => (
+                    <motion.tr key={u._id} whileHover={{ backgroundColor: 'rgba(0, 210, 255, 0.05)' }}>
+                      <td className="font-bold text-primary">{u.name}</td>
+                      <td className="text-muted text-sm">{u.email}</td>
+                      <td>
+                        <span className="badge" style={{ 
+                          background: u.role === 'doctor' ? 'var(--primary)' : u.role === 'admin' ? '#ef4444' : 'rgba(0, 210, 255, 0.1)', 
+                          color: u.role === 'doctor' || u.role === 'admin' ? 'white' : 'var(--secondary)' 
+                        }}>
+                          {u.role.charAt(0).toUpperCase() + u.role.slice(1)}
+                        </span>
+                      </td>
+                      <td><span className="badge" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#059669', border: '1px solid rgba(16, 185, 129, 0.3)' }}>Active</span></td>
+                      <td><button className="icon-btn text-muted hover:text-secondary"><ChevronRight size={18} /></button></td>
+                    </motion.tr>
+                  ))}
                 </tbody>
               </table>
             </div>

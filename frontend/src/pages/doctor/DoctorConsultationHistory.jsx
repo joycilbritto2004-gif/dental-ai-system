@@ -8,21 +8,32 @@ const DoctorConsultationHistory = () => {
   const [historyCases, setHistoryCases] = useState([]);
 
   useEffect(() => {
-    try {
-      const DOCTOR_ID = "1";
-      const stored = JSON.parse(localStorage.getItem('dental_consultations') || '[]');
-      
-      const myHistory = stored.filter(c => c.doctorId === DOCTOR_ID && (
-        c.status === "Completed" || 
-        c.status === "Verified" || 
-        c.status === "Rejected"
-      ));
-      
-      myHistory.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-      setHistoryCases(myHistory);
-    } catch (e) {
-      console.error("Error loading history:", e);
-    }
+    const fetchHistory = async () => {
+      try {
+        const userStr = localStorage.getItem('dentaai_user');
+        let DOCTOR_ID = "3"; // Fallback to demo doctor
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          DOCTOR_ID = user._id || user.id || "3";
+        }
+        
+        const res = await fetch(`http://localhost:5000/api/consultations?doctorId=${DOCTOR_ID}`);
+        if (!res.ok) throw new Error('Failed to fetch from backend');
+        const stored = await res.json();
+        
+        const myHistory = stored.filter(c => (
+          c.status === "Completed" || 
+          c.status === "Verified" || 
+          c.status === "Rejected"
+        ));
+        
+        myHistory.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        setHistoryCases(myHistory);
+      } catch (e) {
+        console.error("Error loading history:", e);
+      }
+    };
+    fetchHistory();
   }, []);
 
   const getStatusBadge = (status) => {

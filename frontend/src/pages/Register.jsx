@@ -29,7 +29,9 @@ const Register = () => {
         id: data._id,
         name: data.name,
         email: data.email,
-        role: data.role
+        role: data.role,
+        verificationStatus: data.verificationStatus,
+        accountStatus: data.accountStatus
       }));
 
       navigate(`/dashboard/${data.role}`);

@@ -15,14 +15,27 @@ const ConsultationRequest = () => {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
 
-  const doctorsData = [
-    { id: "1", name: "Dr. Ananya Sharma", specialization: "General & Cosmetic Dentist", fee: 500, clinic: "SmileCare Dental Clinic", loc: "Bengaluru, Karnataka" },
-    { id: "2", name: "Dr. Rahul Nair", specialization: "Endodontist", fee: 700, clinic: "DentalCare Advanced Clinic", loc: "Kochi, Kerala" },
-    { id: "3", name: "Dr. Priya Menon", specialization: "Orthodontist", fee: 600, clinic: "Perfect Smile Dental Centre", loc: "Mangaluru, Karnataka" },
-    { id: "4", name: "Dr. Arjun Patel", specialization: "Oral & Maxillofacial Surgeon", fee: 900, clinic: "City Dental Hospital", loc: "Mumbai, Maharashtra" }
-  ];
+  const [doc, setDoc] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const doc = doctorsData.find(d => d.id === id) || doctorsData[0];
+  useEffect(() => {
+    const fetchDoctor = async () => {
+      try {
+        const res = await fetch(`http://localhost:5000/api/doctors/${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          // Normalize doc.id to the MongoDB _id string for consistency in the frontend
+          if (data._id) data.id = data._id; 
+          setDoc(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch doctor:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchDoctor();
+  }, [id]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -36,6 +49,9 @@ const ConsultationRequest = () => {
     show: { opacity: 1, transition: { staggerChildren: 0.1 } }
   };
   const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
+
+  if (isLoading) return <div className="dashboard-view text-center pt-20">Loading...</div>;
+  if (!doc) return <div className="dashboard-view text-center pt-20">Doctor Not Found</div>;
 
   return (
     <motion.div className="dashboard-view" initial="hidden" animate="show" variants={stagger}>
@@ -61,9 +77,9 @@ const ConsultationRequest = () => {
               <label className="form-label text-muted">Selected Specialist</label>
               <div className="patient-meta-box" style={{ borderRadius: 'var(--radius-md)', padding: '16px', background: 'linear-gradient(135deg, rgba(0, 210, 255, 0.05), transparent)', border: '1px solid rgba(0, 210, 255, 0.2)' }}>
                 <h4 className="font-semibold text-primary" style={{ margin: '0 0 4px 0', fontSize: '1.2rem' }}>{doc.name}</h4>
-                <p className="text-sm text-muted" style={{ margin: '0 0 8px 0' }}>{doc.specialization} &bull; {doc.clinic}</p>
+                <p className="text-sm text-muted" style={{ margin: '0 0 8px 0' }}>{doc.specialization} &bull; {doc.clinic || 'DentaAI Partner Clinic'}</p>
                 <div style={{ display: 'flex', gap: '16px' }}>
-                  <span style={{ background: 'rgba(0, 210, 255, 0.1)', color: 'var(--secondary)', border: '1px solid rgba(0, 210, 255, 0.3)', padding: '4px 10px', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 600 }}>{doc.loc}</span>
+                  <span style={{ background: 'rgba(0, 210, 255, 0.1)', color: 'var(--secondary)', border: '1px solid rgba(0, 210, 255, 0.3)', padding: '4px 10px', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 600 }}>{doc.location || 'Online / Regional'}</span>
                 </div>
               </div>
             </div>
