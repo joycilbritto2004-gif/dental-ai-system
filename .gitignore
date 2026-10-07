@@ -39,3 +39,28 @@ __pycache__/
 .idea/
 .DS_Store
 Thumbs.db
+
+# AI Model Experiments and Datasets
+ai_model/clean_dataset/
+ai_model/split_dataset/
+ai_model/final_evaluation_results.json
+ai_model/saved_models/
+*.keras
+!ai_model/best_dental_model.keras
+
+# Test and QA Scripts
+backend/check-*.js
+backend/qa-*.js
+backend/test-*.js
+backend/create-*.js
+backend/convert-*.js
+backend/get-admin.js
+backend/update-admin-email.js
+backend/fix-doc.js
+backend/fix-state.js
+backend/reset-doctor.js
+backend/*.jpg
+backend/*.png
+
+# Frontend temp
+frontend/lint_output.txt
