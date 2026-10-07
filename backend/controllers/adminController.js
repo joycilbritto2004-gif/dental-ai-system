@@ -92,7 +92,7 @@ const updateDoctorStatus = async (req, res) => {
 const updateAccountStatus = async (req, res) => {
   try {
     const { status } = req.body;
-    const adminUserId = req.query.userId || req.headers['user-id']; // Provided by adminGuard
+    const adminUserId = req.user._id.toString();
 
     if (!['Active', 'Blocked'].includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });

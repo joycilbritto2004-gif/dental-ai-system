@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CreditCard, Download, TrendingUp } from 'lucide-react';
+import { Download, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 import '../Dashboard.css';
 
@@ -12,10 +12,10 @@ const DoctorPayments = () => {
     const fetchPayments = async () => {
       try {
         const userStr = localStorage.getItem('dentaai_user');
-        let DOCTOR_ID = "3"; // Fallback to demo doctor
+        let DOCTOR_ID = null;
         if (userStr) {
           const user = JSON.parse(userStr);
-          DOCTOR_ID = user._id || user.id || "3";
+          DOCTOR_ID = user._id || user.id ;
         }
         
         const res = await fetch(`http://localhost:5000/api/consultations?doctorId=${DOCTOR_ID}`);

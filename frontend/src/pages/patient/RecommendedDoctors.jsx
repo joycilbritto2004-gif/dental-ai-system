@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Search, MapPin, Star, ChevronRight, BriefcaseMedical } from 'lucide-react';
+import { Search, Star, ChevronRight, BriefcaseMedical } from 'lucide-react';
 import { motion } from 'framer-motion';
 import '../Dashboard.css';
 
@@ -55,45 +55,45 @@ const RecommendedDoctors = () => {
   return (
     <div className="dashboard-view animate-fade-in">
       <div className="dashboard-header mb-6">
-        <h2>Recommended Dentists</h2>
-        <p>Based on your dental analysis, connect with a qualified dental professional for further consultation.</p>
+        <h2 style={{ color: '#ffffff', fontWeight: '800' }}>Recommended Dentists</h2>
+        <p style={{ color: '#cbd5e1', fontWeight: '500' }}>Based on your dental analysis, connect with a qualified dental professional for further consultation.</p>
       </div>
 
-      <div className="card mb-6">
-        <div className="flex-between" style={{ gap: '1rem', flexWrap: 'wrap' }}>
-          <div className="search-input-wrapper flex-1">
-            <Search size={20} className="text-muted" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+      <div className="card mb-6" style={{ padding: '1rem', background: 'rgba(255, 255, 255, 0.95)' }}>
+        <div className="filters-row">
+          <div className="search-input-wrapper" style={{ position: 'relative', flex: '2 1 300px' }}>
+            <Search size={20} style={{ color: '#64748b', position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
             <input 
               type="text" 
               className="form-input" 
               placeholder="Search by name, specialty, or location..." 
-              style={{ paddingLeft: '2.8rem' }}
+              style={{ paddingLeft: '2.8rem', width: '100%', height: '48px', color: '#0f172a', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1' }}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <select 
-              className="form-input" 
-              value={specializationFilter} 
-              onChange={(e) => setSpecializationFilter(e.target.value)}
-            >
-              <option value="All Specializations">All Specializations</option>
-              <option value="General Dentist">General Dentist</option>
-              <option value="Endodontist">Endodontist</option>
-              <option value="Orthodontist">Orthodontist</option>
-              <option value="Oral Surgeon">Oral Surgeon</option>
-            </select>
-            <select 
-              className="form-input"
-              value={feeFilter}
-              onChange={(e) => setFeeFilter(e.target.value)}
-            >
-              <option value="Any Fee">Any Fee</option>
-              <option value="Under ₹500">Under ₹500</option>
-              <option value="₹500 - ₹1000">₹500 - ₹1000</option>
-            </select>
-          </div>
+          <select 
+            className="form-input" 
+            style={{ height: '48px', flex: '1 1 200px', color: '#0f172a', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1' }}
+            value={specializationFilter} 
+            onChange={(e) => setSpecializationFilter(e.target.value)}
+          >
+            <option value="All Specializations">All Specializations</option>
+            <option value="General Dentist">General Dentist</option>
+            <option value="Endodontist">Endodontist</option>
+            <option value="Orthodontist">Orthodontist</option>
+            <option value="Oral Surgeon">Oral Surgeon</option>
+          </select>
+          <select 
+            className="form-input"
+            style={{ height: '48px', flex: '1 1 150px', color: '#0f172a', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1' }}
+            value={feeFilter}
+            onChange={(e) => setFeeFilter(e.target.value)}
+          >
+            <option value="Any Fee">Any Fee</option>
+            <option value="Under ₹500">Under ₹500</option>
+            <option value="₹500 - ₹1000">₹500 - ₹1000</option>
+          </select>
         </div>
       </div>
 
@@ -103,52 +103,57 @@ const RecommendedDoctors = () => {
         <div className="doctors-grid">
           {filteredDoctors.map(doc => (
             <motion.div key={doc._id} className="card doctor-card" whileHover={{ y: -5 }}>
-              <div className="doctor-card-header mb-4">
-                <div className="doctor-avatar bg-blue-light text-primary">
+              <div className="doctor-card-header">
+                <div className="doctor-avatar">
                   {doc.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
                 </div>
-                <div>
-                  <h3 className="doctor-name font-bold text-lg">{doc.name}</h3>
-                  <div className="flex-align-center gap-1 text-primary text-sm font-medium">
+                <div className="doctor-info-basic">
+                  <h3 style={{ color: '#0f172a', fontWeight: '800' }}>{doc.name}</h3>
+                  <div className="flex-align-center gap-1" style={{ color: '#475569', fontSize: '0.875rem', fontWeight: '600' }}>
                     {doc.specialization}
                   </div>
                 </div>
               </div>
 
-              <div className="flex-align-center gap-1 font-semibold text-secondary mb-3">
-                <Star size={18} fill="currentColor" /> {4.8} ({Math.floor(Math.random() * 200) + 50} reviews)
-              </div>
-
-              <div className="flex-align-center gap-2 text-muted mb-4 text-sm border-b pb-4">
-                <BriefcaseMedical size={16} /> {doc.qualifications || 'BDS, MDS'} &bull; {doc.experience || '10+ Years Exp.'}
-              </div>
-
-              <div className="flex-between mb-4">
-                <div>
-                  <p className="text-xs text-muted mb-1">Clinic</p>
-                  <p className="font-semibold text-sm">{doc.clinic || 'DentaAI Partner Clinic'}</p>
+              <div className="doctor-card-body">
+                <div className="detail-row" style={{ color: '#1e3a8a', fontWeight: '600' }}>
+                  <Star size={18} fill="currentColor" /> {4.8} (124 reviews)
                 </div>
-                <div className="text-right">
-                  <p className="text-xs text-muted mb-1">Consultation Fee</p>
-                  <p className="font-bold text-primary">₹{doc.fee || 500}</p>
+
+                <div className="detail-row" style={{ color: '#475569', fontWeight: '500' }}>
+                  <BriefcaseMedical size={16} /> {doc.qualifications || 'BDS, MDS'} &bull; {doc.experience || '10+ Years Exp.'}
+                </div>
+
+                <div className="fee-row detail-row">
+                  <div>
+                    <p style={{ color: '#64748b', fontSize: '0.75rem', marginBottom: '0.25rem' }}>Clinic</p>
+                    <p style={{ color: '#334155', fontWeight: '600', fontSize: '0.875rem' }}>{doc.clinic || 'DentaAI Partner Clinic'}</p>
+                  </div>
+                  <div className="text-right">
+                    <p style={{ color: '#64748b', fontSize: '0.75rem', marginBottom: '0.25rem' }}>Consultation Fee</p>
+                    <p style={{ color: '#0f172a', fontWeight: '700' }}>₹{doc.fee || 500}</p>
+                  </div>
                 </div>
               </div>
               
-              <Link to={`/dashboard/patient/doctor/${doc._id}`} state={{ predictionResult }} className="btn btn-primary w-full flex-align-center justify-center gap-2">
-                View Profile <ChevronRight size={18} />
-              </Link>
+              <div className="doctor-card-footer mt-auto">
+                <Link to={`/dashboard/patient/doctor/${doc._id}`} state={{ predictionResult }} className="btn btn-primary w-full flex-align-center justify-center gap-2">
+                  View Profile <ChevronRight size={18} />
+                </Link>
+              </div>
             </motion.div>
           ))}
         </div>
       ) : (
-        <div className="card glass-card text-center" style={{ padding: '3rem 2rem' }}>
-          <div className="text-muted mb-4" style={{ display: 'flex', justifyContent: 'center' }}>
+        <div className="card glass-card text-center" style={{ padding: '3rem 2rem', background: 'rgba(255, 255, 255, 0.95)' }}>
+          <div style={{ color: '#64748b', marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
             <Search size={48} opacity={0.5} />
           </div>
-          <h3 className="text-primary mb-2">No Doctors Found</h3>
-          <p className="text-muted mb-4">We couldn't find any doctors matching your current filters.</p>
+          <h3 style={{ color: '#0f172a', marginBottom: '0.5rem' }}>No Doctors Found</h3>
+          <p style={{ color: '#475569', marginBottom: '1rem' }}>We couldn't find any doctors matching your current filters.</p>
           <button 
             className="btn btn-outline"
+            style={{ color: '#1e3a8a', borderColor: '#1e3a8a' }}
             onClick={() => {
               setSearchTerm('');
               setSpecializationFilter('All Specializations');

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { UserCircle, Save, MapPin, Building, GraduationCap, Languages, DollarSign } from 'lucide-react';
+import { UserCircle, Save, MapPin, Building, GraduationCap, Languages, DollarSign, CheckCircle2 } from 'lucide-react';
 import '../Dashboard.css';
 
 const DoctorProfileView = () => {

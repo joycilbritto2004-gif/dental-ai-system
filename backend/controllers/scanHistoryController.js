@@ -5,9 +5,11 @@ const ScanHistory = require('../models/ScanHistory');
 // @access  Public (should ideally be protected, but keeping it simple as per current auth flow)
 const saveScanResult = async (req, res) => {
   try {
-    const { patientId, imagePath, condition, confidence, recommendation, scanId } = req.body;
+    const { imagePath, condition, confidence, recommendation, scanId } = req.body;
+    
+    const patientId = req.user._id.toString();
 
-    if (!patientId || !condition || !confidence || !scanId) {
+    if (!condition || !confidence || !scanId) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
@@ -33,6 +35,10 @@ const saveScanResult = async (req, res) => {
 // @access  Public
 const getPatientScanHistory = async (req, res) => {
   try {
+    if (req.user.role === 'patient' && req.params.patientId !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to view these scans' });
+    }
+    
     const scans = await ScanHistory.find({ patientId: req.params.patientId }).sort({ createdAt: -1 });
     res.json(scans);
   } catch (error) {
@@ -41,7 +47,21 @@ const getPatientScanHistory = async (req, res) => {
   }
 };
 
+// @desc    Get all scan history across the platform (for admin)
+// @route   GET /api/scans/all
+// @access  Public (should ideally be protected, but keeping it simple as per current auth flow)
+const getAllScans = async (req, res) => {
+  try {
+    const scans = await ScanHistory.find({}).sort({ createdAt: -1 });
+    res.json(scans);
+  } catch (error) {
+    console.error('Error fetching all scans:', error);
+    res.status(500).json({ message: 'Failed to fetch all scans' });
+  }
+};
+
 module.exports = {
   saveScanResult,
-  getPatientScanHistory
+  getPatientScanHistory,
+  getAllScans
 };

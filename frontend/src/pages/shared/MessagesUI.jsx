@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Send, Image as ImageIcon, BrainCircuit, Search, MoreVertical, FileText, X, Info, CreditCard, CheckCircle2, MessageSquare } from 'lucide-react';
+import { Send, Image as ImageIcon, BrainCircuit, Search, FileText, X, CreditCard, CheckCircle2, MessageSquare, ChevronLeft } from 'lucide-react';
 import '../Dashboard.css';
 
 const MessagesUI = ({ role = 'patient' }) => {
@@ -9,6 +9,7 @@ const MessagesUI = ({ role = 'patient' }) => {
 
   const [consultations, setConsultations] = useState([]);
   const [selectedConsultationId, setSelectedConsultationId] = useState(initialConsultationId);
+  const [isMobileViewOpen, setIsMobileViewOpen] = useState(initialConsultationId ? true : false);
   
   const [allMessages, setAllMessages] = useState([]);
   const [inputText, setInputText] = useState('');
@@ -19,20 +20,22 @@ const MessagesUI = ({ role = 'patient' }) => {
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Fetch Consultations from backend
   useEffect(() => {
     const fetchConsultations = async () => {
       try {
+        const userStr = localStorage.getItem('dentaai_user');
+        const user = userStr ? JSON.parse(userStr) : {};
+        const userId = user._id || user.id;
+        
         const url = role === 'doctor' 
-          ? 'http://localhost:5000/api/consultations?doctorId=3'
-          : 'http://localhost:5000/api/consultations';
+          ? `http://localhost:5000/api/consultations?doctorId=${userId}`
+          : `http://localhost:5000/api/consultations`;
         
         const res = await fetch(url);
         if (!res.ok) throw new Error('Failed to fetch consultations');
         
         const data = await res.json();
         
-        // Filter out Pending Requests and Rejected as they haven't started a chat yet
         const activeConsultations = data.filter(c => 
           c.status === 'Accepted' || 
           c.status === 'Payment Requested' || 
@@ -42,12 +45,14 @@ const MessagesUI = ({ role = 'patient' }) => {
           c.paymentStatus === 'Paid'
         );
 
-        // Sort by newest first
         activeConsultations.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
         setConsultations(activeConsultations);
         
         if (activeConsultations.length > 0 && !selectedConsultationId) {
-          setSelectedConsultationId(activeConsultations[0].id);
+          // don't auto-select on mobile so they see the list first
+          if (window.innerWidth > 768) {
+            setSelectedConsultationId(activeConsultations[0].id);
+          }
         }
       } catch (e) {
         console.error("Error loading consultations:", e);
@@ -56,7 +61,6 @@ const MessagesUI = ({ role = 'patient' }) => {
     fetchConsultations();
   }, [role, selectedConsultationId]);
 
-  // Fetch Messages for selected consultation
   useEffect(() => {
     if (!selectedConsultationId) return;
 
@@ -72,7 +76,6 @@ const MessagesUI = ({ role = 'patient' }) => {
     };
 
     fetchMessages();
-    // 3 second polling for real-time messages
     const interval = setInterval(fetchMessages, 3000);
     return () => clearInterval(interval);
   }, [selectedConsultationId]);
@@ -97,10 +100,10 @@ const MessagesUI = ({ role = 'patient' }) => {
       const userStr = localStorage.getItem('dentaai_user');
       const user = userStr ? JSON.parse(userStr) : {};
       
-      const currentSenderId = user.id || user._id || (role === 'doctor' ? "3" : "patient_1");
+      const currentSenderId = user.id || user._id;
       const receiverId = role === 'doctor' 
-        ? (activeConsultation?.scanId?.patientId || "patient_1") 
-        : (activeConsultation?.doctorId || "3");
+        ? (activeConsultation?.patientId || "patient_1") 
+        : (activeConsultation?.doctorId);
 
       const payload = {
         ...newMessageObj,
@@ -176,8 +179,6 @@ const MessagesUI = ({ role = 'patient' }) => {
     });
   };
 
-
-
   const handleCompleteConsultation = async () => {
     if (!finalDiagnosis || !treatmentPlan) {
       alert("Please enter both a final diagnosis and a treatment plan before completing.");
@@ -185,16 +186,16 @@ const MessagesUI = ({ role = 'patient' }) => {
     }
     
     try {
-      const res = await fetch(`http://localhost:5000/api/consultations/${selectedConsultationId}/complete`, {
+      const res = await fetch(`http://localhost:5000/api/consultations/${activeConsultation._id}/complete`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ finalDiagnosis, treatmentPlan })
       });
+      
       if (!res.ok) throw new Error('Failed to update');
       
-      const updated = await res.json();
+      const _updated = await res.json();
       
-      // Update local state
       setConsultations(prev => prev.map(c => 
         String(c.id) === String(selectedConsultationId) 
           ? { ...c, status: 'Completed', finalDiagnosis, treatmentPlan } 
@@ -222,32 +223,48 @@ const MessagesUI = ({ role = 'patient' }) => {
     return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
   };
 
+  const isMobile = window.innerWidth <= 768;
+
   return (
-    <div className="dashboard-view animate-fade-in" style={{ height: 'calc(100vh - 140px)', display: 'flex', flexDirection: 'column' }}>
+    <div className="dashboard-view animate-fade-in" style={{ height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column' }}>
       
-      {/* Safety Banner */}
-      <div className="bg-blue-light text-primary p-3 flex-align-center gap-2" style={{ borderRadius: 'var(--radius-md)', marginBottom: '1rem', border: '1px solid var(--secondary)' }}>
-        <Info size={20} className="text-secondary" />
-        <span className="text-sm font-semibold">
-          Information shared through chat is for consultation purposes. The doctor provides professional guidance and the AI prediction is only an assistive result.
-        </span>
+      {/* HEADER */}
+      <div className="mb-4" style={{ background: 'var(--bg-secondary)', padding: '24px 32px', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+        <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '50%', background: 'radial-gradient(circle at top right, rgba(0, 210, 255, 0.12), transparent 70%)', pointerEvents: 'none' }}></div>
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'var(--secondary)' }}></div>
+        <div style={{ position: 'relative', zIndex: 10 }}>
+          <h2 className="font-extrabold mb-1" style={{ color: 'var(--primary)', letterSpacing: '-0.5px', fontSize: '2rem', lineHeight: '1.2', margin: 0 }}>Messages</h2>
+          <p className="font-medium m-0" style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>Communicate securely with your dental care team.</p>
+        </div>
       </div>
 
-      <div className="card chat-container flex-1" style={{ display: 'flex', padding: 0, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', gap: '24px', flex: 1, minHeight: 0 }}>
         
-        {/* Contacts Sidebar */}
-        <div className="chat-sidebar border-r" style={{ width: '320px', borderRight: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', backgroundColor: 'white' }}>
-          <div className="p-4 border-b" style={{ padding: '1.25rem', borderBottom: '1px solid var(--border-color)' }}>
-            <h3 className="mb-4">Messages</h3>
-            <div className="search-input-wrapper">
-              <Search size={18} className="text-muted" style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }} />
-              <input type="text" className="form-input" placeholder="Search conversations..." style={{ paddingLeft: '2.5rem' }} />
+        {/* CONTACTS SIDEBAR */}
+        <div 
+          className="card" 
+          style={{ 
+            width: isMobile ? '100%' : '360px', 
+            background: 'var(--bg-secondary)', 
+            border: '1px solid var(--border-color)', 
+            borderRadius: '24px', 
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', 
+            display: (!isMobile || !isMobileViewOpen) ? 'flex' : 'none', 
+            flexDirection: 'column', 
+            overflow: 'hidden',
+            flexShrink: 0
+          }}
+        >
+          <div style={{ padding: '24px', borderBottom: '1px solid var(--border-color)' }}>
+            <div style={{ position: 'relative' }}>
+              <Search size={18} className="text-muted" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
+              <input type="text" className="form-input" placeholder="Search conversations..." style={{ paddingLeft: '44px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '999px', width: '100%' }} />
             </div>
           </div>
           
-          <div className="chat-contact-list" style={{ overflowY: 'auto', flex: 1 }}>
+          <div style={{ overflowY: 'auto', flex: 1 }}>
             {consultations.length === 0 ? (
-              <div className="text-center text-muted p-4 mt-4">
+              <div className="text-center text-muted" style={{ padding: '40px 20px' }}>
                 <MessageSquare size={32} className="mx-auto mb-2 opacity-50" />
                 <p>No conversations yet.</p>
               </div>
@@ -261,22 +278,30 @@ const MessagesUI = ({ role = 'patient' }) => {
                 return (
                   <div 
                     key={c.id} 
-                    className={`chat-contact ${isActive ? 'active' : 'hover-bg'}`} 
-                    onClick={() => setSelectedConsultationId(c.id)}
-                    style={{ padding: '1.25rem', borderBottom: '1px solid var(--border-color)', backgroundColor: isActive ? 'var(--bg-main)' : 'white', cursor: 'pointer' }}
+                    onClick={() => {
+                      setSelectedConsultationId(c.id);
+                      setIsMobileViewOpen(true);
+                    }}
+                    style={{ 
+                      padding: '20px 24px', 
+                      borderBottom: '1px solid var(--border-color)', 
+                      backgroundColor: isActive ? 'rgba(0, 210, 255, 0.05)' : 'transparent', 
+                      borderLeft: isActive ? '4px solid var(--secondary)' : '4px solid transparent',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
                   >
-                    <div className="flex-align-center gap-3">
-                      <div className="doctor-avatar text-primary" style={{ backgroundColor: isActive ? 'var(--blue-light)' : '#f1f5f9', width: '45px', height: '45px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.2rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <div style={{ backgroundColor: isActive ? 'var(--secondary)' : 'var(--bg-primary)', color: isActive ? 'white' : 'var(--primary)', width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.1rem', flexShrink: 0, border: isActive ? 'none' : '1px solid var(--border-color)' }}>
                         {initials}
                       </div>
-                      <div className="flex-1" style={{ overflow: 'hidden' }}>
-                        <div className="flex-between mb-1">
-                          <span className="font-semibold text-primary" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{partnerName}</span>
-                          <span className="text-xs text-muted">{c.time || c.date}</span>
+                      <div style={{ flex: 1, overflow: 'hidden' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span style={{ fontWeight: 800, color: 'var(--primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '1.05rem' }}>{partnerName}</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>{c.time || c.date}</span>
                         </div>
-                        <div className="text-xs text-muted mb-1">{partnerTitle}</div>
-                        <p className="text-sm text-muted" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          Condition: {c.condition || 'N/A'}
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {partnerTitle} &bull; {c.condition?.replace('_', ' ') || 'N/A'}
                         </p>
                       </div>
                     </div>
@@ -287,123 +312,145 @@ const MessagesUI = ({ role = 'patient' }) => {
           </div>
         </div>
 
-        {/* Chat Window */}
-        <div className="chat-main flex-1" style={{ display: 'flex', flexDirection: 'column', backgroundColor: '#f8fafc' }}>
-          
+        {/* CHAT WINDOW */}
+        <div 
+          className="card" 
+          style={{ 
+            flex: 1, 
+            background: 'var(--bg-secondary)', 
+            border: '1px solid var(--border-color)', 
+            borderRadius: '24px', 
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', 
+            display: (!isMobile || isMobileViewOpen) ? 'flex' : 'none', 
+            flexDirection: 'column', 
+            overflow: 'hidden' 
+          }}
+        >
           {selectedConsultationId && activeConsultation ? (
             <>
               {/* Chat Header */}
-              <div className="chat-header p-4 bg-white border-b" style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div className="flex-align-center gap-3">
-                  <div className="doctor-avatar bg-blue-light text-primary" style={{ width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.3rem' }}>
+              <div style={{ padding: '24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-primary)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  {isMobile && (
+                    <button onClick={() => setIsMobileViewOpen(false)} style={{ background: 'none', border: 'none', padding: '8px', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                      <ChevronLeft size={24} />
+                    </button>
+                  )}
+                  <div style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--secondary)', width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.2rem' }}>
                     {getPartnerInitials(chatPartnerName)}
                   </div>
                   <div>
-                    <h4 className="font-bold text-primary" style={{ fontSize: '1.1rem' }}>{chatPartnerName}</h4>
-                    <div className="flex-align-center gap-2 mt-1">
-                      <span className="text-sm text-muted">{chatPartnerTitle}</span>
-                      <span className="text-xs text-success flex-align-center gap-1"><div className="status-dot bg-success" style={{ width:'8px', height:'8px'}}></div> Online</span>
+                    <h4 style={{ margin: 0, fontWeight: 800, color: 'var(--primary)', fontSize: '1.2rem' }}>{chatPartnerName}</h4>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 500 }}>{chatPartnerTitle}</span>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--success)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--success)' }}></div> Online
+                      </span>
                     </div>
                   </div>
                 </div>
                 
-                <div className="flex-align-center gap-2">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   {role === 'patient' ? (
-                    <button className="btn btn-outline btn-sm">View Doctor Profile</button>
+                    <button className="btn btn-outline btn-sm" style={{ borderRadius: '999px', fontWeight: 'bold' }}>View Profile</button>
                   ) : (
                     <>
                       {activeConsultation.paymentStatus === 'Paid' && (
-                        <span className="badge badge-success mr-2">Payment Confirmed</span>
+                        <span className="badge bg-success-light text-success" style={{ padding: '6px 12px', borderRadius: '999px', fontWeight: 800, fontSize: '0.8rem' }}>Paid</span>
                       )}
-                      <button className="btn btn-outline btn-sm flex-align-center gap-1"><FileText size={14}/> View AI Report</button>
+                      <button className="btn btn-outline btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '999px', fontWeight: 'bold' }}>
+                        <FileText size={14}/> Report
+                      </button>
                     </>
                   )}
                 </div>
               </div>
 
               {/* Messages Area */}
-              <div className="chat-messages p-4" style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg-secondary)' }}>
                 {activeMessages.length === 0 ? (
-                  <div className="text-center text-muted my-auto">
-                    <MessageSquare size={48} className="mx-auto mb-3 opacity-50" />
-                    <h4>No messages yet</h4>
-                    <p className="mt-2 text-sm">Start the conversation by sending a message.</p>
+                  <div style={{ margin: 'auto', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    <MessageSquare size={48} style={{ opacity: 0.3, margin: '0 auto 16px' }} />
+                    <h4 style={{ fontWeight: 800, color: 'var(--primary)' }}>No messages yet</h4>
+                    <p style={{ fontSize: '0.95rem' }}>Start the conversation securely below.</p>
                   </div>
                 ) : (
-                  activeMessages.map(msg => {
+                  activeMessages.map((msg, index) => {
                     const isMine = msg.sender === role;
-                    const messageText = msg.message || msg.text; // Ensure both work
+                    const messageText = msg.message || msg.text; 
                     
                     return (
-                      <div key={msg.id || msg._id} className="message-wrapper" style={{ display: 'flex', flexDirection: 'column', alignItems: isMine ? 'flex-end' : 'flex-start' }}>
+                      <div key={msg.id || msg._id || `msg-${index}`} style={{ display: 'flex', flexDirection: 'column', alignItems: isMine ? 'flex-end' : 'flex-start' }}>
                         
                         {/* TEXT MESSAGE */}
                         {msg.type === 'text' && (
-                          <div className="message-bubble shadow-sm" 
-                            style={{
-                              backgroundColor: isMine ? 'var(--secondary)' : 'white',
-                              color: isMine ? 'white' : 'var(--text-main)',
-                              padding: '0.85rem 1.25rem',
-                              borderRadius: isMine ? '1.2rem 1.2rem 0 1.2rem' : '1.2rem 1.2rem 1.2rem 0',
-                              maxWidth: '75%',
-                              fontSize: '0.95rem',
-                              lineHeight: '1.5'
-                            }}>
-                            <p>{messageText}</p>
+                          <div style={{
+                            backgroundColor: isMine ? 'var(--secondary)' : 'var(--bg-primary)',
+                            color: isMine ? 'white' : 'var(--primary)',
+                            border: isMine ? 'none' : '1px solid var(--border-color)',
+                            padding: '12px 18px',
+                            borderRadius: isMine ? '16px 16px 0 16px' : '16px 16px 16px 0',
+                            maxWidth: '75%',
+                            fontSize: '0.95rem',
+                            lineHeight: '1.5',
+                            fontWeight: 500,
+                            boxShadow: '0 2px 10px rgba(0,0,0,0.02)'
+                          }}>
+                            {messageText}
                           </div>
                         )}
 
                         {/* IMAGE MESSAGE */}
                         {msg.type === 'image' && (
-                          <div className="message-bubble shadow-sm" style={{ padding: '0.5rem', backgroundColor: isMine ? 'var(--secondary)' : 'white', borderRadius: isMine ? '1.2rem 1.2rem 0 1.2rem' : '1.2rem 1.2rem 1.2rem 0', maxWidth: '300px' }}>
-                            <img src={msg.image} alt="Attached" style={{ width: '100%', borderRadius: '0.8rem' }} />
+                          <div style={{ padding: '8px', backgroundColor: isMine ? 'var(--secondary)' : 'var(--bg-primary)', border: isMine ? 'none' : '1px solid var(--border-color)', borderRadius: isMine ? '16px 16px 0 16px' : '16px 16px 16px 0', maxWidth: '300px' }}>
+                            <img src={msg.image} alt="Attached" style={{ width: '100%', borderRadius: '10px' }} />
                           </div>
                         )}
 
                         {/* AI REPORT MESSAGE */}
                         {msg.type === 'ai-report' && (
-                          <div className="ai-report-card shadow-sm" style={{ backgroundColor: 'white', border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '1.25rem', width: '350px', maxWidth: '90%' }}>
-                            <div className="flex-align-center gap-2 mb-3 pb-3 border-b" style={{ borderBottom: '1px solid var(--border-color)' }}>
-                              <BrainCircuit size={20} className="text-secondary" />
-                              <h4 className="font-bold text-primary">AI Dental Analysis Report</h4>
+                          <div style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '20px', width: '350px', maxWidth: '90%', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--border-color)' }}>
+                              <div style={{ background: 'rgba(0, 210, 255, 0.1)', padding: '8px', borderRadius: '8px', color: 'var(--secondary)' }}><BrainCircuit size={18} /></div>
+                              <h4 style={{ margin: 0, fontWeight: 800, color: 'var(--primary)', fontSize: '0.95rem' }}>AI Dental Analysis</h4>
                             </div>
-                            <div className="mb-2">
-                              <span className="text-xs text-muted block mb-1">Detected Condition:</span>
-                              <span className="font-bold text-main">{msg.report?.condition}</span>
+                            <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>Detected Condition</span>
+                              <span style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '0.9rem' }}>{msg.report?.condition?.replace('_', ' ')}</span>
                             </div>
-                            <div className="mb-2">
-                              <span className="text-xs text-muted block mb-1">AI Confidence:</span>
-                              <span className="font-bold text-secondary">{msg.report?.confidence}</span>
+                            <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>Confidence</span>
+                              <span style={{ fontWeight: 800, color: 'var(--secondary)', fontSize: '0.9rem' }}>{msg.report?.confidence}</span>
                             </div>
-                            <div className="mb-3">
-                              <span className="text-xs text-muted block mb-1">Status:</span>
-                              <span className="badge badge-warning">{msg.report?.status}</span>
+                            <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>Status</span>
+                              <span className="badge bg-warning-light text-warning" style={{ fontSize: '0.75rem', padding: '4px 8px', borderRadius: '6px', fontWeight: 800 }}>{msg.report?.status}</span>
                             </div>
-                            <div className="bg-main p-2 rounded text-center text-xs text-muted mt-2">
-                              <ImageIcon size={14} className="inline mr-1" /> Uploaded Image Available
-                            </div>
-                            <p className="text-xs text-warning mt-3 text-center" style={{ fontStyle: 'italic' }}>
-                              * AI prediction is assistive and requires professional verification.
+                            <p style={{ fontSize: '0.75rem', color: 'var(--warning)', margin: 0, textAlign: 'center', fontWeight: 600, fontStyle: 'italic' }}>
+                              * Assistive AI prediction requires verification.
                             </p>
                           </div>
                         )}
 
                         {/* PAYMENT REQUEST MESSAGE */}
                         {msg.type === 'payment-request' && (
-                          <div className="payment-request-card shadow-sm" style={{ backgroundColor: 'white', border: '1px solid #fcd34d', borderRadius: '1rem', padding: '1.25rem', width: '300px', maxWidth: '90%', textAlign: 'center' }}>
-                            <CreditCard size={32} className="text-warning mx-auto mb-2" style={{ margin: '0 auto 0.5rem' }} />
-                            <p className="text-sm text-main mb-2">Doctor has requested a consultation payment of <strong>₹{msg.amount}</strong>.</p>
-                            <span className="badge badge-warning mb-4 inline-block">Payment Required</span>
+                          <div style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--warning)', borderRadius: '16px', padding: '24px', width: '300px', maxWidth: '90%', textAlign: 'center' }}>
+                            <div style={{ background: 'rgba(245, 158, 11, 0.1)', color: 'var(--warning)', width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                              <CreditCard size={24} />
+                            </div>
+                            <p style={{ fontSize: '0.95rem', color: 'var(--primary)', margin: '0 0 16px 0', fontWeight: 600 }}>
+                              Payment requested for <strong>₹{msg.amount}</strong>.
+                            </p>
                             
                             {role === 'patient' && (
-                              <button className="btn btn-primary w-full flex-align-center justify-center gap-2">
-                                <CreditCard size={16} /> Pay Consultation Fee
+                              <button className="btn btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', borderRadius: '999px', fontWeight: 'bold' }}>
+                                <CreditCard size={16} /> Pay Now
                               </button>
                             )}
                           </div>
                         )}
 
-                        <span className={`text-xs mt-1 block ${isMine ? 'text-muted' : 'text-muted'}`} style={{ opacity: 0.8 }}>{msg.time}</span>
+                        <span style={{ fontSize: '0.75rem', marginTop: '6px', color: 'var(--text-muted)', fontWeight: 600 }}>{msg.time}</span>
                       </div>
                     );
                   })
@@ -412,14 +459,14 @@ const MessagesUI = ({ role = 'patient' }) => {
               </div>
 
               {/* Composer Box */}
-              <div className="chat-composer-area bg-white" style={{ borderTop: '1px solid var(--border-color)', padding: '1rem 1.5rem' }}>
+              <div style={{ padding: '20px 24px', borderTop: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}>
                 
                 {/* Doctor Actions */}
                 {role === 'doctor' && (
-                  <div className="flex-align-center gap-3 mb-3">
+                  <div style={{ marginBottom: '16px' }}>
                     <button 
-                      className="btn btn-outline btn-sm text-success flex-align-center gap-1" 
-                      style={{ borderColor: '#86efac' }}
+                      className="btn btn-outline" 
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '999px', fontWeight: 'bold', color: 'var(--success)', borderColor: 'var(--success)' }}
                       onClick={() => setShowCompletionModal(true)}
                     >
                       <CheckCircle2 size={16} /> Complete Consultation
@@ -429,8 +476,8 @@ const MessagesUI = ({ role = 'patient' }) => {
 
                 {/* Patient Actions (Share Report) */}
                 {role === 'patient' && (
-                  <div className="mb-3">
-                    <button type="button" onClick={shareAiReport} className="btn btn-outline btn-sm text-secondary flex-align-center gap-1" style={{ borderColor: 'var(--secondary)' }}>
+                  <div style={{ marginBottom: '16px' }}>
+                    <button type="button" onClick={shareAiReport} className="btn btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '999px', fontWeight: 'bold', color: 'var(--secondary)', borderColor: 'var(--secondary)' }}>
                       <BrainCircuit size={16} /> Share AI Report
                     </button>
                   </div>
@@ -438,88 +485,85 @@ const MessagesUI = ({ role = 'patient' }) => {
 
                 {/* Image Preview inside composer */}
                 {selectedImage && (
-                  <div className="composer-image-preview mb-3 relative inline-block" style={{ position: 'relative', display: 'inline-block' }}>
-                    <img src={selectedImage} alt="Preview" style={{ height: '80px', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }} />
-                    <button onClick={() => setSelectedImage(null)} className="icon-btn bg-white shadow-sm" style={{ position: 'absolute', top: '-10px', right: '-10px', width: '24px', height: '24px', padding: 0 }}>
+                  <div style={{ position: 'relative', display: 'inline-block', marginBottom: '16px' }}>
+                    <img src={selectedImage} alt="Preview" style={{ height: '80px', borderRadius: '12px', border: '1px solid var(--border-color)' }} />
+                    <button onClick={() => setSelectedImage(null)} style={{ position: 'absolute', top: '-10px', right: '-10px', width: '28px', height: '28px', padding: 0, background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '50%', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <X size={14} />
                     </button>
                   </div>
                 )}
 
-                <form onSubmit={handleSend} className="flex-align-center gap-3">
+                <form onSubmit={handleSend} style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', padding: '8px', borderRadius: '999px' }}>
                   <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" style={{ display: 'none' }} />
                   
-                  <button type="button" className="icon-btn text-muted hover:text-primary" onClick={() => fileInputRef.current?.click()}>
-                    <ImageIcon size={22} />
-                  </button>
-                  <button type="button" className="icon-btn text-muted hover:text-primary">
-                    <span style={{ fontSize: '1.2rem' }}>😀</span>
+                  <button type="button" onClick={() => fileInputRef.current?.click()} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', padding: '8px', cursor: 'pointer', display: 'flex' }}>
+                    <ImageIcon size={20} />
                   </button>
                   
                   <input 
                     type="text" 
-                    className="form-input flex-1" 
                     placeholder="Type a message..." 
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     disabled={!selectedConsultationId}
-                    style={{ borderRadius: '999px', padding: '0.75rem 1.25rem', backgroundColor: '#f8fafc', border: '1px solid var(--border-color)' }}
+                    style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 500, padding: '0 8px' }}
                   />
-                  <button type="submit" className="btn btn-primary shadow-sm" disabled={!inputText.trim() && !selectedImage} style={{ borderRadius: '50%', width: '46px', height: '46px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: (!inputText.trim() && !selectedImage) ? 0.5 : 1 }}>
-                    <Send size={20} />
+                  
+                  <button type="submit" disabled={!inputText.trim() && !selectedImage} style={{ background: 'var(--secondary)', color: 'white', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (!inputText.trim() && !selectedImage) ? 'not-allowed' : 'pointer', opacity: (!inputText.trim() && !selectedImage) ? 0.5 : 1, boxShadow: '0 4px 10px rgba(0, 210, 255, 0.3)' }}>
+                    <Send size={18} style={{ marginLeft: '2px' }} />
                   </button>
                 </form>
               </div>
             </>
           ) : (
-            <div className="flex-1 flex-align-center justify-center" style={{ flexDirection: 'column' }}>
-              <MessageSquare size={64} className="text-muted mb-4 opacity-50" />
-              <h3 className="text-primary font-bold">Select a conversation</h3>
-              <p className="text-muted">Choose a consultation from the sidebar to start messaging.</p>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px', textAlign: 'center' }}>
+              <div style={{ background: 'var(--bg-primary)', padding: '24px', borderRadius: '50%', border: '1px solid var(--border-color)', marginBottom: '24px' }}>
+                <MessageSquare size={48} color="var(--text-muted)" opacity={0.5} />
+              </div>
+              <h3 style={{ margin: '0 0 8px 0', fontWeight: 800, color: 'var(--primary)', fontSize: '1.5rem' }}>Select a conversation</h3>
+              <p style={{ margin: 0, color: 'var(--text-muted)', fontWeight: 500, maxWidth: '300px' }}>Choose a consultation from the list to view history or send a secure message.</p>
             </div>
           )}
         </div>
       </div>
 
-
-
       {/* Completion Modal (Doctor Side) */}
       {showCompletionModal && role === 'doctor' && activeConsultation && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div className="card" style={{ width: '500px', padding: '2rem' }}>
-            <div className="flex-between mb-4">
-              <h3 className="font-bold text-primary">Complete Consultation</h3>
-              <button className="icon-btn" onClick={() => setShowCompletionModal(false)}><X size={20} /></button>
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' }}>
+          <div className="card" style={{ width: '500px', maxWidth: '90%', padding: '32px', background: 'var(--bg-secondary)', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h3 style={{ margin: 0, fontWeight: 800, color: 'var(--primary)' }}>Complete Consultation</h3>
+              <button onClick={() => setShowCompletionModal(false)} style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={16} /></button>
             </div>
-            <p className="text-muted mb-6 text-sm">Please provide your final clinical assessment before closing this session. These notes will be saved and sent to the patient.</p>
             
             <div className="form-group mb-4">
-              <label className="form-label font-bold text-primary">Final Diagnosis</label>
+              <label className="form-label font-bold text-muted" style={{ marginBottom: '8px', display: 'block' }}>Final Diagnosis</label>
               <input 
                 type="text"
                 className="form-input"
                 placeholder="e.g. Early stage caries"
                 value={finalDiagnosis}
                 onChange={(e) => setFinalDiagnosis(e.target.value)}
+                style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}
               />
             </div>
             
             <div className="form-group mb-6">
-              <label className="form-label font-bold text-primary">Treatment Plan & Prescription</label>
+              <label className="form-label font-bold text-muted" style={{ marginBottom: '8px', display: 'block' }}>Treatment Plan & Prescription</label>
               <textarea 
                 className="form-input" 
                 rows="4" 
                 placeholder="Detail the clinical recommendations here..."
                 value={treatmentPlan}
                 onChange={(e) => setTreatmentPlan(e.target.value)}
-                style={{ resize: 'vertical' }}
+                style={{ resize: 'vertical', background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}
               ></textarea>
             </div>
 
-            <div className="flex-align-center gap-3">
-              <button className="btn btn-outline flex-1" onClick={() => setShowCompletionModal(false)}>Cancel</button>
-              <button className="btn btn-success flex-1 pulse-glow flex-align-center justify-center gap-2" onClick={handleCompleteConsultation}>
-                <CheckCircle2 size={18} /> Authorize & Complete
+            <div style={{ display: 'flex', gap: '16px' }}>
+              <button className="btn btn-outline" style={{ flex: 1, borderRadius: '999px', fontWeight: 'bold' }} onClick={() => setShowCompletionModal(false)}>Cancel</button>
+              <button className="btn btn-success" style={{ flex: 1, borderRadius: '999px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={handleCompleteConsultation}>
+                <CheckCircle2 size={18} /> Complete
               </button>
             </div>
           </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { UserCircle, Calendar, Eye, CheckCircle2, XCircle, BrainCircuit, MessageSquare, CreditCard, Activity } from 'lucide-react';
+import { UserCircle, Calendar, Eye, CheckCircle2, BrainCircuit, MessageSquare, Activity } from 'lucide-react';
 import '../Dashboard.css';
 
 const DoctorConsultations = () => {
@@ -11,10 +11,10 @@ const DoctorConsultations = () => {
     const fetchConsultations = async () => {
       try {
         const userStr = localStorage.getItem('dentaai_user');
-        let DOCTOR_ID = "3"; // Fallback to demo doctor
+        let DOCTOR_ID = null;
         if (userStr) {
           const user = JSON.parse(userStr);
-          DOCTOR_ID = user._id || user.id || "3";
+          DOCTOR_ID = user._id || user.id ;
         }
         const res = await fetch(`http://localhost:5000/api/consultations?doctorId=${DOCTOR_ID}`);
         if (!res.ok) throw new Error('Failed to fetch consultations');
@@ -41,7 +41,7 @@ const DoctorConsultations = () => {
     fetchConsultations();
   }, []);
 
-  const handleAction = async (id, newStatus) => {
+  const _handleAction = async (id, newStatus) => {
     try {
       const res = await fetch(`http://localhost:5000/api/consultations/${id}`, {
         method: 'PUT',

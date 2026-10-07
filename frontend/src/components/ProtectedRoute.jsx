@@ -17,6 +17,7 @@ const ProtectedRoute = ({ allowedRoles }) => {
     
     return <Outlet />;
   } catch (err) {
+    console.error('Error parsing user data:', err);
     return <Navigate to="/login" replace />;
   }
 };

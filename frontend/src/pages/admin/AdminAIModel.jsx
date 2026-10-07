@@ -1,4 +1,4 @@
-import { BrainCircuit, Activity, CheckCircle2, AlertCircle } from 'lucide-react';
+import { BrainCircuit, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
 import '../Dashboard.css';
 

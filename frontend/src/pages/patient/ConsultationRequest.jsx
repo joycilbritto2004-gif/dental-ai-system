@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { BrainCircuit, Send, CheckCircle2, ChevronLeft, Calendar, Clock, Video, MessageSquare, ShieldCheck, Info } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { BrainCircuit, ChevronLeft, Video, MessageSquare, ShieldCheck, Info } from 'lucide-react';
 import '../Dashboard.css';
 
 const ConsultationRequest = () => {
@@ -26,6 +26,9 @@ const ConsultationRequest = () => {
           const data = await res.json();
           // Normalize doc.id to the MongoDB _id string for consistency in the frontend
           if (data._id) data.id = data._id; 
+          
+          // Ensure fee is numeric to prevent NaN
+          data.fee = Number(data.fee) || 500;
           setDoc(data);
         }
       } catch (err) {
@@ -55,104 +58,133 @@ const ConsultationRequest = () => {
 
   return (
     <motion.div className="dashboard-view" initial="hidden" animate="show" variants={stagger}>
-      <motion.div variants={item} className="dashboard-header mb-6">
-        <div className="flex-align-center gap-2 mb-2">
-          <Link to={`/dashboard/patient/doctor/${doc.id}`} state={{ predictionResult }} className="text-muted hover:text-primary flex-align-center gap-1">
-            <ChevronLeft size={16} /> Back to Profile
-          </Link>
+      <motion.div 
+        variants={item} 
+        className="mb-8"
+        style={{
+          background: 'var(--bg-secondary)',
+          padding: '32px 40px',
+          borderRadius: '24px',
+          border: '1px solid var(--border-color)',
+          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+      >
+        <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '50%', background: 'radial-gradient(circle at top right, rgba(0, 210, 255, 0.12), transparent 70%)', pointerEvents: 'none' }}></div>
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'var(--secondary)' }}></div>
+        
+        <div style={{ position: 'relative', zIndex: 10 }}>
+          <div className="flex-align-center gap-2 mb-6">
+            <Link to={`/dashboard/patient/doctor/${doc.id}`} state={{ predictionResult }} className="text-muted hover:text-primary transition-colors" style={{ display: 'inline-flex', alignItems: 'center', background: 'var(--bg-primary)', padding: '8px 16px', borderRadius: '999px', border: '1px solid var(--border-color)', fontWeight: '600', fontSize: '0.9rem' }}>
+              <ChevronLeft size={16} className="mr-1" /> Back to Doctor Profile
+            </Link>
+          </div>
+          <h2 className="font-extrabold mb-3" style={{ color: 'var(--primary)', letterSpacing: '-0.5px', fontSize: '2.5rem', lineHeight: '1.2' }}>Request Consultation</h2>
+          <p className="font-medium m-0" style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>
+            Secure your appointment and get expert advice from <span style={{ color: 'var(--secondary)', fontWeight: '700' }}>{doc.name}</span>.
+          </p>
         </div>
-        <h2>Request Consultation</h2>
-        <p>Book a secure appointment with {doc.name}.</p>
       </motion.div>
 
       <div className="dashboard-grid">
         {/* LEFT COLUMN: Request Form */}
         <div className="dashboard-left-col">
-          <motion.form variants={item} className="card glass-card" onSubmit={handleSubmit} style={{ padding: '2rem' }}>
-            <div className="card-header mb-6">
-              <h3>Consultation Details</h3>
+          <motion.form variants={item} className="card" onSubmit={handleSubmit} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', borderRadius: '24px', padding: '2.5rem' }}>
+            <div className="card-header mb-6 pb-4 border-b border-gray-100 dark:border-gray-800">
+              <h3 className="font-bold text-xl">Consultation Details</h3>
             </div>
             
-            <div className="form-group mb-6">
-              <label className="form-label text-muted">Selected Specialist</label>
-              <div className="patient-meta-box" style={{ borderRadius: 'var(--radius-md)', padding: '16px', background: 'linear-gradient(135deg, rgba(0, 210, 255, 0.05), transparent)', border: '1px solid rgba(0, 210, 255, 0.2)' }}>
-                <h4 className="font-semibold text-primary" style={{ margin: '0 0 4px 0', fontSize: '1.2rem' }}>{doc.name}</h4>
-                <p className="text-sm text-muted" style={{ margin: '0 0 8px 0' }}>{doc.specialization} &bull; {doc.clinic || 'DentaAI Partner Clinic'}</p>
-                <div style={{ display: 'flex', gap: '16px' }}>
-                  <span style={{ background: 'rgba(0, 210, 255, 0.1)', color: 'var(--secondary)', border: '1px solid rgba(0, 210, 255, 0.3)', padding: '4px 10px', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 600 }}>{doc.location || 'Online / Regional'}</span>
+            <div className="form-group mb-8">
+              <label className="form-label text-sm font-semibold text-muted uppercase tracking-wider mb-3 block">Selected Specialist</label>
+              <div className="p-5 rounded-2xl flex items-center justify-between" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+                <div>
+                  <h4 className="font-bold text-primary text-xl mb-1">{doc.name}</h4>
+                  <p className="text-sm text-muted font-medium mb-0">{doc.specialization} &bull; {doc.clinic || 'DentaAI Partner Clinic'}</p>
                 </div>
+                <span className="px-4 py-1.5 rounded-full text-xs font-bold" style={{ background: 'rgba(0, 210, 255, 0.15)', color: 'var(--secondary)' }}>
+                  {doc.location || 'Online / Regional'}
+                </span>
               </div>
             </div>
 
-            <div className="form-group mb-6">
-              <label className="form-label">Consultation Type</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div className="form-group mb-8">
+              <label className="form-label text-sm font-semibold text-muted uppercase tracking-wider mb-3 block">Consultation Type</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <motion.div 
-                  whileHover={{ scale: 1.02 }}
+                  whileHover={{ scale: 1.02, y: -2 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setConsultationType('Video Consultation')}
                   style={{ 
-                    padding: '16px', border: `2px solid ${consultationType === 'Video Consultation' ? 'var(--secondary)' : 'var(--border-color)'}`,
-                    borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px',
-                    background: consultationType === 'Video Consultation' ? 'rgba(0, 210, 255, 0.05)' : 'transparent',
-                    transition: 'all 0.3s'
+                    padding: '20px', 
+                    border: `2px solid ${consultationType === 'Video Consultation' ? 'var(--secondary)' : 'transparent'}`,
+                    borderRadius: '16px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px',
+                    background: consultationType === 'Video Consultation' ? 'rgba(0, 210, 255, 0.05)' : 'var(--bg-secondary)',
+                    boxShadow: consultationType === 'Video Consultation' ? '0 8px 24px rgba(0, 210, 255, 0.1)' : 'none',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                   }}
                 >
-                  <Video size={24} color={consultationType === 'Video Consultation' ? 'var(--secondary)' : 'var(--text-muted)'} />
-                  <span className={consultationType === 'Video Consultation' ? 'font-semibold text-primary' : 'text-muted'}>Video Call</span>
+                  <div style={{ padding: '12px', borderRadius: '50%', background: consultationType === 'Video Consultation' ? 'var(--secondary)' : 'rgba(128, 128, 128, 0.1)' }}>
+                    <Video size={24} color={consultationType === 'Video Consultation' ? '#fff' : 'var(--text-muted)'} />
+                  </div>
+                  <span className={consultationType === 'Video Consultation' ? 'font-bold text-primary' : 'font-semibold text-muted'}>Video Call</span>
                 </motion.div>
                 <motion.div 
-                  whileHover={{ scale: 1.02 }}
+                  whileHover={{ scale: 1.02, y: -2 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setConsultationType('Chat Consultation')}
                   style={{ 
-                    padding: '16px', border: `2px solid ${consultationType === 'Chat Consultation' ? 'var(--secondary)' : 'var(--border-color)'}`,
-                    borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px',
-                    background: consultationType === 'Chat Consultation' ? 'rgba(0, 210, 255, 0.05)' : 'transparent',
-                    transition: 'all 0.3s'
+                    padding: '20px', 
+                    border: `2px solid ${consultationType === 'Chat Consultation' ? 'var(--secondary)' : 'transparent'}`,
+                    borderRadius: '16px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px',
+                    background: consultationType === 'Chat Consultation' ? 'rgba(0, 210, 255, 0.05)' : 'var(--bg-secondary)',
+                    boxShadow: consultationType === 'Chat Consultation' ? '0 8px 24px rgba(0, 210, 255, 0.1)' : 'none',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                   }}
                 >
-                  <MessageSquare size={24} color={consultationType === 'Chat Consultation' ? 'var(--secondary)' : 'var(--text-muted)'} />
-                  <span className={consultationType === 'Chat Consultation' ? 'font-semibold text-primary' : 'text-muted'}>Text / Chat</span>
+                  <div style={{ padding: '12px', borderRadius: '50%', background: consultationType === 'Chat Consultation' ? 'var(--secondary)' : 'rgba(128, 128, 128, 0.1)' }}>
+                    <MessageSquare size={24} color={consultationType === 'Chat Consultation' ? '#fff' : 'var(--text-muted)'} />
+                  </div>
+                  <span className={consultationType === 'Chat Consultation' ? 'font-bold text-primary' : 'font-semibold text-muted'}>Text / Chat</span>
                 </motion.div>
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '32px' }}>
               <div className="form-group">
-                <label className="form-label">Preferred Date</label>
-                <input type="date" className="form-input" value={date} onChange={(e) => setDate(e.target.value)} required />
+                <label className="form-label text-sm font-semibold text-muted uppercase tracking-wider mb-2 block">Preferred Date</label>
+                <input type="date" className="form-input" style={{ height: '52px', borderRadius: '12px', padding: '0 16px' }} value={date} onChange={(e) => setDate(e.target.value)} required />
               </div>
               <div className="form-group">
-                <label className="form-label">Preferred Time</label>
-                <input type="time" className="form-input" value={time} onChange={(e) => setTime(e.target.value)} required />
+                <label className="form-label text-sm font-semibold text-muted uppercase tracking-wider mb-2 block">Preferred Time</label>
+                <input type="time" className="form-input" style={{ height: '52px', borderRadius: '12px', padding: '0 16px' }} value={time} onChange={(e) => setTime(e.target.value)} required />
               </div>
             </div>
 
-            <div className="form-group mb-6">
-              <label className="form-label">Describe your concern (Optional)</label>
-              <textarea className="form-input" rows="4" placeholder="Briefly describe your symptoms or reason for consultation..." value={message} onChange={(e) => setMessage(e.target.value)}></textarea>
+            <div className="form-group mb-8">
+              <label className="form-label text-sm font-semibold text-muted uppercase tracking-wider mb-2 block">Describe your concern (Optional)</label>
+              <textarea className="form-input" style={{ borderRadius: '12px', padding: '16px', resize: 'vertical', minHeight: '120px' }} placeholder="Briefly describe your symptoms, pain levels, or specific reasons for this consultation..." value={message} onChange={(e) => setMessage(e.target.value)}></textarea>
             </div>
             
             {/* BOOKING SUMMARY */}
-            <div style={{ background: 'rgba(255,255,255,0.5)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-glass)', marginBottom: '24px' }}>
-              <h4 style={{ margin: '0 0 16px 0', color: 'var(--primary)', fontWeight: 700 }}>Booking Summary</h4>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <span className="text-muted">Doctor Fee</span>
-                <span className="font-semibold text-primary">₹{doc.fee}</span>
+            <div style={{ background: 'var(--bg-secondary)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border-color)', marginBottom: '32px' }}>
+              <h4 style={{ margin: '0 0 20px 0', color: 'var(--primary)', fontWeight: 800, fontSize: '1.25rem' }}>Booking Summary</h4>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <span className="text-muted font-medium text-lg">Doctor Fee</span>
+                <span className="font-bold text-primary text-lg">₹{doc.fee}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <span className="text-muted">Platform Fee</span>
-                <span className="font-semibold text-primary">₹49</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                <span className="text-muted font-medium text-lg">Platform Fee</span>
+                <span className="font-bold text-primary text-lg">₹49</span>
               </div>
-              <hr style={{ borderTop: '1px dashed var(--border-color)', margin: '16px 0' }} />
+              <hr style={{ borderTop: '2px dashed var(--border-color)', margin: '0 0 20px 0' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span className="font-bold text-primary">Total Amount</span>
-                <span className="font-bold text-secondary" style={{ fontSize: '1.5rem' }}>₹{doc.fee + 49}</span>
+                <span className="font-extrabold text-primary text-xl">Total Amount</span>
+                <span className="font-black text-secondary" style={{ fontSize: '2rem' }}>₹{doc.fee + 49}</span>
               </div>
             </div>
 
-            <button type="submit" className="btn btn-primary w-full btn-lg mt-4 pulse-glow">
+            <button type="submit" className="btn btn-primary w-full" style={{ height: '60px', fontSize: '1.1rem', fontWeight: 'bold', borderRadius: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 8px 24px rgba(0, 210, 255, 0.25)' }}>
                Proceed to Secure Payment
             </button>
           </motion.form>
@@ -160,55 +192,56 @@ const ConsultationRequest = () => {
 
         {/* RIGHT COLUMN: AI Report Attachment */}
         <div className="dashboard-right-col">
-          <motion.div variants={item} className="card glass-card">
-            <div className="card-header">
-              <h3>Attached AI Report</h3>
+          <motion.div variants={item} className="card" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', borderRadius: '24px', padding: '2.5rem' }}>
+            <div className="card-header pb-4 border-b border-gray-100 dark:border-gray-800">
+              <h3 className="font-bold text-xl">Attached AI Report</h3>
             </div>
             
             {predictionResult ? (
-              <div className="prediction-result" style={{ padding: '24px', background: 'var(--bg-dark)', border: '1px solid rgba(0, 210, 255, 0.3)', borderRadius: '16px', color: 'white', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(circle at top right, rgba(0, 210, 255, 0.15), transparent 70%)', pointerEvents: 'none' }}></div>
+              <div className="prediction-result mt-6" style={{ padding: '24px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '16px', position: 'relative', overflow: 'hidden' }}>
                 
-                <h4 style={{ margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: '8px', color: '#00f0ff' }}>
-                  <ShieldCheck size={24} /> AI Analysis Snapshot
+                <h4 style={{ margin: '0 0 24px 0', display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--secondary)', fontWeight: 800, fontSize: '1.2rem' }}>
+                  <ShieldCheck size={26} /> AI Analysis Snapshot
                 </h4>
                 
-                <div style={{ background: 'rgba(255,255,255,0.05)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', marginBottom: '16px', position: 'relative', zIndex: 2 }}>
-                  <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '1px' }}>Detected Anomaly</span>
-                  <div style={{ fontSize: '20px', fontWeight: 700, color: 'white', marginTop: '4px', textTransform: 'capitalize' }}>
+                <div style={{ background: 'var(--bg-primary)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 700 }}>Detected Anomaly</span>
+                  <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--primary)', marginTop: '6px', textTransform: 'capitalize' }}>
                     {predictionResult.condition?.replace('_', ' ')}
                   </div>
                 </div>
 
-                <div style={{ background: 'rgba(255,255,255,0.05)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', marginBottom: '20px', position: 'relative', zIndex: 2 }}>
-                  <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '1px' }}>Confidence Score</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
-                    <div style={{ fontSize: '20px', fontWeight: 700, color: '#00f0ff' }}>{predictionResult.confidence}%</div>
-                    <div style={{ flex: 1, height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
-                      <motion.div initial={{ width: 0 }} animate={{ width: `${predictionResult.confidence}%` }} transition={{ duration: 1 }} style={{ height: '100%', background: '#00f0ff', boxShadow: '0 0 10px #00f0ff' }}></motion.div>
+                <div style={{ background: 'var(--bg-primary)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 700 }}>Confidence Score</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
+                    <div style={{ fontSize: '24px', fontWeight: 900, color: 'var(--secondary)' }}>{predictionResult.confidence}%</div>
+                    <div style={{ flex: 1, height: '8px', background: 'var(--border-color)', borderRadius: '4px', overflow: 'hidden' }}>
+                      <motion.div initial={{ width: 0 }} animate={{ width: `${predictionResult.confidence}%` }} transition={{ duration: 1.2, ease: "easeOut" }} style={{ height: '100%', background: 'var(--secondary)', borderRadius: '4px' }}></motion.div>
                     </div>
                   </div>
                 </div>
 
-                <div style={{ background: 'rgba(0, 210, 255, 0.05)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(0, 210, 255, 0.2)', position: 'relative', zIndex: 2 }}>
-                  <span style={{ fontSize: '12px', color: '#00f0ff', textTransform: 'uppercase', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Info size={14} /> AI Recommendation
+                <div style={{ background: 'rgba(0, 210, 255, 0.05)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(0, 210, 255, 0.2)' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--secondary)', textTransform: 'uppercase', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', letterSpacing: '0.5px' }}>
+                    <Info size={16} /> AI Recommendation
                   </span>
-                  <p style={{ margin: '8px 0 0 0', fontSize: '14px', color: 'rgba(255,255,255,0.8)', lineHeight: '1.6' }}>
+                  <p style={{ margin: '10px 0 0 0', fontSize: '15px', color: 'var(--text)', lineHeight: '1.7', fontWeight: 500 }}>
                     {predictionResult.recommendation}
                   </p>
                 </div>
               </div>
             ) : (
-              <div style={{ padding: '32px', textAlign: 'center', background: 'rgba(255,255,255,0.4)', borderRadius: '16px', border: '1px dashed var(--border-color)' }}>
-                <BrainCircuit size={48} className="text-muted mx-auto mb-4" />
-                <h4 className="text-primary font-bold">No AI Analysis Attached</h4>
-                <p className="text-sm text-muted mt-2" style={{ lineHeight: '1.6' }}>You are proceeding with a standard consultation without a preliminary AI scan.</p>
+              <div style={{ padding: '40px 20px', textAlign: 'center', background: 'var(--bg-secondary)', borderRadius: '16px', border: '2px dashed var(--border-color)', marginTop: '24px' }}>
+                <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', border: '1px solid var(--border-color)' }}>
+                  <BrainCircuit size={32} className="text-muted" />
+                </div>
+                <h4 className="text-primary font-extrabold text-lg mb-2">No AI Analysis Attached</h4>
+                <p className="text-muted" style={{ lineHeight: '1.6', fontSize: '0.95rem' }}>You are proceeding with a standard consultation without a preliminary AI scan.</p>
               </div>
             )}
 
-            <p className="text-sm text-muted mt-6 text-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-              <ShieldCheck size={16} className="text-success" /> This health data is securely encrypted.
+            <p className="text-muted mt-8 text-center font-medium" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.95rem' }}>
+              <ShieldCheck size={18} className="text-success" /> This health data is securely encrypted.
             </p>
           </motion.div>
         </div>

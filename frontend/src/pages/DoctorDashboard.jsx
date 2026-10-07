@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ShieldCheck, Clock, CheckCircle2, AlertTriangle, UserCircle, ChevronRight, Activity, BrainCircuit, Scan, Eye, Save, LineChart as LineChartIcon, PieChart as PieChartIcon, BarChart as BarChartIcon } from 'lucide-react';
+import { Clock, CheckCircle2, AlertTriangle, UserCircle, Activity, BrainCircuit, Eye, LineChart as LineChartIcon, PieChart as PieChartIcon, BarChart as BarChartIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
@@ -27,17 +27,20 @@ const DoctorDashboard = () => {
   });
 
   useEffect(() => {
-    if (currentUser && (currentUser._id || currentUser.id)) {
-      fetch(`http://localhost:5000/api/doctors/${currentUser._id || currentUser.id}`)
+    const userStr = localStorage.getItem('dentaai_user');
+    if (!userStr) return;
+    const user = JSON.parse(userStr);
+    if (user && (user._id || user.id)) {
+      fetch(`http://localhost:5000/api/doctors/${user._id || user.id}`)
         .then(res => res.json())
         .then(data => {
           if (!data.message) {
             setCurrentUser(prev => ({...prev, verificationStatus: data.verificationStatus, accountStatus: data.accountStatus}));
             
             // Also update localStorage so other pages have the latest status
-            const userStr = localStorage.getItem('dentaai_user');
-            if (userStr) {
-              const storedUser = JSON.parse(userStr);
+            const storedStr = localStorage.getItem('dentaai_user');
+            if (storedStr) {
+              const storedUser = JSON.parse(storedStr);
               localStorage.setItem('dentaai_user', JSON.stringify({
                 ...storedUser,
                 verificationStatus: data.verificationStatus,
@@ -54,10 +57,10 @@ const DoctorDashboard = () => {
     const fetchConsultations = async () => {
       try {
         const userStr = localStorage.getItem('dentaai_user');
-        let DOCTOR_ID = "3"; // Fallback to demo doctor
+        let DOCTOR_ID = null;
         if (userStr) {
           const user = JSON.parse(userStr);
-          DOCTOR_ID = user._id || user.id || "3";
+          DOCTOR_ID = user._id || user.id ;
         }
         
         const res = await fetch(`http://localhost:5000/api/consultations?doctorId=${DOCTOR_ID}`);

@@ -28,7 +28,7 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const data = await api.login(formData.email, formData.password);
+      const data = await api.login(formData.email, formData.password, role);
       
       localStorage.setItem('dentaai_token', data.token);
       localStorage.setItem('dentaai_user', JSON.stringify({
@@ -50,6 +50,25 @@ const Login = () => {
 
   return (
     <div className="auth-split-layout">
+
+      {/* Floating Particles Background */}
+      <div className="auth-particles">
+        {[...Array(6)].map((_, i) => (
+          <div 
+            key={i} 
+            className="particle"
+            style={{
+              width: `${((i * 17) % 6) + 2}px`,
+              height: `${((i * 17) % 6) + 2}px`,
+              left: `${(i * 23) % 100}%`,
+              top: `${(i * 37) % 100}%`,
+              animationDuration: `${((i * 41) % 10) + 10}s`,
+              animationDelay: `${(i * 43) % 5}s`
+            }}
+          ></div>
+        ))}
+      </div>
+
       {/* Left Medical Panel */}
       <div className="auth-visual">
         <div className="auth-visual-overlay"></div>
@@ -60,7 +79,12 @@ const Login = () => {
           transition={{ duration: 0.8 }}
         >
           <div className="visual-icon-glow">
-            <BriefcaseMedical size={64} className="text-secondary mb-4" />
+            <motion.div
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <BriefcaseMedical size={64} className="text-secondary mb-4" />
+            </motion.div>
           </div>
           <h2>DentaAI Portal</h2>
           <p>Secure access to your dental AI diagnostic platform. Log in to review scans, AI confidence scores, and patient records.</p>
@@ -88,15 +112,27 @@ const Login = () => {
           )}
 
           <div className="role-cards">
-            <motion.div whileHover={{ y: -2 }} className={`role-card ${role === 'patient' ? 'active' : ''}`} onClick={() => setRole('patient')}>
+            <motion.div 
+              whileHover={{ y: -4, scale: 1.02 }} 
+              className={`role-card ${role === 'patient' ? 'active' : ''}`} 
+              onClick={() => setRole('patient')}
+            >
               <User size={24} />
               <span>Patient</span>
             </motion.div>
-            <motion.div whileHover={{ y: -2 }} className={`role-card ${role === 'doctor' ? 'active' : ''}`} onClick={() => setRole('doctor')}>
+            <motion.div 
+              whileHover={{ y: -4, scale: 1.02 }} 
+              className={`role-card ${role === 'doctor' ? 'active' : ''}`} 
+              onClick={() => setRole('doctor')}
+            >
               <Stethoscope size={24} />
               <span>Doctor</span>
             </motion.div>
-            <motion.div whileHover={{ y: -2 }} className={`role-card ${role === 'admin' ? 'active' : ''}`} onClick={() => setRole('admin')}>
+            <motion.div 
+              whileHover={{ y: -4, scale: 1.02 }} 
+              className={`role-card ${role === 'admin' ? 'active' : ''}`} 
+              onClick={() => setRole('admin')}
+            >
               <Shield size={24} />
               <span>Admin</span>
             </motion.div>
@@ -105,14 +141,22 @@ const Login = () => {
           <form onSubmit={handleLogin} className="auth-form">
             <div className="form-group mb-4">
               <label className="form-label">Email Address</label>
-              <input type="email" name="email" className="form-input" placeholder="Enter your email" value={formData.email} onChange={handleChange} required disabled={isLoading} />
+              <input 
+                type="email" name="email" className="form-input" placeholder="Enter your email" 
+                value={formData.email} onChange={handleChange} required disabled={isLoading} 
+              />
             </div>
             <div className="form-group mb-6">
               <label className="form-label">Password</label>
-              <input type="password" name="password" className="form-input" placeholder="Enter your password" value={formData.password} onChange={handleChange} required disabled={isLoading} />
+              <input 
+                type="password" name="password" className="form-input" placeholder="Enter your password" 
+                value={formData.password} onChange={handleChange} required disabled={isLoading} 
+              />
             </div>
             
-            <button type="submit" className={`btn btn-primary auth-submit w-full ${!isLoading ? 'pulse-glow' : ''}`} disabled={isLoading}>
+            <button 
+              type="submit" className={`btn btn-primary auth-submit w-full ${!isLoading ? 'pulse-glow' : ''}`} disabled={isLoading}
+            >
               <LogIn size={18} /> {isLoading ? 'Authenticating...' : 'Secure Sign In'}
             </button>
           </form>

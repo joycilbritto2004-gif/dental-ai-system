@@ -2,7 +2,79 @@
   display: flex;
   min-height: 100vh;
   background-color: var(--bg-main);
-  color: var(--text-main);
+  transition: all 0.3s ease;
+}
+
+.dark-patient-theme {
+  --text-primary: #F8FAFC;
+  --text-secondary: #CBD5E1;
+  --text-muted: #94A3B8;
+  --accent: #00C8F8;
+  --card-bg: rgba(15, 35, 55, 0.75);
+  --card-bg-dark: rgba(11, 27, 45, 0.85);
+  --secondary: #00C8F8;
+  --border-glass: rgba(0, 200, 248, 0.2);
+  --sidebar-bg: #071A2F;
+}
+
+.dark-patient-theme .dashboard-sidebar {
+  background-color: var(--sidebar-bg);
+  border-right: 1px solid var(--border-glass);
+}
+.dark-patient-theme .sidebar-link {
+  color: var(--text-muted);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.dark-patient-theme .sidebar-link:hover {
+  background-color: rgba(56, 189, 248, 0.1);
+  color: var(--text-primary);
+}
+.dark-patient-theme .sidebar-link.active {
+  background-color: var(--secondary);
+  color: #020817;
+  box-shadow: 0 0 15px rgba(0, 200, 248, 0.4);
+}
+.dark-patient-theme .sidebar-link.active span {
+  font-weight: 700;
+}
+.dark-patient-theme .sidebar-footer .sidebar-link {
+  color: var(--text-muted);
+}
+
+.light-patient-theme {
+  --text-primary: #0F172A;
+  --text-secondary: #64748B;
+  --text-muted: #64748B;
+  --accent: #00C8F8;
+  --card-bg: #FFFFFF;
+  --card-bg-dark: #F8FAFC;
+  --secondary: #00C8F8;
+  --border-glass: #E2E8F0;
+  --sidebar-bg: #FFFFFF;
+}
+
+.light-patient-theme .dashboard-sidebar {
+  background-color: var(--sidebar-bg);
+  border-right: 1px solid var(--border-glass);
+}
+.light-patient-theme .sidebar-link {
+  color: var(--text-muted);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.light-patient-theme .sidebar-link:hover {
+  background-color: rgba(0, 200, 248, 0.1);
+  color: var(--text-primary);
+}
+.light-patient-theme .sidebar-link.active {
+  background-color: var(--secondary);
+  color: white;
+  box-shadow: 0 0 15px rgba(0, 200, 248, 0.4);
+}
+.light-patient-theme .sidebar-link.active span {
+  font-weight: 700;
+}
+.light-patient-theme .sidebar-footer .sidebar-link {
+  color: var(--text-muted);
 }
 
 .dashboard-sidebar {
@@ -17,6 +89,7 @@
   left: 0;
   z-index: 40;
   box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
 }
 
 .sidebar-brand {
@@ -88,36 +161,57 @@
 
 .patient-dashboard-main {
   position: relative;
-  background-image: 
-    linear-gradient(
-      rgba(245, 248, 252, 0.92), 
-      rgba(245, 248, 252, 0.95)
-    ), 
-    url("../assets/doctor-patient-bg.png");
-  background-size: cover;
-  background-position: center right;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+  background-color: var(--bg-main);
+  transition: all 0.3s ease;
+}
+
+.light-patient-theme .patient-dashboard-main {
+  background-color: var(--bg-main);
 }
 
 .dashboard-header-top {
   height: var(--nav-height);
-  background-color: white;
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 2.5rem;
+  padding: 0 2rem;
   position: sticky;
   top: 0;
-  z-index: 30;
-  box-shadow: var(--shadow-sm);
+  z-index: 100;
+  transition: all 0.3s ease;
 }
 
 .header-title h3 {
   font-size: 1.25rem;
   font-weight: 600;
   color: var(--primary);
+}
+
+.patient-dashboard-main .dashboard-header-top {
+  background-color: rgba(11, 27, 45, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.light-patient-theme .dashboard-header-top {
+  background-color: rgba(255, 255, 255, 0.95);
+}
+
+.patient-dashboard-main .header-title h3 {
+  color: var(--text-primary);
+}
+
+.patient-dashboard-main .user-name {
+  color: var(--text-primary);
+}
+
+.patient-dashboard-main .notification-bell-container button {
+  color: var(--text-primary) !important;
 }
 
 .header-user {
@@ -135,7 +229,7 @@
 .user-name {
   font-weight: 500;
   font-size: 0.95rem;
-  color: var(--text-main);
+  color: var(--text-primary);
 }
 
 .dashboard-content {

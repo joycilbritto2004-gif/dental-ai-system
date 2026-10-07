@@ -1,13 +1,20 @@
 /* Premium Glassmorphic Auth Styles */
 .auth-split-layout {
   display: flex;
-  min-height: calc(100vh - var(--nav-height));
-  background-color: var(--bg-main);
+  min-height: 100vh;
+  background: 
+    linear-gradient(135deg, rgba(2, 12, 27, 0.8) 0%, rgba(2, 12, 27, 0.6) 100%),
+    url('https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?q=80&w=2000&auto=format&fit=crop');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+  overflow: hidden;
 }
 
 .auth-visual {
   display: none;
-  background-color: var(--primary); /* Deep Navy */
+  background: transparent;
   color: white;
   position: relative;
   overflow: hidden;
@@ -83,13 +90,20 @@
   justify-content: center;
   padding: 3rem 1.5rem;
   width: 100%;
-  background: radial-gradient(circle at bottom right, rgba(0, 210, 255, 0.05) 0%, transparent 50%);
+  position: relative;
 }
 
 .auth-form-wrapper {
   width: 100%;
-  max-width: 460px;
+  max-width: 480px;
   padding: 3.5rem;
+  background: rgba(5, 15, 30, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 2;
 }
 
 .auth-header {
@@ -98,10 +112,37 @@
 }
 
 .auth-header h2 {
-  font-size: 2.2rem;
-  color: var(--primary);
+  font-size: 2.5rem;
+  color: var(--text-main, #ffffff);
   margin-bottom: 0.5rem;
   font-weight: 800;
+}
+
+.auth-header p {
+  color: var(--text-muted, #94a3b8);
+}
+
+.form-label {
+  color: var(--text-main, #ffffff);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+  background-color: var(--bg-card, rgba(255, 255, 255, 0.05));
+  color: var(--text-main, #ffffff);
+  transition: all 0.3s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-cyan, #06b6d4);
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2);
 }
 
 .role-cards {
@@ -117,29 +158,30 @@
   align-items: center;
   gap: 0.75rem;
   padding: 1.5rem 0.5rem;
-  background-color: rgba(255,255,255,0.5);
-  border: 1px solid var(--border-glass);
+  background-color: var(--bg-card, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
   border-radius: var(--radius-lg);
   cursor: pointer;
   transition: all 0.3s ease;
-  color: var(--text-muted);
+  color: var(--text-muted, #94a3b8);
 }
 
 .role-card:hover {
-  border-color: rgba(0, 210, 255, 0.5);
-  background-color: rgba(0, 210, 255, 0.02);
-  color: var(--secondary);
+  border-color: var(--color-cyan, #06b6d4);
+  background-color: rgba(6, 182, 212, 0.05);
+  color: var(--text-main, #ffffff);
+  box-shadow: 0 4px 20px rgba(6, 182, 212, 0.1);
 }
 
 .role-card.active {
-  background-color: rgba(0, 210, 255, 0.1);
-  border-color: var(--secondary);
-  color: var(--secondary);
-  box-shadow: 0 4px 15px rgba(0, 210, 255, 0.15);
+  background-color: rgba(6, 182, 212, 0.15);
+  border-color: var(--color-cyan, #06b6d4);
+  color: var(--color-cyan, #06b6d4);
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
 }
 
 .role-card span {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 700;
 }
 
@@ -174,3 +216,26 @@
   0% { transform: scale(1); opacity: 0.5; }
   100% { transform: scale(1.1); opacity: 1; }
 }
+
+/* Background Particles */
+.auth-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.particle {
+  position: absolute;
+  background: var(--color-cyan, #06b6d4);
+  border-radius: 50%;
+  opacity: 0.3;
+  animation: floatParticle linear infinite alternate;
+}
+
+@keyframes floatParticle {
+  0% { transform: translateY(0) translateX(0); }
+  100% { transform: translateY(-100px) translateX(20px); }
+}
+
+

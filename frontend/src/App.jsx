@@ -9,7 +9,7 @@ import PatientDashboard from './pages/PatientDashboard';
 import DoctorDashboard from './pages/DoctorDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
-import TestAccountSwitcher from './components/TestAccountSwitcher';
+
 
 // Admin Pages
 import AdminUsers from './pages/admin/AdminUsers';
@@ -31,6 +31,7 @@ import PatientConsultations from './pages/patient/PatientConsultations';
 import PatientHealthTips from './pages/patient/PatientHealthTips';
 import PatientReports from './pages/patient/PatientReports';
 import PatientReportDetails from './pages/patient/PatientReportDetails';
+import PatientProfile from './pages/patient/PatientProfile';
 
 // Shared
 import MessagesUI from './pages/shared/MessagesUI';
@@ -85,6 +86,7 @@ function App() {
             <Route path="/dashboard/patient/messages" element={<MessagesUI role="patient" />} />
             <Route path="/dashboard/patient/payments" element={<PatientPayments />} />
             <Route path="/dashboard/patient/payment/checkout" element={<PatientPaymentCheckout />} />
+            <Route path="/dashboard/patient/profile" element={<PatientProfile />} />
           </Route>
           
           {/* Doctor Routes */}

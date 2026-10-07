@@ -5,6 +5,10 @@ const Notification = require('../models/Notification');
 // @access  Public (should be private in prod)
 const getNotifications = async (req, res) => {
   try {
+    if (req.user._id.toString() !== req.params.userId && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized to view these notifications' });
+    }
+    
     const notifications = await Notification.find({ recipientId: req.params.userId })
                                            .sort({ createdAt: -1 });
     res.json(notifications);
@@ -20,6 +24,10 @@ const markAsRead = async (req, res) => {
   try {
     const notification = await Notification.findById(req.params.id);
     if (notification) {
+      if (notification.recipientId !== req.user._id.toString() && req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Not authorized' });
+      }
+      
       notification.isRead = true;
       const updatedNotification = await notification.save();
       res.json(updatedNotification);

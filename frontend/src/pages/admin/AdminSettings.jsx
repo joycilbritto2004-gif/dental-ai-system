@@ -1,4 +1,4 @@
-import { Settings, Save, ShieldAlert, Bell, Database } from 'lucide-react';
+import { Save, ShieldAlert, Bell, Database } from 'lucide-react';
 import { motion } from 'framer-motion';
 import '../Dashboard.css';
 

@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
-import { Activity, Image as ImageIcon, UserCircle, LogOut, LayoutDashboard, HeartPulse, Stethoscope, BriefcaseMedical, Users, CheckCircle2, BrainCircuit, Settings, FileText, MessageSquare, CreditCard, History, Video, Bell } from 'lucide-react';
+import { Activity, UserCircle, LogOut, LayoutDashboard, HeartPulse, Stethoscope, BriefcaseMedical, Users, CheckCircle2, BrainCircuit, Settings, FileText, MessageSquare, CreditCard, History, Video, Bell, Sun, Moon } from 'lucide-react';
 import './DashboardLayout.css';
 
 const DashboardLayout = () => {
@@ -18,6 +18,24 @@ const DashboardLayout = () => {
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
 
+  const [theme, setTheme] = useState('dark');
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('dentaai-theme');
+    if (savedTheme) {
+      setTheme(savedTheme);
+    } else {
+      const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+      setTheme(prefersLight ? 'light' : 'dark');
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    localStorage.setItem('dentaai-theme', newTheme);
+  };
+
   useEffect(() => {
     const userStr = localStorage.getItem('dentaai_user');
     if (userStr) {
@@ -28,17 +46,8 @@ const DashboardLayout = () => {
           setUserName(user.name || user.firstName || user.username || '');
         }
         
-        if (role === 'doctor') {
-          // If the logged in user is a doctor, use their ID. Otherwise fallback to demo doctor ID "3"
-          if (user.role === 'doctor') {
-            setUserId(user._id || user.id);
-          } else {
-            setUserId("3");
-          }
-        } else {
-          if (user.role === role) {
-            setUserId(user._id || user.id);
-          }
+        if (user.role === role || role === 'doctor') {
+          setUserId(user._id || user.id);
         }
       } catch (e) {
         console.error('Error parsing user data:', e);
@@ -46,7 +55,7 @@ const DashboardLayout = () => {
     }
   }, [role]);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     if (!userId) return;
     try {
       const res = await fetch(`http://localhost:5000/api/notifications/${userId}`);
@@ -57,13 +66,13 @@ const DashboardLayout = () => {
     } catch (err) {
       console.error('Error fetching notifications:', err);
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 5000); // Poll every 5s
     return () => clearInterval(interval);
-  }, [userId]);
+  }, [fetchNotifications]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -97,7 +106,7 @@ const DashboardLayout = () => {
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
-    <div className="dashboard-layout">
+    <div className={`dashboard-layout ${role === 'patient' ? (theme === 'dark' ? 'dark-patient-theme' : 'light-patient-theme') : ''}`}>
       {/* Deep Navy Sidebar */}
       <aside className="dashboard-sidebar">
         <div className="sidebar-brand">
@@ -245,12 +254,37 @@ const DashboardLayout = () => {
           </div>
           <div className="header-user">
             
+            {/* Theme Toggle Button */}
+            {role === 'patient' && (
+              <button 
+                onClick={toggleTheme}
+                style={{ 
+                  background: 'transparent', 
+                  border: 'none', 
+                  cursor: 'pointer', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  width: '40px', 
+                  height: '40px', 
+                  borderRadius: '50%', 
+                  color: theme === 'dark' ? 'white' : 'var(--text-primary)', 
+                  transition: 'all 0.3s ease',
+                  marginRight: '0.5rem'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+              </button>
+            )}
+
             {/* Notification Bell */}
             <div className="notification-bell-container" ref={dropdownRef} style={{ position: 'relative', marginRight: '1rem' }}>
               <button 
                 onClick={() => setShowNotifications(!showNotifications)}
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', borderRadius: '50%', color: 'var(--text-main)', transition: 'background 0.2s' }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(6, 198, 232, 0.1)'}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', borderRadius: '50%', color: role === 'patient' ? (theme === 'dark' ? 'white' : 'var(--text-primary)') : 'var(--text-primary)', transition: 'background 0.2s' }}
+                onMouseEnter={(e) => e.currentTarget.style.background = role === 'patient' ? (theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)') : 'rgba(6, 198, 232, 0.1)'}
                 onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
               >
                 <Bell size={20} />
@@ -282,7 +316,7 @@ const DashboardLayout = () => {
                           onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(6, 198, 232, 0.1)'}
                           onMouseLeave={(e) => e.currentTarget.style.background = notif.isRead ? 'transparent' : 'rgba(6, 198, 232, 0.05)'}
                         >
-                          <h5 style={{ margin: '0 0 4px 0', fontSize: '14px', color: notif.isRead ? 'var(--text-main)' : 'var(--primary)' }}>{notif.title}</h5>
+                          <h5 style={{ margin: '0 0 4px 0', fontSize: '14px', color: notif.isRead ? 'var(--text-primary)' : 'var(--primary)' }}>{notif.title}</h5>
                           <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.4' }}>{notif.message}</p>
                           <span style={{ display: 'block', marginTop: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
                             {new Date(notif.createdAt).toLocaleString()}

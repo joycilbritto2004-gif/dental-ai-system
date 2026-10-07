@@ -69,6 +69,8 @@
 .upload-zone:hover {
   border-color: var(--secondary);
   background-color: rgba(6, 198, 232, 0.1);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
 }
 .upload-icon-wrapper {
   width: 72px;
@@ -383,11 +385,19 @@
   align-items: center;
   justify-content: center;
   background: var(--bg-dark);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.image-preview-container:hover {
+  transform: scale(1.02);
 }
 .preview-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .remove-image-btn {
@@ -395,7 +405,7 @@
   top: 1.5rem;
   right: 1.5rem;
   background: rgba(255, 255, 255, 0.9);
-  color: var(--text-main);
+  color: var(--text-primary);
   border: none;
   width: 40px;
   height: 40px;
@@ -425,6 +435,12 @@
 }
 .image-preview-container:hover .preview-overlay {
   opacity: 1;
+}
+
+.history-card:hover {
+  transform: translateY(-3px) !important;
+  border-color: rgba(6, 198, 232, 0.4) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
 }
 
 .health-tip-card {
@@ -532,10 +548,36 @@
 }
 
 /* Recommended Doctors & Profiles */
+.filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+}
+.filters-row > * {
+  flex: 1 1 100%;
+}
+@media (min-width: 768px) {
+  .filters-row > * {
+    flex: 1 1 auto;
+  }
+}
+
 .doctors-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: 1fr;
   gap: 2rem;
+  align-items: stretch;
+}
+@media (min-width: 768px) {
+  .doctors-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 1366px) {
+  .doctors-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 .doctor-card {
   padding: 0;
@@ -583,7 +625,7 @@
   align-items: center;
   gap: 0.75rem;
   font-size: 0.95rem;
-  color: var(--text-main);
+  color: var(--text-secondary);
 }
 .fee-row {
   margin-top: auto;
@@ -641,4 +683,32 @@
   0% { top: 0%; }
   50% { top: 100%; }
   100% { top: 0%; }
+}
+
+@keyframes borderDash {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 100%; }
+}
+
+@keyframes floatIcon {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.dark-patient-theme .upload-zone {
+  border: 2px dashed rgba(0, 200, 248, 0.3);
+  transition: all 0.4s ease;
+}
+.dark-patient-theme .upload-zone:hover {
+  border-color: rgba(0, 200, 248, 0.8);
+  box-shadow: 0 0 25px rgba(0, 200, 248, 0.1);
+  background: rgba(0, 200, 248, 0.05) !important;
+}
+.dark-patient-theme .upload-zone:hover .upload-icon-wrapper svg {
+  animation: floatIcon 2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }

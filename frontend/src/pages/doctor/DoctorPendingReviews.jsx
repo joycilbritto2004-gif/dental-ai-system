@@ -12,8 +12,11 @@ const DoctorPendingReviews = () => {
   });
 
   useEffect(() => {
-    if (currentUser && (currentUser._id || currentUser.id)) {
-      fetch(`http://localhost:5000/api/doctors/${currentUser._id || currentUser.id}`)
+    const userStr = localStorage.getItem('dentaai_user');
+    if (!userStr) return;
+    const user = JSON.parse(userStr);
+    if (user && (user._id || user.id)) {
+      fetch(`http://localhost:5000/api/doctors/${user._id || user.id}`)
         .then(res => res.json())
         .then(data => {
           if (!data.message) {
@@ -28,10 +31,10 @@ const DoctorPendingReviews = () => {
     const fetchPending = async () => {
       try {
         const userStr = localStorage.getItem('dentaai_user');
-        let DOCTOR_ID = "3"; // Fallback to demo doctor
+        let DOCTOR_ID = null;
         if (userStr) {
           const user = JSON.parse(userStr);
-          DOCTOR_ID = user._id || user.id || "3";
+          DOCTOR_ID = user._id || user.id ;
         }
         const res = await fetch(`http://localhost:5000/api/consultations?doctorId=${DOCTOR_ID}`);
         if (!res.ok) throw new Error('Failed to fetch');

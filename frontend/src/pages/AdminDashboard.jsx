@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, Stethoscope, Activity, CheckCircle2, AlertCircle, BrainCircuit, ShieldCheck, ChevronRight } from 'lucide-react';
+import { Users, Stethoscope, Activity, CheckCircle2, BrainCircuit, ShieldCheck, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import './Dashboard.css';
 

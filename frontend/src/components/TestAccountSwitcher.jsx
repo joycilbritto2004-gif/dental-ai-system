@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserCircle, Shield, Stethoscope, Settings } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 
 const TestAccountSwitcher = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentRole, setCurrentRole] = useState(null);
-  const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
@@ -35,7 +34,9 @@ const TestAccountSwitcher = () => {
         const user = JSON.parse(userStr);
         localStorage.setItem(`dentaai_saved_${user.role}`, userStr);
         localStorage.setItem(`dentaai_saved_token_${user.role}`, localStorage.getItem('dentaai_token') || '');
-      } catch (e) {}
+      } catch (e) {
+        console.error("Error backing up session:", e);
+      }
     }
 
     // 2. Restore target session

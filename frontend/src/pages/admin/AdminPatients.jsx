@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UserCircle, ChevronRight, Activity, Search } from 'lucide-react';
+import { ChevronRight, Activity, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import '../Dashboard.css';
 

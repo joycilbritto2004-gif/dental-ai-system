@@ -36,6 +36,11 @@ const userSchema = new mongoose.Schema({
     enum: ['Active', 'Blocked'],
     default: 'Active',
   },
+  // Doctor specific fields
+  specialization: { type: String },
+  clinic: { type: String },
+  location: { type: String },
+  fee: { type: Number, default: 500 },
 }, { timestamps: true });
 
 // Hash password before saving
