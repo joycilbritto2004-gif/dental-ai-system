@@ -90,7 +90,7 @@ const DoctorPatientCases = () => {
                 <div className="bg-dark rounded-xl p-4 mb-4 border border-glass">
                   <div className="flex-between mb-2">
                     <span className="text-main font-bold">{p.latestCase.condition}</span>
-                    <span className="confidence-pill" style={{ background: 'rgba(0, 210, 255, 0.1)', color: 'var(--secondary)' }}>{p.latestCase.confidence}</span>
+                    <span className="confidence-pill" style={{ background: 'rgba(0, 166, 166, 0.1)', color: 'var(--secondary)' }}>{p.latestCase.confidence}</span>
                   </div>
                   <div className="flex-align-center gap-2 text-sm text-muted">
                     <Calendar size={14} /> {p.latestCase.date}
@@ -98,7 +98,7 @@ const DoctorPatientCases = () => {
                 </div>
                 <div className="flex-between">
                   <span className="text-sm text-muted">Current Status:</span>
-                  <span className="badge" style={{ background: 'rgba(0, 210, 255, 0.1)', color: 'var(--secondary)' }}>{p.latestCase.status}</span>
+                  <span className="badge" style={{ background: 'rgba(0, 166, 166, 0.1)', color: 'var(--secondary)' }}>{p.latestCase.status}</span>
                 </div>
               </div>
             </motion.div>

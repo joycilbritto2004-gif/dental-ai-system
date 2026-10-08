@@ -55,8 +55,8 @@ const RecommendedDoctors = () => {
   return (
     <div className="dashboard-view animate-fade-in">
       <div className="dashboard-header mb-6">
-        <h2 style={{ color: '#ffffff', fontWeight: '800' }}>Recommended Dentists</h2>
-        <p style={{ color: '#cbd5e1', fontWeight: '500' }}>Based on your dental analysis, connect with a qualified dental professional for further consultation.</p>
+        <h2 style={{ color: '#172033', fontWeight: '800' }}>Recommended Dentists</h2>
+        <p style={{ color: '#64748B', fontWeight: '500' }}>Based on your dental analysis, connect with a qualified dental professional for further consultation.</p>
       </div>
 
       <div className="card mb-6" style={{ padding: '1rem', background: 'rgba(255, 255, 255, 0.95)' }}>
@@ -169,3 +169,5 @@ const RecommendedDoctors = () => {
 };
 
 export default RecommendedDoctors;
+
+

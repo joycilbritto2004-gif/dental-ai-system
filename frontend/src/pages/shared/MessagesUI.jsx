@@ -229,11 +229,11 @@ const MessagesUI = ({ role = 'patient' }) => {
     <div className="dashboard-view animate-fade-in" style={{ height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column' }}>
       
       {/* HEADER */}
-      <div className="mb-4" style={{ background: 'var(--bg-secondary)', padding: '24px 32px', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
-        <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '50%', background: 'radial-gradient(circle at top right, rgba(0, 210, 255, 0.12), transparent 70%)', pointerEvents: 'none' }}></div>
+      <div className="mb-4 page-header-card" style={{ padding: '24px 32px', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+        <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '50%', background: 'radial-gradient(circle at top right, rgba(0, 166, 166, 0.12), transparent 70%)', pointerEvents: 'none' }}></div>
         <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'var(--secondary)' }}></div>
         <div style={{ position: 'relative', zIndex: 10 }}>
-          <h2 className="font-extrabold mb-1" style={{ color: 'var(--primary)', letterSpacing: '-0.5px', fontSize: '2rem', lineHeight: '1.2', margin: 0 }}>Messages</h2>
+          <h2 className="font-extrabold mb-1" style={{ color: 'var(--text-primary)', letterSpacing: '-0.5px', fontSize: '2rem', lineHeight: '1.2', margin: 0 }}>Messages</h2>
           <p className="font-medium m-0" style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>Communicate securely with your dental care team.</p>
         </div>
       </div>
@@ -245,7 +245,7 @@ const MessagesUI = ({ role = 'patient' }) => {
           className="card" 
           style={{ 
             width: isMobile ? '100%' : '360px', 
-            background: 'var(--bg-secondary)', 
+            background: 'var(--bg-card)', 
             border: '1px solid var(--border-color)', 
             borderRadius: '24px', 
             boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', 
@@ -285,7 +285,7 @@ const MessagesUI = ({ role = 'patient' }) => {
                     style={{ 
                       padding: '20px 24px', 
                       borderBottom: '1px solid var(--border-color)', 
-                      backgroundColor: isActive ? 'rgba(0, 210, 255, 0.05)' : 'transparent', 
+                      backgroundColor: isActive ? 'rgba(0, 166, 166, 0.05)' : 'transparent', 
                       borderLeft: isActive ? '4px solid var(--secondary)' : '4px solid transparent',
                       cursor: 'pointer',
                       transition: 'all 0.2s'
@@ -297,7 +297,7 @@ const MessagesUI = ({ role = 'patient' }) => {
                       </div>
                       <div style={{ flex: 1, overflow: 'hidden' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                          <span style={{ fontWeight: 800, color: 'var(--primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '1.05rem' }}>{partnerName}</span>
+                          <span style={{ fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '1.05rem' }}>{partnerName}</span>
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>{c.time || c.date}</span>
                         </div>
                         <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -317,7 +317,7 @@ const MessagesUI = ({ role = 'patient' }) => {
           className="card" 
           style={{ 
             flex: 1, 
-            background: 'var(--bg-secondary)', 
+            background: 'var(--bg-card)', 
             border: '1px solid var(--border-color)', 
             borderRadius: '24px', 
             boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', 
@@ -340,7 +340,7 @@ const MessagesUI = ({ role = 'patient' }) => {
                     {getPartnerInitials(chatPartnerName)}
                   </div>
                   <div>
-                    <h4 style={{ margin: 0, fontWeight: 800, color: 'var(--primary)', fontSize: '1.2rem' }}>{chatPartnerName}</h4>
+                    <h4 style={{ margin: 0, fontWeight: 800, color: 'var(--text-primary)', fontSize: '1.2rem' }}>{chatPartnerName}</h4>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
                       <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 500 }}>{chatPartnerTitle}</span>
                       <span style={{ fontSize: '0.8rem', color: 'var(--success)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -367,11 +367,11 @@ const MessagesUI = ({ role = 'patient' }) => {
               </div>
 
               {/* Messages Area */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg-secondary)' }}>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg-card)' }}>
                 {activeMessages.length === 0 ? (
                   <div style={{ margin: 'auto', textAlign: 'center', color: 'var(--text-muted)' }}>
                     <MessageSquare size={48} style={{ opacity: 0.3, margin: '0 auto 16px' }} />
-                    <h4 style={{ fontWeight: 800, color: 'var(--primary)' }}>No messages yet</h4>
+                    <h4 style={{ fontWeight: 800, color: 'var(--text-primary)' }}>No messages yet</h4>
                     <p style={{ fontSize: '0.95rem' }}>Start the conversation securely below.</p>
                   </div>
                 ) : (
@@ -385,8 +385,8 @@ const MessagesUI = ({ role = 'patient' }) => {
                         {/* TEXT MESSAGE */}
                         {msg.type === 'text' && (
                           <div style={{
-                            backgroundColor: isMine ? 'var(--secondary)' : 'var(--bg-primary)',
-                            color: isMine ? 'white' : 'var(--primary)',
+                            background: isMine ? 'var(--gradient-primary)' : 'var(--bg-card)',
+                            color: isMine ? 'white' : 'var(--text-primary)',
                             border: isMine ? 'none' : '1px solid var(--border-color)',
                             padding: '12px 18px',
                             borderRadius: isMine ? '16px 16px 0 16px' : '16px 16px 16px 0',
@@ -402,7 +402,7 @@ const MessagesUI = ({ role = 'patient' }) => {
 
                         {/* IMAGE MESSAGE */}
                         {msg.type === 'image' && (
-                          <div style={{ padding: '8px', backgroundColor: isMine ? 'var(--secondary)' : 'var(--bg-primary)', border: isMine ? 'none' : '1px solid var(--border-color)', borderRadius: isMine ? '16px 16px 0 16px' : '16px 16px 16px 0', maxWidth: '300px' }}>
+                          <div style={{ padding: '8px', background: isMine ? 'var(--gradient-primary)' : 'var(--bg-card)', border: isMine ? 'none' : '1px solid var(--border-color)', borderRadius: isMine ? '16px 16px 0 16px' : '16px 16px 16px 0', maxWidth: '300px' }}>
                             <img src={msg.image} alt="Attached" style={{ width: '100%', borderRadius: '10px' }} />
                           </div>
                         )}
@@ -411,12 +411,12 @@ const MessagesUI = ({ role = 'patient' }) => {
                         {msg.type === 'ai-report' && (
                           <div style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '20px', width: '350px', maxWidth: '90%', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--border-color)' }}>
-                              <div style={{ background: 'rgba(0, 210, 255, 0.1)', padding: '8px', borderRadius: '8px', color: 'var(--secondary)' }}><BrainCircuit size={18} /></div>
-                              <h4 style={{ margin: 0, fontWeight: 800, color: 'var(--primary)', fontSize: '0.95rem' }}>AI Dental Analysis</h4>
+                              <div style={{ background: 'rgba(0, 166, 166, 0.1)', padding: '8px', borderRadius: '8px', color: 'var(--secondary)' }}><BrainCircuit size={18} /></div>
+                              <h4 style={{ margin: 0, fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.95rem' }}>AI Dental Analysis</h4>
                             </div>
                             <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'space-between' }}>
                               <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>Detected Condition</span>
-                              <span style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '0.9rem' }}>{msg.report?.condition?.replace('_', ' ')}</span>
+                              <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.9rem' }}>{msg.report?.condition?.replace('_', ' ')}</span>
                             </div>
                             <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'space-between' }}>
                               <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>Confidence</span>
@@ -438,7 +438,7 @@ const MessagesUI = ({ role = 'patient' }) => {
                             <div style={{ background: 'rgba(245, 158, 11, 0.1)', color: 'var(--warning)', width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                               <CreditCard size={24} />
                             </div>
-                            <p style={{ fontSize: '0.95rem', color: 'var(--primary)', margin: '0 0 16px 0', fontWeight: 600 }}>
+                            <p style={{ fontSize: '0.95rem', color: 'var(--text-primary)', margin: '0 0 16px 0', fontWeight: 600 }}>
                               Payment requested for <strong>₹{msg.amount}</strong>.
                             </p>
                             
@@ -487,13 +487,13 @@ const MessagesUI = ({ role = 'patient' }) => {
                 {selectedImage && (
                   <div style={{ position: 'relative', display: 'inline-block', marginBottom: '16px' }}>
                     <img src={selectedImage} alt="Preview" style={{ height: '80px', borderRadius: '12px', border: '1px solid var(--border-color)' }} />
-                    <button onClick={() => setSelectedImage(null)} style={{ position: 'absolute', top: '-10px', right: '-10px', width: '28px', height: '28px', padding: 0, background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '50%', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <button onClick={() => setSelectedImage(null)} style={{ position: 'absolute', top: '-10px', right: '-10px', width: '28px', height: '28px', padding: 0, background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '50%', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <X size={14} />
                     </button>
                   </div>
                 )}
 
-                <form onSubmit={handleSend} style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', padding: '8px', borderRadius: '999px' }}>
+                <form onSubmit={handleSend} style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: '8px', borderRadius: '999px' }}>
                   <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" style={{ display: 'none' }} />
                   
                   <button type="button" onClick={() => fileInputRef.current?.click()} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', padding: '8px', cursor: 'pointer', display: 'flex' }}>
@@ -506,10 +506,10 @@ const MessagesUI = ({ role = 'patient' }) => {
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     disabled={!selectedConsultationId}
-                    style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 500, padding: '0 8px' }}
+                    style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: '0.95rem', fontWeight: 500, padding: '0 8px' }}
                   />
                   
-                  <button type="submit" disabled={!inputText.trim() && !selectedImage} style={{ background: 'var(--secondary)', color: 'white', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (!inputText.trim() && !selectedImage) ? 'not-allowed' : 'pointer', opacity: (!inputText.trim() && !selectedImage) ? 0.5 : 1, boxShadow: '0 4px 10px rgba(0, 210, 255, 0.3)' }}>
+                  <button type="submit" disabled={!inputText.trim() && !selectedImage} style={{ background: 'var(--gradient-primary)', color: 'white', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (!inputText.trim() && !selectedImage) ? 'not-allowed' : 'pointer', opacity: (!inputText.trim() && !selectedImage) ? 0.5 : 1, boxShadow: '0 4px 10px rgba(22, 119, 255, 0.3)' }}>
                     <Send size={18} style={{ marginLeft: '2px' }} />
                   </button>
                 </form>
@@ -520,7 +520,7 @@ const MessagesUI = ({ role = 'patient' }) => {
               <div style={{ background: 'var(--bg-primary)', padding: '24px', borderRadius: '50%', border: '1px solid var(--border-color)', marginBottom: '24px' }}>
                 <MessageSquare size={48} color="var(--text-muted)" opacity={0.5} />
               </div>
-              <h3 style={{ margin: '0 0 8px 0', fontWeight: 800, color: 'var(--primary)', fontSize: '1.5rem' }}>Select a conversation</h3>
+              <h3 style={{ margin: '0 0 8px 0', fontWeight: 800, color: 'var(--text-primary)', fontSize: '1.5rem' }}>Select a conversation</h3>
               <p style={{ margin: 0, color: 'var(--text-muted)', fontWeight: 500, maxWidth: '300px' }}>Choose a consultation from the list to view history or send a secure message.</p>
             </div>
           )}
@@ -530,9 +530,9 @@ const MessagesUI = ({ role = 'patient' }) => {
       {/* Completion Modal (Doctor Side) */}
       {showCompletionModal && role === 'doctor' && activeConsultation && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' }}>
-          <div className="card" style={{ width: '500px', maxWidth: '90%', padding: '32px', background: 'var(--bg-secondary)', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}>
+          <div className="card" style={{ width: '500px', maxWidth: '90%', padding: '32px', background: 'var(--bg-card)', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <h3 style={{ margin: 0, fontWeight: 800, color: 'var(--primary)' }}>Complete Consultation</h3>
+              <h3 style={{ margin: 0, fontWeight: 800, color: 'var(--text-primary)' }}>Complete Consultation</h3>
               <button onClick={() => setShowCompletionModal(false)} style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={16} /></button>
             </div>
             
@@ -575,3 +575,5 @@ const MessagesUI = ({ role = 'patient' }) => {
 };
 
 export default MessagesUI;
+
+

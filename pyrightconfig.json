@@ -1,0 +1,7 @@
+{
+  "venvPath": "c:\\Users\\britt\\OneDrive\\Desktop\\dental-ai-system-main\\ai_model",
+  "venv": "venv",
+  "extraPaths": [
+    "ai_model"
+  ]
+}

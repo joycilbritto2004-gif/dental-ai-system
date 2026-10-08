@@ -104,11 +104,11 @@ const PatientHealthTips = () => {
       variants={stagger}
     >
       {/* HEADER */}
-      <motion.div variants={item} className="mb-8" style={{ background: 'var(--bg-secondary)', padding: '32px 40px', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)', position: 'relative', overflow: 'hidden' }}>
+      <motion.div variants={item} className="mb-8 page-header-card" style={{ padding: '32px 40px', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '50%', background: 'radial-gradient(circle at top right, rgba(0, 210, 255, 0.12), transparent 70%)', pointerEvents: 'none' }}></div>
         <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'var(--secondary)' }}></div>
         <div style={{ position: 'relative', zIndex: 10 }}>
-          <h2 className="font-extrabold mb-2" style={{ color: 'var(--primary)', letterSpacing: '-0.5px', fontSize: '2.5rem', lineHeight: '1.2', margin: 0 }}>Health Tips</h2>
+          <h2 className="font-extrabold mb-2" style={{ color: 'var(--text-primary)', letterSpacing: '-0.5px', fontSize: '2.5rem', lineHeight: '1.2', margin: 0 }}>Health Tips</h2>
           <p className="font-medium m-0" style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>Personalized dental care recommendations based on your AI scans.</p>
         </div>
       </motion.div>
@@ -122,15 +122,15 @@ const PatientHealthTips = () => {
           
           {/* CONDITION SPECIFIC SECTION (IF APPLICABLE) */}
           {latestScan ? (
-            <motion.div variants={item} className="card" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', padding: '32px' }}>
+            <motion.div variants={item} className="card" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', padding: '32px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '24px' }}>
                 <div style={{ background: `rgba(var(--${specificTips.accentClass}-rgb, 0, 210, 255), 0.1)`, padding: '16px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {specificTips.icon}
                 </div>
                 <div>
-                  <h3 style={{ color: 'var(--primary)', margin: '0 0 4px 0', fontSize: '1.5rem', fontWeight: 800 }}>{specificTips.title}</h3>
+                  <h3 style={{ color: 'var(--text-primary)', margin: '0 0 4px 0', fontSize: '1.5rem', fontWeight: 800 }}>{specificTips.title}</h3>
                   <p className="text-muted text-sm font-medium m-0">
-                    Targeted care plan based on your latest scan: <strong style={{ color: 'var(--primary)' }}>{latestScan.condition.replace('_', ' ')}</strong>
+                    Targeted care plan based on your latest scan: <strong style={{ color: 'var(--text-primary)' }}>{latestScan.condition.replace('_', ' ')}</strong>
                   </p>
                 </div>
               </div>
@@ -144,13 +144,13 @@ const PatientHealthTips = () => {
               </div>
             </motion.div>
           ) : (
-            <motion.div variants={item} className="card text-center mb-6" style={{ padding: '60px 20px', background: 'var(--bg-secondary)', border: '1px dashed var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
+            <motion.div variants={item} className="card text-center mb-6" style={{ padding: '60px 20px', background: 'var(--bg-card)', border: '1px dashed var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px', color: 'var(--text-muted)' }}>
                 <div style={{ background: 'var(--bg-primary)', padding: '24px', borderRadius: '50%', border: '1px solid var(--border-color)' }}>
                   <HeartPulse size={48} className="text-secondary" />
                 </div>
               </div>
-              <h3 className="mb-3 font-extrabold text-primary" style={{ fontSize: '1.5rem' }}>No Recent AI Predictions</h3>
+              <h3 className="mb-3 font-extrabold" style={{ color: 'var(--text-primary)', fontSize: '1.5rem' }}>No Recent AI Predictions</h3>
               <p className="text-muted mb-8 font-medium" style={{ fontSize: '1.1rem', maxWidth: '500px', margin: '0 auto' }}>
                 Upload an image for a scan to receive personalized condition-specific tips.
               </p>
@@ -159,17 +159,17 @@ const PatientHealthTips = () => {
 
           {/* GENERAL TIPS SECTION */}
           <div style={{ marginTop: '16px' }}>
-            <h3 className="mb-6 font-extrabold text-primary flex-align-center gap-2" style={{ fontSize: '1.5rem' }}>
+            <h3 className="mb-6 font-extrabold flex-align-center gap-2" style={{ color: 'var(--text-primary)', fontSize: '1.5rem' }}>
               <ShieldCheck size={24} className="text-secondary" /> General Dental Health Guidelines
             </h3>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
-              <motion.div variants={item} className="card" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', padding: '32px' }}>
+              <motion.div variants={item} className="card" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', padding: '32px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
                   <div style={{ background: 'rgba(0, 210, 255, 0.1)', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Smile className="text-primary" size={28} />
                   </div>
-                  <h4 style={{ margin: 0, color: 'var(--primary)', fontWeight: 800 }}>Brushing & Flossing</h4>
+                  <h4 style={{ margin: 0, color: 'var(--text-primary)', fontWeight: 800 }}>Brushing & Flossing</h4>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}><div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--secondary)', marginTop: '8px', flexShrink: 0 }}></div><span className="text-muted font-medium">Brush for at least 2 minutes, twice a day.</span></div>
@@ -179,12 +179,12 @@ const PatientHealthTips = () => {
                 </div>
               </motion.div>
 
-              <motion.div variants={item} className="card" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', padding: '32px' }}>
+              <motion.div variants={item} className="card" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', padding: '32px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
                   <div style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Coffee className="text-warning" size={28} />
                   </div>
-                  <h4 style={{ margin: 0, color: 'var(--primary)', fontWeight: 800 }}>Diet & Nutrition</h4>
+                  <h4 style={{ margin: 0, color: 'var(--text-primary)', fontWeight: 800 }}>Diet & Nutrition</h4>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}><div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--warning)', marginTop: '8px', flexShrink: 0 }}></div><span className="text-muted font-medium">Limit sugary and acidic foods and drinks.</span></div>
@@ -194,12 +194,12 @@ const PatientHealthTips = () => {
                 </div>
               </motion.div>
               
-              <motion.div variants={item} className="card" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', padding: '32px' }}>
+              <motion.div variants={item} className="card" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', padding: '32px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
                   <div style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Info className="text-danger" size={28} />
                   </div>
-                  <h4 style={{ margin: 0, color: 'var(--primary)', fontWeight: 800 }}>When to Visit a Dentist</h4>
+                  <h4 style={{ margin: 0, color: 'var(--text-primary)', fontWeight: 800 }}>When to Visit a Dentist</h4>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}><div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--danger)', marginTop: '8px', flexShrink: 0 }}></div><span className="text-muted font-medium">Schedule regular check-ups every 6 months.</span></div>
@@ -218,3 +218,5 @@ const PatientHealthTips = () => {
 };
 
 export default PatientHealthTips;
+
+

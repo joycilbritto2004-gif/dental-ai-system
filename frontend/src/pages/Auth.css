@@ -113,17 +113,17 @@
 
 .auth-header h2 {
   font-size: 2.5rem;
-  color: var(--text-main, #ffffff);
+  color: #ffffff !important;
   margin-bottom: 0.5rem;
   font-weight: 800;
 }
 
 .auth-header p {
-  color: var(--text-muted, #94a3b8);
+  color: #cbd5e1 !important;
 }
 
 .form-label {
-  color: var(--text-main, #ffffff);
+  color: #f1f5f9 !important;
   font-weight: 600;
   margin-bottom: 0.5rem;
   display: block;
@@ -133,10 +133,14 @@
   width: 100%;
   padding: 0.75rem 1rem;
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
-  background-color: var(--bg-card, rgba(255, 255, 255, 0.05));
-  color: var(--text-main, #ffffff);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: #ffffff !important;
+  color: #17324D !important;
   transition: all 0.3s ease;
+}
+
+.form-input::placeholder {
+  color: #94a3b8 !important;
 }
 
 .form-input:focus {
@@ -158,18 +162,18 @@
   align-items: center;
   gap: 0.75rem;
   padding: 1.5rem 0.5rem;
-  background-color: var(--bg-card, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-lg);
   cursor: pointer;
   transition: all 0.3s ease;
-  color: var(--text-muted, #94a3b8);
+  color: #94a3b8;
 }
 
 .role-card:hover {
   border-color: var(--color-cyan, #06b6d4);
   background-color: rgba(6, 182, 212, 0.05);
-  color: var(--text-main, #ffffff);
+  color: #ffffff;
   box-shadow: 0 4px 20px rgba(6, 182, 212, 0.1);
 }
 
@@ -200,6 +204,14 @@
   text-align: center;
   font-size: 1rem;
   margin-top: 2rem;
+}
+
+.auth-footer .text-muted {
+  color: #e2e8f0 !important;
+}
+
+.auth-footer .text-secondary {
+  color: #06b6d4 !important;
 }
 
 .alert-error {

@@ -80,7 +80,7 @@ const DoctorConsultationWorkspace = () => {
     return (
       <div className="dashboard-view flex-align-center justify-center" style={{ minHeight: '60vh' }}>
         <div className="spin-anim" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <BrainCircuit size={48} color="#00f0ff" />
+          <BrainCircuit size={48} color="#00A6A6" />
         </div>
       </div>
     );
@@ -112,13 +112,13 @@ const DoctorConsultationWorkspace = () => {
           <h2>Diagnostic Workspace</h2>
           <p>Review AI imaging, verify diagnosis, and prescribe treatments.</p>
         </div>
-        <Link to="/dashboard/doctor/messages" state={{ consultationId: consultation.id }} className="btn btn-outline flex-align-center gap-2" style={{ background: 'rgba(0, 210, 255, 0.1)' }}>
+        <Link to="/dashboard/doctor/messages" state={{ consultationId: consultation.id }} className="btn btn-outline flex-align-center gap-2" style={{ background: 'rgba(0, 166, 166, 0.1)' }}>
           <MessageSquare size={18} /> Chat with Patient
         </Link>
       </motion.div>
 
       {isCompleted && (
-        <motion.div variants={item} className="card mb-6 flex-align-center gap-3" style={{ padding: '1rem 1.5rem', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '12px' }}>
+        <motion.div variants={item} className="card mb-6 flex-align-center gap-3" style={{ padding: '1rem 1.5rem', background: 'rgba(22, 163, 74, 0.1)', border: '1px solid rgba(22, 163, 74, 0.3)', borderRadius: '12px' }}>
           <CheckCircle2 size={28} className="text-success" />
           <div className="flex-1">
             <h4 className="text-success font-bold" style={{ fontSize: '1.1rem' }}>Clinical Assessment Completed</h4>
@@ -142,24 +142,24 @@ const DoctorConsultationWorkspace = () => {
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-sm font-bold text-primary" style={{ background: 'rgba(0, 210, 255, 0.1)', padding: '6px 12px', borderRadius: '8px' }}>{consultation.date} @ {consultation.time}</p>
+                <p className="text-sm font-bold text-primary" style={{ background: 'rgba(0, 166, 166, 0.1)', padding: '6px 12px', borderRadius: '8px' }}>{consultation.date} @ {consultation.time}</p>
                 <p className="text-sm text-muted mt-2 flex-align-center gap-1 justify-end"><ShieldCheck size={14}/> Secure Channel</p>
               </div>
             </div>
           </motion.div>
 
-          <motion.div variants={item} className="xray-preview-large mb-6" style={{ background: 'var(--bg-dark)', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(0, 210, 255, 0.2)', position: 'relative' }}>
+          <motion.div variants={item} className="xray-preview-large mb-6" style={{ background: '#17324D', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(0, 166, 166, 0.2)', position: 'relative' }}>
             {(consultation.scanId?.imagePath && consultation.scanId?.imagePath !== 'uploaded_image') || consultation.imageReference ? (
               <img src={(consultation.scanId?.imagePath?.startsWith('http') ? consultation.scanId.imagePath : (consultation.scanId?.imagePath ? `http://localhost:5000${consultation.scanId.imagePath}` : null)) || consultation.imageReference} alt="Patient Dental Scan" style={{ width: '100%', height: 'auto', objectFit: 'cover' }} />
             ) : (
               <div className="xray-placeholder-scan" style={{ padding: '4rem 2rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '300px' }}>
-                <Scan size={64} color="#00f0ff" className="mb-4" />
+                <Scan size={64} color="white" className="mb-4" />
                 <span className="text-white font-bold" style={{ textTransform: 'uppercase', letterSpacing: '2px' }}>Encrypted Imaging Data</span>
               </div>
             )}
           </motion.div>
 
-          <motion.div variants={item} className="card glass-card" style={{ background: 'rgba(0, 210, 255, 0.05)', border: '1px solid rgba(0, 210, 255, 0.2)', borderRadius: '12px', padding: '20px' }}>
+          <motion.div variants={item} className="card glass-card" style={{ background: 'rgba(0, 166, 166, 0.05)', border: '1px solid rgba(0, 166, 166, 0.2)', borderRadius: '12px', padding: '20px' }}>
             <h4 className="font-bold text-primary mb-2 flex-align-center gap-2"><Zap size={18} className="text-secondary"/> Patient's Primary Complaint</h4>
             <p className="text-main" style={{ fontStyle: 'italic', lineHeight: 1.6, padding: '12px', background: 'rgba(255,255,255,0.6)', borderRadius: '8px' }}>
               "{consultation.message || 'No additional concerns provided by the patient.'}"
@@ -169,10 +169,10 @@ const DoctorConsultationWorkspace = () => {
 
         {/* RIGHT SIDE: AI & Verification */}
         <div className="dashboard-right-col">
-          <motion.div variants={item} className="card ai-result-box mb-6" style={{ background: 'var(--bg-dark)', color: 'white', borderRadius: '16px', border: '1px solid rgba(0, 210, 255, 0.4)', position: 'relative' }}>
+          <motion.div variants={item} className="card ai-result-box mb-6" style={{ background: 'linear-gradient(135deg, #1677FF, #00A6A6)', color: 'white', borderRadius: '16px', border: 'none', position: 'relative', boxShadow: '0 8px 24px rgba(22, 119, 255, 0.2)' }}>
             <div className="result-header mb-4 flex-align-center gap-2">
-              <BrainCircuit size={24} color="#00f0ff" />
-              <span className="font-bold" style={{ color: '#00f0ff', textTransform: 'uppercase', letterSpacing: '1px' }}>Neural Net Diagnosis</span>
+              <BrainCircuit size={24} color="white" />
+              <span className="font-bold" style={{ color: 'white', textTransform: 'uppercase', letterSpacing: '1px' }}>Neural Net Diagnosis</span>
             </div>
             
             <div style={{ background: 'rgba(255,255,255,0.05)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', marginBottom: '20px' }}>
@@ -183,22 +183,22 @@ const DoctorConsultationWorkspace = () => {
             </div>
             
             <div style={{ background: 'rgba(255,255,255,0.05)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', marginBottom: '20px' }}>
-              <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '1px' }}>Algorithmic Confidence</span>
+              <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '1px' }}>Algorithmic Confidence</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
-                <div style={{ fontSize: '24px', fontWeight: 800, color: '#00f0ff' }}>
+                <div style={{ fontSize: '24px', fontWeight: 800, color: 'white' }}>
                   {consultation.scanId?.confidence ? `${consultation.scanId.confidence}%` : (consultation.confidence || '0%')}
                 </div>
-                <div style={{ flex: 1, height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
-                  <motion.div initial={{ width: 0 }} animate={{ width: (consultation.scanId?.confidence ? `${consultation.scanId.confidence}%` : (consultation.confidence === 'N/A' || !consultation.confidence ? '0%' : consultation.confidence)) }} transition={{ duration: 1 }} style={{ height: '100%', background: '#00f0ff' }}></motion.div>
+                <div style={{ flex: 1, height: '6px', background: 'rgba(255,255,255,0.2)', borderRadius: '3px', overflow: 'hidden' }}>
+                  <motion.div initial={{ width: 0 }} animate={{ width: (consultation.scanId?.confidence ? `${consultation.scanId.confidence}%` : (consultation.confidence === 'N/A' || !consultation.confidence ? '0%' : consultation.confidence)) }} transition={{ duration: 1 }} style={{ height: '100%', background: 'white' }}></motion.div>
                 </div>
               </div>
             </div>
 
-            <div style={{ background: 'rgba(0, 210, 255, 0.05)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(0, 210, 255, 0.2)', marginBottom: '20px' }}>
-              <span style={{ fontSize: '12px', color: '#00f0ff', textTransform: 'uppercase', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ background: 'rgba(255, 255, 255, 0.1)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.2)', marginBottom: '20px' }}>
+              <span style={{ fontSize: '12px', color: 'white', textTransform: 'uppercase', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <AlertCircle size={14} /> AI Care Suggestions
               </span>
-              <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px', fontSize: '14px', color: 'rgba(255,255,255,0.8)', lineHeight: '1.6' }}>
+              <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px', fontSize: '14px', color: 'white', lineHeight: '1.6' }}>
                 {careSuggestions.map((sug, i) => <li key={i}>{sug}</li>)}
               </ul>
             </div>

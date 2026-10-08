@@ -159,7 +159,7 @@ const PatientConsultations = () => {
         variants={item} 
         className="mb-8" 
         style={{ 
-          background: 'var(--bg-secondary)', 
+          background: 'var(--bg-card)', 
           padding: '32px 40px', 
           borderRadius: '24px', 
           border: '1px solid var(--border-color)', 
@@ -188,7 +188,7 @@ const PatientConsultations = () => {
           <Activity className="spin-anim" size={40} color="var(--secondary)" />
         </div>
       ) : consultations.length === 0 ? (
-        <motion.div variants={item} className="card text-center mb-6" style={{ padding: '80px 20px', background: 'var(--bg-secondary)', border: '1px dashed var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
+        <motion.div variants={item} className="card text-center mb-6" style={{ padding: '80px 20px', background: 'var(--bg-card)', border: '1px dashed var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px', color: 'var(--text-muted)' }}>
             <div style={{ background: 'var(--bg-primary)', padding: '24px', borderRadius: '50%', border: '1px solid var(--border-color)' }}>
               <Clock size={48} className="text-secondary" />
@@ -212,7 +212,7 @@ const PatientConsultations = () => {
             const isCompleted = status === 'Completed' || status === 'Verified';
 
             return (
-              <div key={cons._id || cons.id || 'cons'} className="card" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', padding: '32px', display: 'flex', flexWrap: 'wrap', gap: '32px', alignItems: 'stretch' }}>
+              <div key={cons._id || cons.id || 'cons'} className="card" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', padding: '32px', display: 'flex', flexWrap: 'wrap', gap: '32px', alignItems: 'stretch' }}>
                 
                 {/* LEFT: DOCTOR & BASIC INFO */}
                 <div style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -326,3 +326,5 @@ const PatientConsultations = () => {
 };
 
 export default PatientConsultations;
+
+

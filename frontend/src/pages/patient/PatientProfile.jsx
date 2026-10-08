@@ -105,20 +105,30 @@ const PatientProfile = () => {
 
   return (
     <motion.div className="dashboard-view" initial="hidden" animate="show" variants={stagger}>
-      <motion.div variants={item} className="mb-6" style={{ background: 'var(--bg-secondary)', padding: '32px 40px', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
-        <div className="flex-between">
+      <motion.div 
+        variants={item} 
+        className="mb-8" 
+        style={{ 
+          background: 'var(--bg-card)', 
+          padding: '32px 40px', 
+          borderRadius: '24px', 
+          border: '1px solid var(--border-color)', 
+          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+      >
+        <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '50%', background: 'radial-gradient(circle at top right, rgba(0, 210, 255, 0.12), transparent 70%)', pointerEvents: 'none' }}></div>
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'var(--secondary)' }}></div>
+        <div style={{ position: 'relative', zIndex: 10 }}>
           <div>
-            <span style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--secondary)', marginBottom: '8px', display: 'block' }}>Account Settings</span>
-            <h2 className="font-extrabold mb-2" style={{ color: 'var(--primary)', fontSize: '2rem', margin: 0 }}>My Profile</h2>
-            <p className="font-medium m-0" style={{ color: 'var(--text-muted)' }}>Manage your personal information and security settings.</p>
-          </div>
-          <div style={{ background: 'rgba(0, 210, 255, 0.1)', padding: '16px', borderRadius: '50%', color: 'var(--secondary)' }}>
-            <UserCircle size={40} />
+            <h2 className="font-extrabold mb-2" style={{ color: 'var(--text-main)', letterSpacing: '-0.5px', fontSize: '2.5rem', lineHeight: '1.2', margin: 0 }}>My Profile</h2>
+            <p className="font-medium m-0" style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>Manage your personal information and security settings.</p>
           </div>
         </div>
       </motion.div>
 
-      <motion.div variants={item} className="card" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '24px', padding: '32px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', maxWidth: '800px' }}>
+      <motion.div variants={item} className="card" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '24px', padding: '32px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', maxWidth: '750px' }}>
         {message.text && (
           <div style={{ padding: '16px', borderRadius: '12px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, background: message.type === 'error' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)', color: message.type === 'error' ? '#ef4444' : '#10b981', border: `1px solid ${message.type === 'error' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)'}` }}>
             {message.type === 'success' ? <ShieldCheck size={20} /> : <UserCircle size={20} />}
@@ -152,7 +162,7 @@ const PatientProfile = () => {
 
           <div className="divider" style={{ background: 'var(--border-color)', height: '1px', margin: '8px 0' }}></div>
 
-          <h4 style={{ margin: 0, color: 'var(--primary)', fontSize: '1.1rem', fontWeight: 800 }}>Change Password</h4>
+          <h4 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.1rem', fontWeight: 800 }}>Change Password</h4>
           <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.85rem' }}>Leave blank if you do not wish to change your password.</p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
@@ -180,3 +190,5 @@ const PatientProfile = () => {
 };
 
 export default PatientProfile;
+
+

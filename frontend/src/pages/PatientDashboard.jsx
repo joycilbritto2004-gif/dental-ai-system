@@ -195,7 +195,7 @@ const PatientDashboard = () => {
     <motion.div className="dashboard-view" initial="hidden" animate="show" variants={stagger} style={{ paddingBottom: '40px' }}>
       
       {/* HERO SECTION */}
-      <motion.div variants={item} className="mb-6" style={{ background: 'var(--card-bg)', padding: '36px 40px', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', position: 'relative', overflow: 'hidden' }}>
+      <motion.div variants={item} className="mb-6 page-header-card" style={{ padding: '36px 40px', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '40%', background: 'radial-gradient(circle at top right, rgba(0, 210, 255, 0.08), transparent 70%)', pointerEvents: 'none' }}></div>
         <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'var(--secondary)' }}></div>
         <div style={{ position: 'relative', zIndex: 10 }}>
@@ -207,10 +207,10 @@ const PatientDashboard = () => {
 
       {/* KPI Cards */}
       <motion.div variants={stagger} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px', marginBottom: '24px' }}>
-        <KPICard icon={<ImageIcon size={24} />} value={totalScans.toString()} label="Total Scans" color="#0ea5e9" bg="rgba(14, 165, 233, 0.1)" />
-        <KPICard icon={<Clock size={24} />} value={pendingScans.toString()} label="Pending Reviews" color="#f59e0b" bg="rgba(245, 158, 11, 0.1)" />
-        <KPICard icon={<CheckCircle2 size={24} />} value={verifiedScans.toString()} label="Verified Results" color="#10b981" bg="rgba(16, 185, 129, 0.1)" />
-        <KPICard icon={<HeartPulse size={24} />} value={healthStatus} label="Health Status" color="#00d2ff" bg="rgba(0, 210, 255, 0.1)" />
+        <KPICard icon={<ImageIcon size={24} />} value={totalScans.toString()} label="Total Scans" color="#1677FF" bg="#E0EEFF" borderColor="#1677FF" />
+        <KPICard icon={<Clock size={24} />} value={pendingScans.toString()} label="Pending Reviews" color="#F59E0B" bg="#FFF4D6" borderColor="#F59E0B" />
+        <KPICard icon={<CheckCircle2 size={24} />} value={verifiedScans.toString()} label="Verified Results" color="#16A34A" bg="#DCFCE7" borderColor="#16A34A" />
+        <KPICard icon={<HeartPulse size={24} />} value={healthStatus} label="Health Status" color="#00A6A6" bg="#DDF7F3" borderColor="#00A6A6" />
       </motion.div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px', alignItems: 'start' }}>
@@ -227,8 +227,8 @@ const PatientDashboard = () => {
             
             <div className={`upload-zone interactive ${selectedImage ? 'has-image' : ''}`} onClick={triggerFileInput}
               style={{ 
-                background: selectedImage ? 'var(--card-bg)' : 'var(--card-bg-dark)', 
-                border: selectedImage ? 'none' : '2px dashed rgba(0, 210, 255, 0.4)', 
+                background: selectedImage ? 'var(--card-bg)' : 'var(--gradient-upload)', 
+                border: selectedImage ? 'none' : '2px dashed #1677FF', 
                 borderRadius: '16px',
                 padding: selectedImage ? '0' : '40px 20px',
                 textAlign: 'center',
@@ -254,8 +254,8 @@ const PatientDashboard = () => {
                   </motion.div>
                 ) : (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                    <div style={{ background: 'rgba(0, 210, 255, 0.1)', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                      <Upload size={28} color="var(--secondary)" />
+                    <div style={{ background: '#E0EEFF', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                      <Upload size={28} color="#1677FF" />
                     </div>
                     <h4 style={{ color: 'var(--text-primary)', fontWeight: 800, margin: '0 0 8px 0', fontSize: '1.1rem' }}>Drop intraoral image here</h4>
                     <span style={{ color: 'var(--text-secondary)', fontWeight: 500, fontSize: '0.9rem', display: 'block' }}>or click to browse from your device</span>
@@ -269,7 +269,7 @@ const PatientDashboard = () => {
             
             {selectedImage && !predictionResult && !isLoading && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ marginTop: '24px' }}>
-                <button className="btn btn-primary" style={{ width: '100%', padding: '14px', borderRadius: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '1rem', boxShadow: '0 4px 15px rgba(0, 210, 255, 0.3)' }} onClick={handleRunAnalysis}>
+                <button className="btn btn-primary" style={{ width: '100%', padding: '14px', borderRadius: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '1rem', boxShadow: '0 4px 15px rgba(0, 210, 255, 0.3)', background: 'var(--gradient-primary)', color: '#FFFFFF', border: 'none' }} onClick={handleRunAnalysis}>
                   <Zap size={18} /> Analyze with DentaAI
                 </button>
               </motion.div>
@@ -277,7 +277,7 @@ const PatientDashboard = () => {
 
             {/* PREDICTION RESULT CARD */}
             {predictionResult && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ marginTop: '24px', padding: '28px', background: 'rgba(0, 210, 255, 0.05)', border: '2px solid rgba(0, 210, 255, 0.3)', borderRadius: '20px', color: 'var(--text-primary)', boxShadow: '0 8px 32px rgba(0, 210, 255, 0.1)', position: 'relative', overflow: 'hidden' }}>
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ marginTop: '24px', padding: '28px', background: 'var(--gradient-card)', border: '1px solid var(--border-color)', borderRadius: '20px', color: 'var(--text-primary)', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.05)', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', top: '-40px', right: '-40px', width: '150px', height: '150px', background: 'radial-gradient(circle, rgba(0,210,255,0.15) 0%, transparent 70%)', pointerEvents: 'none' }}></div>
                 <h4 style={{ margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 800, color: 'var(--text-primary)', fontSize: '1.25rem' }}>
                   <div style={{ background: 'var(--card-bg)', padding: '8px', borderRadius: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex' }}>
@@ -413,7 +413,7 @@ const PatientDashboard = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
           {/* CONSULTATION CTA */}
-          <motion.div variants={item} style={{ background: 'linear-gradient(135deg, var(--primary) 0%, #1e293b 100%)', borderRadius: '24px', padding: '32px', color: '#FFFFFF', boxShadow: '0 10px 30px rgba(15, 23, 42, 0.15)', position: 'relative', overflow: 'hidden' }}>
+          <motion.div variants={item} style={{ background: 'var(--gradient-primary)', borderRadius: '24px', padding: '32px', color: '#FFFFFF', boxShadow: '0 10px 30px rgba(22, 119, 255, 0.25)', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '150px', height: '150px', background: 'var(--secondary)', opacity: 0.15, borderRadius: '50%', filter: 'blur(30px)' }}></div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
               <div style={{ background: 'rgba(0, 210, 255, 0.2)', padding: '10px', borderRadius: '12px', color: 'var(--secondary)' }}><ShieldCheck size={24} /></div>
@@ -509,9 +509,9 @@ const PatientDashboard = () => {
   );
 };
 
-const KPICard = ({ icon, value, label, color, bg }) => (
+const KPICard = ({ icon, value, label, color, bg, borderColor }) => (
   <motion.div variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }} whileHover={{ y: -4, boxShadow: '0 10px 25px rgba(0,0,0,0.06)' }}
-    style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '24px', background: 'var(--card-bg)', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', transition: 'all 0.2s' }}>
+    style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '24px', background: 'var(--card-bg)', borderRadius: '24px', border: '1px solid var(--border-color)', borderLeft: `4px solid ${borderColor}`, boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', transition: 'all 0.2s' }}>
     <div style={{ width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: bg, color: color, borderRadius: '16px', flexShrink: 0 }}>
       {icon}
     </div>
@@ -523,3 +523,4 @@ const KPICard = ({ icon, value, label, color, bg }) => (
 );
 
 export default PatientDashboard;
+

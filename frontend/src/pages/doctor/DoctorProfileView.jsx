@@ -5,7 +5,7 @@ import '../Dashboard.css';
 
 const DoctorProfileView = () => {
   const [profile, setProfile] = useState({
-    name: "Dr. Smith",
+    name: "",
     specialization: "General Dentist",
     clinic: "Premium Dental Care",
     experience: "10 Years",
@@ -18,9 +18,30 @@ const DoctorProfileView = () => {
 
   useEffect(() => {
     try {
+      const userStr = localStorage.getItem('dentaai_user');
+      let baseProfile = {
+        name: "Dr. Doctor",
+        specialization: "General Dentist",
+        clinic: "Premium Dental Care",
+        experience: "10 Years",
+        location: "Mumbai, Maharashtra",
+        fee: "500",
+        languages: "English, Hindi"
+      };
+
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        const userName = user.name || user.firstName || 'Doctor';
+        baseProfile.name = userName.includes('Dr.') ? userName : `Dr. ${userName}`;
+        if (user.specialization) baseProfile.specialization = user.specialization;
+      }
+
       const savedProfile = localStorage.getItem('doctor_profile');
       if (savedProfile) {
-        setProfile(JSON.parse(savedProfile));
+        const parsed = JSON.parse(savedProfile);
+        setProfile({ ...parsed, name: baseProfile.name }); // enforce auth name
+      } else {
+        setProfile(baseProfile);
       }
     } catch (e) {
       console.error("Error loading profile:", e);
@@ -50,16 +71,19 @@ const DoctorProfileView = () => {
   const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
 
   return (
-    <motion.div className="dashboard-view" initial="hidden" animate="show" variants={stagger}>
-      <motion.div variants={item} className="dashboard-header mb-6">
-        <h2>My Profile</h2>
-        <p>Manage your professional details, clinic information, and consultation settings.</p>
+    <motion.div className="dashboard-view animate-fade-in" initial="hidden" animate="show" variants={stagger}>
+      <motion.div variants={item} className="mb-4 page-header-card" style={{ padding: '24px 32px', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+        <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '50%', background: 'radial-gradient(circle at top right, rgba(0, 166, 166, 0.12), transparent 70%)', pointerEvents: 'none' }}></div>
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'var(--secondary)' }}></div>
+        <div style={{ position: 'relative', zIndex: 10 }}>
+          <h2 className="font-extrabold mb-1" style={{ color: 'var(--text-primary)', letterSpacing: '-0.5px', fontSize: '2rem', lineHeight: '1.2', margin: 0 }}>My Profile</h2>
+          <p className="font-medium" style={{ color: 'var(--text-secondary)', margin: 0 }}>Manage your professional details, clinic information, and consultation settings.</p>
+        </div>
       </motion.div>
 
-      <motion.div variants={item} className="dashboard-grid">
-        <div className="card glass-card col-span-full md:col-span-8" style={{ padding: '2rem' }}>
-          <div className="flex-align-center gap-4 mb-6 pb-6 border-b">
-            <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--secondary), var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 15px rgba(0, 210, 255, 0.3)' }}>
+      <motion.div variants={item} className="card glass-card" style={{ padding: '2rem', width: '100%', maxWidth: '750px' }}>
+        <div className="flex-align-center gap-4 mb-6 pb-6 border-b">
+          <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--secondary), var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 15px rgba(0, 166, 166, 0.3)' }}>
               <UserCircle size={48} />
             </div>
             <div>
@@ -111,7 +135,6 @@ const DoctorProfileView = () => {
               <Save size={18} /> Save Changes
             </button>
           </div>
-        </div>
       </motion.div>
     </motion.div>
   );

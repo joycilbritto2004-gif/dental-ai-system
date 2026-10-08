@@ -38,12 +38,12 @@ const DoctorConsultationHistory = () => {
 
   const getStatusBadge = (status) => {
     if (status === 'Completed' || status === 'Verified') {
-      return { bg: 'rgba(16, 185, 129, 0.1)', color: '#059669', border: 'rgba(16, 185, 129, 0.3)' };
+      return { bg: 'rgba(22, 163, 74, 0.1)', color: '#16A34A', border: 'rgba(22, 163, 74, 0.3)' };
     }
     if (status === 'Rejected') {
-      return { bg: 'rgba(239, 68, 68, 0.1)', color: '#dc2626', border: 'rgba(239, 68, 68, 0.3)' };
+      return { bg: 'rgba(220, 38, 38, 0.1)', color: '#DC2626', border: 'rgba(220, 38, 38, 0.3)' };
     }
-    return { bg: 'rgba(245, 158, 11, 0.1)', color: '#d97706', border: 'rgba(245, 158, 11, 0.3)' };
+    return { bg: 'rgba(245, 158, 11, 0.1)', color: '#F59E0B', border: 'rgba(245, 158, 11, 0.3)' };
   };
 
   const stagger = {
@@ -83,7 +83,7 @@ const DoctorConsultationHistory = () => {
                 historyCases.map(req => {
                   const badge = getStatusBadge(req.status);
                   return (
-                    <motion.tr key={req.id} whileHover={{ backgroundColor: 'rgba(0, 210, 255, 0.05)' }}>
+                    <motion.tr key={req.id} whileHover={{ backgroundColor: 'rgba(0, 166, 166, 0.05)' }}>
                       <td>
                         <div className="flex-align-center gap-3">
                           <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--secondary), var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>

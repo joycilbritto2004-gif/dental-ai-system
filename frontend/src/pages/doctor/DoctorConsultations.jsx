@@ -74,7 +74,7 @@ const DoctorConsultations = () => {
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Activity size={24} className="text-secondary" /> Active Patient Queue
           </h3>
-          <span className="badge" style={{ background: 'rgba(0, 210, 255, 0.1)', color: 'var(--secondary)', border: '1px solid rgba(0, 210, 255, 0.3)' }}>
+          <span className="badge" style={{ background: 'rgba(0, 166, 166, 0.1)', color: 'var(--secondary)', border: '1px solid rgba(0, 166, 166, 0.3)' }}>
             {requests.length} Requests
           </span>
         </div>
@@ -94,7 +94,7 @@ const DoctorConsultations = () => {
                   <div className="flex-1">
                     <div className="flex-between mb-3">
                       <div className="flex-align-center gap-3">
-                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--secondary), var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 10px rgba(0, 210, 255, 0.2)' }}>
+                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--secondary), var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 10px rgba(0, 166, 166, 0.2)' }}>
                           <UserCircle size={28} />
                         </div>
                         <div>
@@ -105,9 +105,9 @@ const DoctorConsultations = () => {
                         </div>
                       </div>
                       <span className="badge" style={{ 
-                        background: req.status === 'Accepted' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-                        color: req.status === 'Accepted' ? '#2563eb' : '#059669',
-                        border: `1px solid ${req.status === 'Accepted' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
+                        background: req.status === 'Accepted' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(22, 163, 74, 0.1)',
+                        color: req.status === 'Accepted' ? '#1677FF' : '#16A34A',
+                        border: `1px solid ${req.status === 'Accepted' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(22, 163, 74, 0.3)'}`,
                         padding: '6px 12px', fontSize: '0.85rem'
                       }}>
                         {req.status}
@@ -116,7 +116,7 @@ const DoctorConsultations = () => {
                     
                     <div style={{ background: 'var(--bg-dark)', borderRadius: '12px', padding: '16px', marginBottom: req.message ? '16px' : '0', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ background: 'rgba(0, 210, 255, 0.1)', padding: '10px', borderRadius: '8px' }}>
+                        <div style={{ background: 'rgba(0, 166, 166, 0.1)', padding: '10px', borderRadius: '8px' }}>
                           <BrainCircuit size={20} className="text-secondary" />
                         </div>
                         <div>

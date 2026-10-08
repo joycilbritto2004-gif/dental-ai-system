@@ -62,7 +62,7 @@ const ConsultationRequest = () => {
         variants={item} 
         className="mb-8"
         style={{
-          background: 'var(--bg-secondary)',
+          background: 'var(--bg-card)',
           padding: '32px 40px',
           borderRadius: '24px',
           border: '1px solid var(--border-color)',
@@ -90,14 +90,14 @@ const ConsultationRequest = () => {
       <div className="dashboard-grid">
         {/* LEFT COLUMN: Request Form */}
         <div className="dashboard-left-col">
-          <motion.form variants={item} className="card" onSubmit={handleSubmit} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', borderRadius: '24px', padding: '2.5rem' }}>
+          <motion.form variants={item} className="card" onSubmit={handleSubmit} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', borderRadius: '24px', padding: '2.5rem' }}>
             <div className="card-header mb-6 pb-4 border-b border-gray-100 dark:border-gray-800">
               <h3 className="font-bold text-xl">Consultation Details</h3>
             </div>
             
             <div className="form-group mb-8">
               <label className="form-label text-sm font-semibold text-muted uppercase tracking-wider mb-3 block">Selected Specialist</label>
-              <div className="p-5 rounded-2xl flex items-center justify-between" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+              <div className="p-5 rounded-2xl flex items-center justify-between" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
                 <div>
                   <h4 className="font-bold text-primary text-xl mb-1">{doc.name}</h4>
                   <p className="text-sm text-muted font-medium mb-0">{doc.specialization} &bull; {doc.clinic || 'DentaAI Partner Clinic'}</p>
@@ -167,7 +167,7 @@ const ConsultationRequest = () => {
             </div>
             
             {/* BOOKING SUMMARY */}
-            <div style={{ background: 'var(--bg-secondary)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border-color)', marginBottom: '32px' }}>
+            <div style={{ background: 'var(--bg-card)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border-color)', marginBottom: '32px' }}>
               <h4 style={{ margin: '0 0 20px 0', color: 'var(--primary)', fontWeight: 800, fontSize: '1.25rem' }}>Booking Summary</h4>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
                 <span className="text-muted font-medium text-lg">Doctor Fee</span>
@@ -192,13 +192,13 @@ const ConsultationRequest = () => {
 
         {/* RIGHT COLUMN: AI Report Attachment */}
         <div className="dashboard-right-col">
-          <motion.div variants={item} className="card" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', borderRadius: '24px', padding: '2.5rem' }}>
+          <motion.div variants={item} className="card" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', borderRadius: '24px', padding: '2.5rem' }}>
             <div className="card-header pb-4 border-b border-gray-100 dark:border-gray-800">
               <h3 className="font-bold text-xl">Attached AI Report</h3>
             </div>
             
             {predictionResult ? (
-              <div className="prediction-result mt-6" style={{ padding: '24px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '16px', position: 'relative', overflow: 'hidden' }}>
+              <div className="prediction-result mt-6" style={{ padding: '24px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '16px', position: 'relative', overflow: 'hidden' }}>
                 
                 <h4 style={{ margin: '0 0 24px 0', display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--secondary)', fontWeight: 800, fontSize: '1.2rem' }}>
                   <ShieldCheck size={26} /> AI Analysis Snapshot
@@ -231,7 +231,7 @@ const ConsultationRequest = () => {
                 </div>
               </div>
             ) : (
-              <div style={{ padding: '40px 20px', textAlign: 'center', background: 'var(--bg-secondary)', borderRadius: '16px', border: '2px dashed var(--border-color)', marginTop: '24px' }}>
+              <div style={{ padding: '40px 20px', textAlign: 'center', background: 'var(--bg-card)', borderRadius: '16px', border: '2px dashed var(--border-color)', marginTop: '24px' }}>
                 <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', border: '1px solid var(--border-color)' }}>
                   <BrainCircuit size={32} className="text-muted" />
                 </div>
@@ -251,3 +251,5 @@ const ConsultationRequest = () => {
 };
 
 export default ConsultationRequest;
+
+

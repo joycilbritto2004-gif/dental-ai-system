@@ -68,7 +68,7 @@ const DoctorPendingReviews = () => {
           <h3 className="flex-align-center gap-2 text-primary">
             <Activity size={24} className="text-secondary" /> Awaiting Verification
           </h3>
-          <span className="badge" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#d97706', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+          <span className="badge" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#F59E0B', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
             {requests.length} Reviews Pending
           </span>
         </div>
@@ -88,7 +88,7 @@ const DoctorPendingReviews = () => {
             <tbody>
               {requests.length > 0 ? (
                 requests.map(req => (
-                  <motion.tr key={req.id} whileHover={{ backgroundColor: 'rgba(0, 210, 255, 0.05)' }}>
+                  <motion.tr key={req.id} whileHover={{ backgroundColor: 'rgba(0, 166, 166, 0.05)' }}>
                     <td>
                       <div className="flex-align-center gap-3">
                         <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--secondary), var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
@@ -102,14 +102,14 @@ const DoctorPendingReviews = () => {
                     </td>
                     <td className="text-main font-bold">{req.condition}</td>
                     <td>
-                      <span className="confidence-pill" style={{ background: 'rgba(0, 210, 255, 0.1)', color: 'var(--secondary)' }}>{req.confidence}</span>
+                      <span className="confidence-pill" style={{ background: 'rgba(0, 166, 166, 0.1)', color: 'var(--secondary)' }}>{req.confidence}</span>
                     </td>
                     <td>
                       <div className="flex-align-center gap-1 text-muted">
                         <Calendar size={14} /> {req.date} {req.time}
                       </div>
                     </td>
-                    <td><span className="badge" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#d97706', border: '1px solid rgba(245, 158, 11, 0.3)' }}>{req.status}</span></td>
+                    <td><span className="badge" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#F59E0B', border: '1px solid rgba(245, 158, 11, 0.3)' }}>{req.status}</span></td>
                     <td>
                       {req.status === 'Pending' ? (
                         <button 

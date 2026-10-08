@@ -76,7 +76,8 @@ def predict():
             
             img_array = np.array(img)
             img_array = np.expand_dims(img_array, axis=0)
-            img_array = tf.keras.applications.mobilenet_v2.preprocess_input(img_array)
+            # Do NOT apply preprocess_input here because the Keras model's input layer already includes it.
+            # Double preprocessing distorts the image and causes low/incorrect confidence scores.
             
             predictions = model.predict(img_array)
             predicted_index = np.argmax(predictions[0])

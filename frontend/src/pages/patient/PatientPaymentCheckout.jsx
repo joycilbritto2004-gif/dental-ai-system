@@ -175,7 +175,7 @@ const PatientPaymentCheckout = () => {
   if (isSuccess) {
     return (
       <motion.div className="dashboard-view" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '70vh' }}>
-        <div className="card text-center" style={{ maxWidth: '500px', padding: '4rem 2.5rem', background: 'var(--bg-secondary)', border: '1px solid var(--success)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(16, 185, 129, 0.15)' }}>
+        <div className="card text-center" style={{ maxWidth: '500px', padding: '4rem 2.5rem', background: 'var(--bg-card)', border: '1px solid var(--success)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(16, 185, 129, 0.15)' }}>
           <motion.div 
             initial={{ scale: 0 }} 
             animate={{ scale: 1, rotate: 360 }} 
@@ -209,7 +209,7 @@ const PatientPaymentCheckout = () => {
 
   return (
     <motion.div className="dashboard-view" initial="hidden" animate="show" variants={stagger}>
-      <motion.div variants={item} className="mb-8" style={{ background: 'var(--bg-secondary)', padding: '32px 40px', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)', position: 'relative', overflow: 'hidden' }}>
+      <motion.div variants={item} className="mb-8 page-header-card" style={{ padding: '32px 40px', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '50%', background: 'radial-gradient(circle at top right, rgba(0, 210, 255, 0.12), transparent 70%)', pointerEvents: 'none' }}></div>
         <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'var(--secondary)' }}></div>
         <div style={{ position: 'relative', zIndex: 10 }}>
@@ -225,7 +225,7 @@ const PatientPaymentCheckout = () => {
         
         {/* LEFT COLUMN: Payment Methods */}
         <div style={{ flex: '1 1 500px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <motion.div variants={item} className="card" style={{ padding: '32px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
+          <motion.div variants={item} className="card" style={{ padding: '32px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
             <h3 className="mb-4 text-primary" style={{ fontWeight: 800 }}>Payment Details</h3>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '32px' }}>
@@ -344,7 +344,7 @@ const PatientPaymentCheckout = () => {
 
         {/* RIGHT COLUMN: Order Summary */}
         <div style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <motion.div variants={item} className="card" style={{ padding: '32px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
+          <motion.div variants={item} className="card" style={{ padding: '32px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
             <h3 className="mb-4 text-primary" style={{ fontWeight: 800 }}>Booking Summary</h3>
             
             <div style={{ background: 'var(--bg-primary)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border-color)', marginBottom: '24px' }}>
@@ -399,3 +399,5 @@ const PatientPaymentCheckout = () => {
 };
 
 export default PatientPaymentCheckout;
+
+

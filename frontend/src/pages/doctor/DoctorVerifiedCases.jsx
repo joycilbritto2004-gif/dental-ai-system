@@ -49,7 +49,7 @@ const DoctorVerifiedCases = () => {
           <h3 className="flex-align-center gap-2 text-primary">
             <CheckCircle2 size={24} className="text-success" /> Verified Diagnostics
           </h3>
-          <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#059669', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+          <span className="badge" style={{ background: 'rgba(22, 163, 74, 0.1)', color: '#16A34A', border: '1px solid rgba(22, 163, 74, 0.3)' }}>
             {verifiedCases.length} Total Verified
           </span>
         </div>
@@ -69,7 +69,7 @@ const DoctorVerifiedCases = () => {
             <tbody>
               {verifiedCases.length > 0 ? (
                 verifiedCases.map(req => (
-                  <motion.tr key={req.id} whileHover={{ backgroundColor: 'rgba(16, 185, 129, 0.05)' }}>
+                  <motion.tr key={req.id} whileHover={{ backgroundColor: 'rgba(22, 163, 74, 0.05)' }}>
                     <td>
                       <div className="flex-align-center gap-3">
                         <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--secondary), var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
@@ -88,7 +88,7 @@ const DoctorVerifiedCases = () => {
                         <Calendar size={14} /> {req.date}
                       </div>
                     </td>
-                    <td><span className="badge" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#059669', border: '1px solid rgba(16, 185, 129, 0.3)' }}>{req.status}</span></td>
+                    <td><span className="badge" style={{ background: 'rgba(22, 163, 74, 0.1)', color: '#16A34A', border: '1px solid rgba(22, 163, 74, 0.3)' }}>{req.status}</span></td>
                     <td>
                       <Link to={`/dashboard/doctor/consultation/${req.id}`} className="btn btn-outline btn-sm flex-align-center gap-1">
                         <Eye size={14} /> View Report

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useLocation } from 'react-router-dom';
+import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Star, MapPin, BriefcaseMedical, Clock, Award, Languages, Phone, Mail, Calendar, MessageSquare, ChevronLeft } from 'lucide-react';
+import { Star, MapPin, BriefcaseMedical, Clock, Award, Languages, Phone, Mail, Calendar, MessageSquare, ChevronLeft, UserCircle, Stethoscope, Activity, ShieldCheck } from 'lucide-react';
 import '../Dashboard.css';
 
 const DoctorProfile = () => {
   const { id } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const predictionResult = location.state?.predictionResult;
   
   const [doc, setDoc] = useState(null);
@@ -44,152 +45,148 @@ const DoctorProfile = () => {
   if (!doc) {
     return (
       <div className="dashboard-view text-center pt-20">
-        <h2 className="text-xl font-bold text-primary mb-4">Doctor Not Found</h2>
+        <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Doctor Not Found</h2>
         <Link to="/dashboard/patient/recommended-doctors" className="btn btn-outline">Back to Recommendations</Link>
       </div>
     );
   }
 
+  const handleConsultationRequest = () => {
+    navigate(`/dashboard/patient/consult-request/${doc._id || doc.id}`, { state: { predictionResult } });
+  };
+  
+  const handleMessageDoctor = () => {
+    navigate('/dashboard/patient/messages', { state: { doctorId: doc._id || doc.id } });
+  };
+
   return (
-    <motion.div className="dashboard-view" initial="hidden" animate="show" variants={stagger}>
-      <motion.div 
-        variants={item} 
-        className="mb-8" 
-        style={{ 
-          background: 'var(--bg-secondary)', 
-          padding: '32px 40px', 
-          borderRadius: '24px', 
-          border: '1px solid var(--border-color)', 
-          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
-          position: 'relative',
-          overflow: 'hidden'
-        }}
-      >
-        <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '50%', background: 'radial-gradient(circle at top right, rgba(0, 210, 255, 0.12), transparent 70%)', pointerEvents: 'none' }}></div>
-        <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'var(--secondary)' }}></div>
+    <div className="dashboard-view" style={{ minHeight: '100vh', width: '100%' }}>
+      <motion.div initial="hidden" animate="show" variants={stagger}>
         
-        <div style={{ position: 'relative', zIndex: 10 }}>
-          <div className="flex-align-center gap-2 mb-6">
-            <Link to="/dashboard/patient" className="text-muted hover:text-primary transition-colors" style={{ display: 'inline-flex', alignItems: 'center', background: 'var(--bg-primary)', padding: '8px 16px', borderRadius: '999px', border: '1px solid var(--border-color)', fontWeight: '600', fontSize: '0.9rem' }}>
-              <ChevronLeft size={16} className="mr-1" /> Back to Dashboard
-            </Link>
+        {/* TOP NAVBAR / BREADCRUMB */}
+        <motion.div variants={item} style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
+          <button onClick={() => navigate(-1)} className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '999px', fontSize: '0.9rem', fontWeight: 600 }}>
+            <ChevronLeft size={16} /> Back
+          </button>
+        </motion.div>
+
+        {/* MAIN PROFILE CARD */}
+        <motion.div variants={item} className="card" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '24px', padding: '0', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', marginBottom: '32px' }}>
+          
+          {/* HEADER BANNER */}
+          <div style={{ height: '140px', background: 'var(--gradient-soft)', position: 'relative' }}>
+            <div style={{ position: 'absolute', top: '24px', right: '24px' }}>
+              <div style={{ background: 'rgba(255,255,255,0.9)', padding: '6px 16px', borderRadius: '999px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+                <ShieldCheck size={16} /> Verified Specialist
+              </div>
+            </div>
           </div>
-          <h2 className="font-extrabold mb-0" style={{ color: 'var(--primary)', letterSpacing: '-0.5px', fontSize: '2.5rem', lineHeight: '1.2' }}>Specialist Profile</h2>
-        </div>
+
+          <div style={{ padding: '0 40px 40px', display: 'flex', flexDirection: 'column', marginTop: '-60px' }}>
+            
+            <div style={{ display: 'flex', gap: '32px', alignItems: 'flex-end', marginBottom: '24px', flexWrap: 'wrap' }}>
+              <div style={{ width: '120px', height: '120px', borderRadius: '24px', background: 'var(--bg-main)', border: '4px solid #ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 25px rgba(0,0,0,0.08)', zIndex: 10 }}>
+                <UserCircle size={80} style={{ color: 'var(--primary)' }} />
+              </div>
+              <div style={{ flex: 1, paddingBottom: '8px' }}>
+                <h1 style={{ margin: '0 0 8px 0', fontSize: '2.2rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>{doc.name}</h1>
+                <p style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {doc.specialization || 'Dental Specialist'}
+                  <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: 'var(--border-color)' }}></span>
+                  <span style={{ color: 'var(--text-muted)' }}>{doc.experience || '10+'} Years Experience</span>
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '40px', flexWrap: 'wrap' }}>
+              {/* LEFT COL */}
+              <div style={{ flex: '2 1 400px' }}>
+                <div style={{ marginBottom: '32px' }}>
+                  <h3 style={{ color: 'var(--text-primary)', fontSize: '1.2rem', fontWeight: 800, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Stethoscope size={20} style={{ color: 'var(--primary)' }} /> About Specialist
+                  </h3>
+                  <p style={{ color: 'var(--text-secondary)', lineHeight: '1.7', fontSize: '0.95rem', fontWeight: 500 }}>
+                    {doc.about || `${doc.name} is a highly qualified ${doc.specialization || 'dental specialist'} dedicated to providing exceptional patient care using advanced AI-assisted diagnostic tools and evidence-based treatments.`}
+                  </p>
+                </div>
+                
+                <div style={{ marginBottom: '32px' }}>
+                  <h3 style={{ color: 'var(--text-primary)', fontSize: '1.2rem', fontWeight: 800, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Activity size={20} style={{ color: 'var(--primary)' }} /> Expertise
+                  </h3>
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                    {['Digital Dentistry', 'AI Diagnostics', 'Preventive Care', 'Restorative Procedures'].map((skill, i) => (
+                      <span key={i} style={{ background: 'var(--bg-main)', border: `1px solid var(--border-color)`, color: 'var(--text-secondary)', padding: '6px 16px', borderRadius: '999px', fontSize: '0.85rem', fontWeight: 600 }}>
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* RIGHT COL */}
+              <div style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <div style={{ background: 'var(--bg-main)', borderRadius: '16px', padding: '24px', border: '1px solid var(--border-color)' }}>
+                  <h4 style={{ color: 'var(--text-primary)', margin: '0 0 16px 0', fontSize: '1.1rem', fontWeight: 800 }}>Clinical Contact</h4>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                      <div style={{ background: '#FFFFFF', padding: '8px', borderRadius: '10px', color: 'var(--primary)', border: '1px solid var(--border-color)' }}>
+                        <Mail size={16} />
+                      </div>
+                      <div>
+                        <span style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '2px' }}>Email</span>
+                        <span style={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.95rem' }}>{doc.email}</span>
+                      </div>
+                    </div>
+                    
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                      <div style={{ background: '#FFFFFF', padding: '8px', borderRadius: '10px', color: 'var(--primary)', border: '1px solid var(--border-color)' }}>
+                        <Phone size={16} />
+                      </div>
+                      <div>
+                        <span style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '2px' }}>Phone</span>
+                        <span style={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.95rem' }}>{doc.phone || '+1 (555) 000-0000'}</span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                      <div style={{ background: '#FFFFFF', padding: '8px', borderRadius: '10px', color: 'var(--primary)', border: '1px solid var(--border-color)' }}>
+                        <Clock size={16} />
+                      </div>
+                      <div>
+                        <span style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '2px' }}>Timings</span>
+                        <span style={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.95rem' }}>{doc.timings || '9:00 AM - 5:00 PM'}</span>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+                <div style={{ background: 'var(--bg-main)', borderRadius: '16px', padding: '24px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <h4 style={{ color: 'var(--text-primary)', margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>Consultation</h4>
+                    <span style={{ color: '#00A6A6', fontSize: '1.25rem', fontWeight: 800 }}>₹{doc.fee || '500'}</span>
+                  </div>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <button onClick={handleConsultationRequest} style={{ background: 'var(--gradient-primary)', color: '#ffffff', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: 800, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', width: '100%', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0, 166, 166, 0.2)' }}>
+                      <Calendar size={18} /> Book Consultation
+                    </button>
+                    <button onClick={handleMessageDoctor} style={{ background: '#ffffff', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '14px', borderRadius: '12px', fontWeight: 800, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', width: '100%', cursor: 'pointer' }}>
+                      <MessageSquare size={18} /> Send Message
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
       </motion.div>
-
-      <div className="dashboard-grid">
-        {/* LEFT COLUMN */}
-        <div className="dashboard-left-col">
-          <motion.div variants={item} className="card profile-main-card" style={{ padding: '2.5rem', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', borderRadius: '24px' }}>
-            <div className="profile-header flex-align-center" style={{ gap: '2rem', marginBottom: '2.5rem' }}>
-              <div style={{ width: '120px', height: '120px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem', fontWeight: '800', color: 'white', boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)', flexShrink: 0 }}>
-                {doc.name.split(' ').map(n => n[0]).join('').replace('.', '').substring(0, 2)}
-              </div>
-              <div className="profile-title-info">
-                <h2 style={{ fontSize: '2.2rem', color: 'var(--primary)', marginBottom: '0.25rem', fontWeight: 800 }}>{doc.name}</h2>
-                <p className="text-muted mb-3 font-medium" style={{ fontSize: '1.1rem' }}>{doc.qualifications || 'DentaAI Specialist'}</p>
-                <span style={{ background: 'rgba(0, 210, 255, 0.1)', color: 'var(--secondary)', padding: '6px 16px', borderRadius: '999px', fontSize: '0.85rem', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', display: 'inline-block' }}>
-                  {doc.specialization}
-                </span>
-              </div>
-            </div>
-
-            <div className="model-details" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: 'var(--bg-primary)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
-              <div style={{ padding: '0.5rem' }}>
-                <p className="text-xs font-bold text-muted uppercase tracking-wider mb-1 flex-align-center gap-2"><BriefcaseMedical size={16} className="text-secondary"/> Experience</p>
-                <p className="font-extrabold text-primary" style={{ fontSize: '1.1rem' }}>{doc.experience || <span className="text-muted font-normal text-sm">Not provided</span>}</p>
-              </div>
-              <div style={{ padding: '0.5rem' }}>
-                <p className="text-xs font-bold text-muted uppercase tracking-wider mb-1 flex-align-center gap-2"><Award size={16} className="text-secondary"/> Registration</p>
-                <p className="font-extrabold text-primary" style={{ fontSize: '1.1rem' }}>{doc.registration || <span className="text-muted font-normal text-sm">Not provided</span>}</p>
-              </div>
-              <div style={{ padding: '0.5rem' }}>
-                <p className="text-xs font-bold text-muted uppercase tracking-wider mb-1 flex-align-center gap-2"><Languages size={16} className="text-secondary"/> Languages</p>
-                <p className="font-extrabold text-primary" style={{ fontSize: '1.1rem' }}>{doc.languages || <span className="text-muted font-normal text-sm">Not provided</span>}</p>
-              </div>
-              <div style={{ padding: '0.5rem' }}>
-                <p className="text-xs font-bold text-muted uppercase tracking-wider mb-1 flex-align-center gap-2"><Star size={16} className="text-secondary"/> Rating</p>
-                <p className="font-extrabold text-primary" style={{ fontSize: '1.1rem' }}>{doc.rating || 'New'} <span className="text-muted font-medium text-sm">({doc.reviews || 0} Reviews)</span></p>
-              </div>
-            </div>
-
-            <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', padding: '1.5rem 2rem', borderRadius: '16px', marginTop: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span className="text-muted font-bold text-lg uppercase tracking-wider">Consultation Fee</span>
-              <span className="text-secondary font-black" style={{ fontSize: '2rem' }}>₹{doc.fee || 500}</span>
-            </div>
-
-            <div className="verification-actions mt-8" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              <Link to={`/dashboard/patient/consult-request/${doc._id || doc.id}`} state={{ predictionResult }} className="btn btn-primary btn-lg pulse-glow" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '56px', fontSize: '1.1rem', fontWeight: 'bold', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0, 210, 255, 0.25)' }}>
-                <Calendar size={20} className="mr-2" /> Book Consultation
-              </Link>
-              <button className="btn btn-outline btn-lg" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '56px', fontSize: '1.1rem', fontWeight: 'bold', borderRadius: '12px' }}>
-                <MessageSquare size={20} className="mr-2" /> Send Message
-              </button>
-            </div>
-          </motion.div>
-
-          {/* ABOUT DOCTOR */}
-          <motion.div variants={item} className="card mt-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', borderRadius: '24px', padding: '2.5rem' }}>
-            <div className="card-header border-b border-gray-100 dark:border-gray-800 pb-4 mb-4">
-              <h3 className="font-bold text-xl">About Dr. {doc.name.split(' ').pop()}</h3>
-            </div>
-            <p className="text-muted font-medium" style={{ lineHeight: '1.8', fontSize: '1.05rem', margin: 0 }}>
-              {doc.name} is a highly skilled {doc.specialization} {doc.experience ? `with ${doc.experience}` : ''} in providing comprehensive dental care. Specializing in advanced restorative procedures, they are committed to delivering pain-free, state-of-the-art treatments utilizing the latest AI and imaging technologies.
-            </p>
-          </motion.div>
-        </div>
-
-        {/* RIGHT COLUMN */}
-        <div className="dashboard-right-col">
-          <motion.div variants={item} className="card" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', borderRadius: '24px', padding: '2.5rem' }}>
-            <div className="card-header border-b border-gray-100 dark:border-gray-800 pb-4 mb-6">
-              <h3 className="font-bold text-xl">Clinic & Contact</h3>
-            </div>
-            
-            {doc.clinic ? (
-              <h4 className="font-extrabold text-primary mb-6" style={{ fontSize: '1.25rem' }}>{doc.clinic}</h4>
-            ) : null}
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', background: 'var(--bg-primary)', padding: '16px', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
-                <MapPin size={22} className="text-secondary flex-shrink-0" style={{ marginTop: '2px' }} />
-                <p className="text-primary font-bold m-0" style={{ lineHeight: '1.5', fontSize: '0.95rem' }}>{doc.address || <span className="text-muted font-medium">Not provided</span>}</p>
-              </div>
-              
-              <div style={{ display: 'flex', gap: '16px', alignItems: 'center', background: 'var(--bg-primary)', padding: '16px', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
-                <Clock size={22} className="text-secondary flex-shrink-0" />
-                <p className="font-bold text-primary m-0" style={{ fontSize: '0.95rem' }}>{doc.timings || <span className="text-muted font-medium">Not provided</span>}</p>
-              </div>
-
-              <div style={{ display: 'flex', gap: '16px', alignItems: 'center', background: 'var(--bg-primary)', padding: '16px', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
-                <Phone size={22} className="text-secondary flex-shrink-0" />
-                <p className="font-bold text-primary m-0" style={{ fontSize: '0.95rem' }}>{doc.phone || <span className="text-muted font-medium">Not provided</span>}</p>
-              </div>
-
-              {doc.email && (
-                <div style={{ display: 'flex', gap: '16px', alignItems: 'center', background: 'var(--bg-primary)', padding: '16px', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
-                  <Mail size={22} className="text-secondary flex-shrink-0" />
-                  <p className="font-bold text-primary m-0" style={{ fontSize: '0.95rem' }}>{doc.email}</p>
-                </div>
-              )}
-            </div>
-
-            {(doc.services && doc.services.length > 0) ? (
-              <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800">
-                <h4 className="font-bold text-muted uppercase tracking-wider mb-4" style={{ fontSize: '0.85rem' }}>Services Offered</h4>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  {doc.services.map((service, index) => (
-                    <span key={index} style={{ background: 'var(--bg-primary)', color: 'var(--primary)', border: '1px solid var(--border-color)', padding: '6px 14px', borderRadius: '999px', fontSize: '0.85rem', fontWeight: '600' }}>{service}</span>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </motion.div>
-        </div>
-      </div>
-    </motion.div>
+    </div>
   );
 };
 
 export default DoctorProfile;
+
+

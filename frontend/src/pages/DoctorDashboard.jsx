@@ -113,9 +113,9 @@ const DoctorDashboard = () => {
   // Compute Chart Data
   const statusData = useMemo(() => {
     return [
-      { name: 'Pending', value: stats.pending, color: '#f59e0b' },
-      { name: 'Active', value: stats.active, color: '#3b82f6' },
-      { name: 'Completed', value: stats.completed, color: '#10b981' }
+      { name: 'Pending', value: stats.pending, color: '#F59E0B' },
+      { name: 'Active', value: stats.active, color: '#1677FF' },
+      { name: 'Completed', value: stats.completed, color: '#16A34A' }
     ].filter(d => d.value > 0);
   }, [stats]);
 
@@ -165,7 +165,7 @@ const DoctorDashboard = () => {
   return (
     <motion.div className="dashboard-view animate-fade-in" initial="hidden" animate="show" variants={stagger}>
       {currentUser?.verificationStatus !== 'Approved' && (
-        <div className="alert mb-6" style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid #f59e0b', color: '#d97706', padding: '1rem', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div className="alert mb-6" style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid #F59E0B', color: '#F59E0B', padding: '1rem', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <AlertTriangle size={20} />
           <div>
             <strong>Account Pending Approval</strong>
@@ -182,29 +182,29 @@ const DoctorDashboard = () => {
 
       {/* 2. Statistics Cards */}
       <motion.div variants={item} className="kpi-grid mb-6">
-        <div className="kpi-card glass-card" style={{ borderLeft: '4px solid var(--primary)' }}>
-          <div className="kpi-icon text-white" style={{ borderRadius: '12px', background: 'var(--primary)' }}><Activity size={28} /></div>
+        <div className="kpi-card glass-card" style={{ borderLeft: '4px solid #1677FF' }}>
+          <div className="kpi-icon text-white" style={{ borderRadius: '12px', background: 'rgba(22, 119, 255, 0.1)', color: '#1677FF' }}><Activity size={28} /></div>
           <div className="kpi-content">
             <span className="kpi-value text-primary">{stats.total}</span>
             <span className="kpi-label">Total Cases</span>
           </div>
         </div>
-        <div className="kpi-card glass-card" style={{ borderLeft: '4px solid #f59e0b' }}>
-          <div className="kpi-icon bg-warning-light text-warning" style={{ borderRadius: '12px', background: 'rgba(245, 158, 11, 0.1)' }}><Clock size={28} /></div>
+        <div className="kpi-card glass-card" style={{ borderLeft: '4px solid #F59E0B' }}>
+          <div className="kpi-icon bg-warning-light text-warning" style={{ borderRadius: '12px', background: 'rgba(245, 158, 11, 0.1)', color: '#F59E0B' }}><Clock size={28} /></div>
           <div className="kpi-content">
             <span className="kpi-value text-primary">{stats.pending}</span>
             <span className="kpi-label">Pending Review</span>
           </div>
         </div>
-        <div className="kpi-card glass-card" style={{ borderLeft: '4px solid #10b981' }}>
-          <div className="kpi-icon bg-success-light text-success" style={{ borderRadius: '12px', background: 'rgba(16, 185, 129, 0.1)' }}><CheckCircle2 size={28} /></div>
+        <div className="kpi-card glass-card" style={{ borderLeft: '4px solid #16A34A' }}>
+          <div className="kpi-icon bg-success-light text-success" style={{ borderRadius: '12px', background: 'rgba(22, 163, 74, 0.1)', color: '#16A34A' }}><CheckCircle2 size={28} /></div>
           <div className="kpi-content">
             <span className="kpi-value text-primary">{stats.completed}</span>
             <span className="kpi-label">Completed</span>
           </div>
         </div>
-        <div className="kpi-card glass-card" style={{ borderLeft: '4px solid var(--accent)' }}>
-          <div className="kpi-icon text-white" style={{ borderRadius: '12px', background: 'linear-gradient(135deg, var(--secondary), var(--accent))' }}><BrainCircuit size={28} /></div>
+        <div className="kpi-card glass-card" style={{ borderLeft: '4px solid #00A6A6' }}>
+          <div className="kpi-icon text-white" style={{ borderRadius: '12px', background: 'rgba(0, 166, 166, 0.1)', color: '#00A6A6' }}><BrainCircuit size={28} /></div>
           <div className="kpi-content">
             <span className="kpi-value text-primary">{stats.avgConfidence}%</span>
             <span className="kpi-label">Avg AI Confidence</span>
@@ -259,7 +259,7 @@ const DoctorDashboard = () => {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
                   <XAxis dataKey="name" tick={{ fontSize: 12 }} tickMargin={10} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
-                  <Tooltip cursor={{ fill: 'rgba(0, 210, 255, 0.05)' }} />
+                  <Tooltip cursor={{ fill: 'rgba(0, 166, 166, 0.05)' }} />
                   <Bar dataKey="count" fill="var(--secondary)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -282,7 +282,7 @@ const DoctorDashboard = () => {
                   <XAxis dataKey="date" tick={{ fontSize: 12 }} tickMargin={10} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
                   <Tooltip />
-                  <Line type="monotone" dataKey="Consultations" stroke="var(--accent)" strokeWidth={3} dot={{ r: 4, fill: 'var(--accent)' }} activeDot={{ r: 6 }} />
+                  <Line type="monotone" dataKey="Consultations" stroke="var(--secondary)" strokeWidth={3} dot={{ r: 4, fill: 'var(--secondary)' }} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
@@ -313,10 +313,10 @@ const DoctorDashboard = () => {
               </thead>
               <tbody>
                 {recentActivity.length > 0 ? recentActivity.map(req => (
-                  <motion.tr key={req.id} whileHover={{ backgroundColor: 'rgba(0, 210, 255, 0.05)' }}>
+                  <motion.tr key={req.id} whileHover={{ backgroundColor: 'rgba(0, 166, 166, 0.05)' }}>
                     <td>
                       <div className="flex-align-center gap-3">
-                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--secondary), var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(0, 166, 166, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#00A6A6' }}>
                           <UserCircle size={20} />
                         </div>
                         <span className="font-bold text-primary">{req.patientName}</span>

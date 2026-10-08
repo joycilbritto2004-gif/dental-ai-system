@@ -109,27 +109,27 @@ const DashboardLayout = () => {
           {role === 'patient' && (
             <>
 
-              <Link to="/dashboard/patient/predictions" className={`sidebar-link ${currentPath.startsWith('/dashboard/patient/predictions') ? 'active' : ''}`}>
+              <Link to="/dashboard/patient/predictions" className={`sidebar-link ${currentPath === '/dashboard/patient/predictions' ? 'active' : ''}`}>
                 <Activity size={20} />
                 <span>My Predictions</span>
               </Link>
-              <Link to="/dashboard/patient/reports" className={`sidebar-link ${currentPath.startsWith('/dashboard/patient/reports') ? 'active' : ''}`}>
+              <Link to="/dashboard/patient/reports" className={`sidebar-link ${currentPath === '/dashboard/patient/reports' ? 'active' : ''}`}>
                 <FileText size={20} />
                 <span>My Reports</span>
               </Link>
-              <Link to="/dashboard/patient/recommended-doctors" className={`sidebar-link ${currentPath.startsWith('/dashboard/patient/recommended-doctors') ? 'active' : ''}`}>
+              <Link to="/dashboard/patient/recommended-doctors" className={`sidebar-link ${currentPath === '/dashboard/patient/recommended-doctors' ? 'active' : ''}`}>
                 <Stethoscope size={20} />
                 <span>Recommended Doctors</span>
               </Link>
-              <Link to="/dashboard/patient/consultations" className={`sidebar-link ${currentPath.startsWith('/dashboard/patient/consult') ? 'active' : ''}`}>
+              <Link to="/dashboard/patient/consultations" className={`sidebar-link ${currentPath === '/dashboard/patient/consultations' ? 'active' : ''}`}>
                 <Video size={20} />
                 <span>My Consultations</span>
               </Link>
-              <Link to="/dashboard/patient/messages" className={`sidebar-link ${currentPath.startsWith('/dashboard/patient/messages') ? 'active' : ''}`}>
+              <Link to="/dashboard/patient/messages" className={`sidebar-link ${currentPath === '/dashboard/patient/messages' ? 'active' : ''}`}>
                 <MessageSquare size={20} />
                 <span>Messages</span>
               </Link>
-              <Link to="/dashboard/patient/payments" className={`sidebar-link ${currentPath.startsWith('/dashboard/patient/payment') ? 'active' : ''}`}>
+              <Link to="/dashboard/patient/payments" className={`sidebar-link ${currentPath === '/dashboard/patient/payments' ? 'active' : ''}`}>
                 <CreditCard size={20} />
                 <span>Payments</span>
               </Link>
@@ -138,31 +138,31 @@ const DashboardLayout = () => {
 
           {role === 'doctor' && (
             <>
-              <Link to="/dashboard/doctor/reviews" className={`sidebar-link ${currentPath.includes('/doctor/reviews') ? 'active' : ''}`}>
+              <Link to="/dashboard/doctor/reviews" className={`sidebar-link ${currentPath === '/dashboard/doctor/reviews' ? 'active' : ''}`}>
                 <Stethoscope size={20} />
                 <span>Pending Reviews</span>
               </Link>
-              <Link to="/dashboard/doctor/cases" className={`sidebar-link ${currentPath.includes('/doctor/cases') ? 'active' : ''}`}>
+              <Link to="/dashboard/doctor/cases" className={`sidebar-link ${currentPath === '/dashboard/doctor/cases' ? 'active' : ''}`}>
                 <Users size={20} />
                 <span>Patient Cases</span>
               </Link>
-              <Link to="/dashboard/doctor/verified" className={`sidebar-link ${currentPath.includes('/doctor/verified') ? 'active' : ''}`}>
+              <Link to="/dashboard/doctor/verified" className={`sidebar-link ${currentPath === '/dashboard/doctor/verified' ? 'active' : ''}`}>
                 <CheckCircle2 size={20} />
                 <span>Verified Cases</span>
               </Link>
-              <Link to="/dashboard/doctor/consultations" className={`sidebar-link ${currentPath.includes('/doctor/consultations') ? 'active' : ''}`}>
+              <Link to="/dashboard/doctor/consultations" className={`sidebar-link ${currentPath === '/dashboard/doctor/consultations' ? 'active' : ''}`}>
                 <Video size={20} />
                 <span>Consultation Requests</span>
               </Link>
-              <Link to="/dashboard/doctor/messages" className={`sidebar-link ${currentPath.includes('/doctor/messages') ? 'active' : ''}`}>
+              <Link to="/dashboard/doctor/messages" className={`sidebar-link ${currentPath === '/dashboard/doctor/messages' ? 'active' : ''}`}>
                 <MessageSquare size={20} />
                 <span>Messages</span>
               </Link>
-              <Link to="/dashboard/doctor/payments" className={`sidebar-link ${currentPath.includes('/doctor/payments') ? 'active' : ''}`}>
+              <Link to="/dashboard/doctor/payments" className={`sidebar-link ${currentPath === '/dashboard/doctor/payments' ? 'active' : ''}`}>
                 <CreditCard size={20} />
                 <span>Payments</span>
               </Link>
-              <Link to="/dashboard/doctor/history" className={`sidebar-link ${currentPath.includes('/history') ? 'active' : ''}`}>
+              <Link to="/dashboard/doctor/history" className={`sidebar-link ${currentPath === '/dashboard/doctor/history' ? 'active' : ''}`}>
                 <History size={20} />
                 <span>Consultation History</span>
               </Link>
@@ -171,31 +171,31 @@ const DashboardLayout = () => {
 
           {role === 'admin' && (
             <>
-              <Link to="/dashboard/admin/users" className={`sidebar-link ${currentPath.includes('/admin/users') ? 'active' : ''}`}>
+              <Link to="/dashboard/admin/users" className={`sidebar-link ${currentPath === '/dashboard/admin/users' ? 'active' : ''}`}>
                 <Users size={20} />
                 <span>User Management</span>
               </Link>
-              <Link to="/dashboard/admin/doctors" className={`sidebar-link ${currentPath.includes('/admin/doctors') ? 'active' : ''}`}>
+              <Link to="/dashboard/admin/doctors" className={`sidebar-link ${currentPath === '/dashboard/admin/doctors' ? 'active' : ''}`}>
                 <Stethoscope size={20} />
                 <span>Doctors</span>
               </Link>
-              <Link to="/dashboard/admin/patients" className={`sidebar-link ${currentPath.includes('/admin/patients') ? 'active' : ''}`}>
+              <Link to="/dashboard/admin/patients" className={`sidebar-link ${currentPath === '/dashboard/admin/patients' ? 'active' : ''}`}>
                 <UserCircle size={20} />
                 <span>Patients</span>
               </Link>
-              <Link to="/dashboard/admin/ai-model" className={`sidebar-link ${currentPath.includes('/admin/ai-model') ? 'active' : ''}`}>
+              <Link to="/dashboard/admin/ai-model" className={`sidebar-link ${currentPath === '/dashboard/admin/ai-model' ? 'active' : ''}`}>
                 <BrainCircuit size={20} />
                 <span>AI Model</span>
               </Link>
-              <Link to="/dashboard/admin/predictions" className={`sidebar-link ${currentPath.includes('/admin/predictions') ? 'active' : ''}`}>
+              <Link to="/dashboard/admin/predictions" className={`sidebar-link ${currentPath === '/dashboard/admin/predictions' ? 'active' : ''}`}>
                 <Activity size={20} />
                 <span>Predictions</span>
               </Link>
-              <Link to="/dashboard/admin/activity" className={`sidebar-link ${currentPath.includes('/admin/activity') ? 'active' : ''}`}>
+              <Link to="/dashboard/admin/activity" className={`sidebar-link ${currentPath === '/dashboard/admin/activity' ? 'active' : ''}`}>
                 <Activity size={20} />
                 <span>System Activity</span>
               </Link>
-              <Link to="/dashboard/admin/settings" className={`sidebar-link ${currentPath.includes('/admin/settings') ? 'active' : ''}`}>
+              <Link to="/dashboard/admin/settings" className={`sidebar-link ${currentPath === '/dashboard/admin/settings' ? 'active' : ''}`}>
                 <Settings size={20} />
                 <span>Settings</span>
               </Link>
@@ -203,14 +203,14 @@ const DashboardLayout = () => {
           )}
 
           {role === 'patient' && (
-            <Link to="/dashboard/patient/health-tips" className={`sidebar-link ${currentPath.startsWith('/dashboard/patient/health-tips') ? 'active' : ''}`}>
+            <Link to="/dashboard/patient/health-tips" className={`sidebar-link ${currentPath === '/dashboard/patient/health-tips' ? 'active' : ''}`}>
               <HeartPulse size={20} />
               <span>Health Tips</span>
             </Link>
           )}
 
           {role !== 'admin' && (
-            <Link to={role === 'doctor' ? '/dashboard/doctor/profile' : '/dashboard/patient/profile'} className={`sidebar-link ${role === 'doctor' ? currentPath.startsWith('/dashboard/doctor/profile') ? 'active' : '' : currentPath.startsWith('/dashboard/patient/profile') ? 'active' : ''}`}>
+            <Link to={role === 'doctor' ? '/dashboard/doctor/profile' : '/dashboard/patient/profile'} className={`sidebar-link ${currentPath === (role === 'doctor' ? '/dashboard/doctor/profile' : '/dashboard/patient/profile') ? 'active' : ''}`}>
               <UserCircle size={20} />
               <span>My Profile</span>
             </Link>

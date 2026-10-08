@@ -90,7 +90,7 @@ const PatientReportDetails = () => {
       animate="show"
       variants={stagger}
     >
-      <div className="mb-8" style={{ background: 'var(--bg-secondary)', padding: '32px 40px', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)', position: 'relative', overflow: 'hidden' }}>
+      <div className="mb-8 page-header-card" style={{ padding: '32px 40px', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '50%', background: 'radial-gradient(circle at top right, rgba(0, 210, 255, 0.12), transparent 70%)', pointerEvents: 'none' }}></div>
         <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'var(--secondary)' }}></div>
         <div style={{ position: 'relative', zIndex: 10 }}>
@@ -117,7 +117,7 @@ const PatientReportDetails = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '32px' }}>
         
         {/* Left Column - Image & Basic Info */}
-        <motion.div variants={item} className="card" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '20px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
+        <motion.div variants={item} className="card" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '20px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#F8FAFC', marginBottom: '0' }}>
             <ImageIcon size={20} /> Scan Image
           </h3>
@@ -168,7 +168,7 @@ const PatientReportDetails = () => {
         {/* Right Column - Analysis Results */}
         <motion.div variants={item} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
-          <div className="card" style={{ padding: '32px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
+          <div className="card" style={{ padding: '32px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
             <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#F8FAFC', marginBottom: '20px' }}>
               <Activity size={20} /> AI Analysis Result
             </h3>
@@ -196,7 +196,7 @@ const PatientReportDetails = () => {
             </div>
           </div>
 
-          <div className="card" style={{ padding: '32px', flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
+          <div className="card" style={{ padding: '32px', flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
             <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#F8FAFC', marginBottom: '20px' }}>
               <HeartPulse size={20} /> Clinical Notes & Recommendations
             </h3>
@@ -267,3 +267,5 @@ const PatientReportDetails = () => {
 };
 
 export default PatientReportDetails;
+
+

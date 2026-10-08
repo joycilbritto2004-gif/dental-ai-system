@@ -62,12 +62,12 @@ const PatientReports = () => {
       animate="show"
       variants={stagger}
     >
-      <motion.div variants={item} className="mb-8" style={{ background: 'var(--bg-secondary)', padding: '32px 40px', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)', position: 'relative', overflow: 'hidden' }}>
+      <motion.div variants={item} className="mb-8 page-header-card" style={{ padding: '32px 40px', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '50%', background: 'radial-gradient(circle at top right, rgba(0, 210, 255, 0.12), transparent 70%)', pointerEvents: 'none' }}></div>
         <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'var(--secondary)' }}></div>
         <div style={{ position: 'relative', zIndex: 10 }}>
-          <h2 className="font-extrabold mb-2" style={{ color: '#F8FAFC', letterSpacing: '-0.5px', fontSize: '2.5rem', lineHeight: '1.2', margin: 0 }}>My Reports</h2>
-          <p className="font-medium m-0" style={{ color: '#CBD5E1', fontSize: '1.1rem' }}>View and manage your AI dental analysis reports.</p>
+          <h2 className="font-extrabold mb-2" style={{ color: '#172033', letterSpacing: '-0.5px', fontSize: '2.5rem', lineHeight: '1.2', margin: 0 }}>My Reports</h2>
+          <p className="font-medium m-0" style={{ color: '#64748B', fontSize: '1.1rem' }}>View and manage your AI dental analysis reports.</p>
         </div>
       </motion.div>
 
@@ -80,18 +80,18 @@ const PatientReports = () => {
           <p className="text-danger">{error}</p>
         </div>
       ) : scanHistory.length === 0 ? (
-        <motion.div variants={item} className="card text-center mb-6" style={{ padding: '60px 20px', background: 'var(--bg-secondary)', border: '1px dashed var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
+        <motion.div variants={item} className="card text-center mb-6" style={{ padding: '60px 20px', background: 'var(--bg-card)', border: '1px dashed var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
             <div style={{ background: 'var(--bg-primary)', padding: '24px', borderRadius: '50%', border: '1px solid var(--border-color)' }}>
               <FileText size={48} className="text-muted" opacity={0.5} />
             </div>
           </div>
-          <h3 className="mb-2" style={{ color: '#F8FAFC', fontWeight: 'bold' }}>No Reports Yet</h3>
+          <h3 className="mb-2" style={{ color: '#172033', fontWeight: 'bold' }}>No Reports Yet</h3>
           <p className="text-muted">Your AI dental analysis reports will appear here after you complete a scan.</p>
         </motion.div>
       ) : (
         <>
-          <motion.div variants={item} className="card mb-6" style={{ padding: '16px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
+          <motion.div variants={item} className="card mb-6" style={{ padding: '16px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
             <div className="search-input-wrapper" style={{ position: 'relative' }}>
               <Search size={20} className="text-muted" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
               <input 
@@ -111,7 +111,7 @@ const PatientReports = () => {
               const status = getStatusInfo(scan.confidence);
               
               return (
-                <motion.div key={scan._id || scan.scanId} variants={item} className="card" style={{ padding: '32px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', position: 'relative', overflow: 'hidden' }}>
+                <motion.div key={scan._id || scan.scanId} variants={item} className="card" style={{ padding: '32px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', position: 'relative', overflow: 'hidden' }}>
                   <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: '4px', background: `var(--${status.color})` }}></div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '32px', justifyContent: 'space-between', alignItems: 'center' }}>
                     
@@ -122,20 +122,20 @@ const PatientReports = () => {
                       </div>
                       
                       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        <h4 style={{ color: '#F8FAFC', fontSize: '1.4rem', fontWeight: 800, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                        <h4 style={{ color: '#172033', fontSize: '1.4rem', fontWeight: 800, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                           <span style={{ textTransform: 'capitalize' }}>{scan.condition.replace('_', ' ')}</span>
                           <span className={`badge bg-${status.color}-light text-${status.color}`} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 14px', borderRadius: '999px', fontSize: '0.9rem', fontWeight: 800 }}>
                             {status.icon} {status.text}
                           </span>
                         </h4>
                         
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', color: '#CBD5E1', fontSize: '0.95rem', fontWeight: 500 }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', color: '#64748B', fontSize: '0.95rem', fontWeight: 500 }}>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Calendar size={16} />
                             {dateObj.toLocaleDateString()} at {dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            Scan ID: <strong style={{ color: '#F8FAFC' }}>{scan.scanId || scan._id}</strong>
+                            Scan ID: <strong style={{ color: '#172033' }}>{scan.scanId || scan._id}</strong>
                           </span>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Activity size={16} />
@@ -180,3 +180,5 @@ const PatientReports = () => {
 };
 
 export default PatientReports;
+
+
