@@ -18,24 +18,6 @@ const DashboardLayout = () => {
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
 
-  const [theme, setTheme] = useState('dark');
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('dentaai-theme');
-    if (savedTheme) {
-      setTheme(savedTheme);
-    } else {
-      const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
-      setTheme(prefersLight ? 'light' : 'dark');
-    }
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
-    localStorage.setItem('dentaai-theme', newTheme);
-  };
-
   useEffect(() => {
     const userStr = localStorage.getItem('dentaai_user');
     if (userStr) {
@@ -43,7 +25,11 @@ const DashboardLayout = () => {
         const user = JSON.parse(userStr);
         
         if (user) {
-          setUserName(user.name || user.firstName || user.username || '');
+          let name = user.name || user.firstName || user.username || '';
+          if (role === 'doctor' && name && !name.startsWith('Dr.')) {
+            name = `Dr. ${name}`;
+          }
+          setUserName(name);
         }
         
         if (user.role === role || role === 'doctor') {
@@ -106,12 +92,12 @@ const DashboardLayout = () => {
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
-    <div className={`dashboard-layout ${role === 'patient' ? (theme === 'dark' ? 'dark-patient-theme' : 'light-patient-theme') : ''}`}>
-      {/* Deep Navy Sidebar */}
+    <div className={`dashboard-layout ${role === 'patient' ? 'patient-portal-theme' : ''} ${role === 'doctor' ? 'doctor-portal-theme' : ''}`}>
+      {/* Sidebar */}
       <aside className="dashboard-sidebar">
         <div className="sidebar-brand">
           <BriefcaseMedical className="brand-icon" size={28} />
-          <span className="brand-text">DentaAI</span>
+          <span className="brand-text" style={(role === 'patient' || role === 'doctor') ? { color: '#17324D' } : {}}>DentaAI</span>
         </div>
 
         <nav className="sidebar-nav">
@@ -247,44 +233,19 @@ const DashboardLayout = () => {
       </aside>
 
       {/* Main Content */}
-      <main className={`dashboard-main ${role === 'patient' ? 'patient-dashboard-main' : ''}`}>
+      <main className={`dashboard-main ${(role === 'patient' || role === 'doctor') ? 'patient-dashboard-main' : ''}`}>
         <header className="dashboard-header-top">
           <div className="header-title">
             <h3>{role.charAt(0).toUpperCase() + role.slice(1)} Portal</h3>
           </div>
           <div className="header-user">
             
-            {/* Theme Toggle Button */}
-            {role === 'patient' && (
-              <button 
-                onClick={toggleTheme}
-                style={{ 
-                  background: 'transparent', 
-                  border: 'none', 
-                  cursor: 'pointer', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  width: '40px', 
-                  height: '40px', 
-                  borderRadius: '50%', 
-                  color: theme === 'dark' ? 'white' : 'var(--text-primary)', 
-                  transition: 'all 0.3s ease',
-                  marginRight: '0.5rem'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-              >
-                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-              </button>
-            )}
-
             {/* Notification Bell */}
             <div className="notification-bell-container" ref={dropdownRef} style={{ position: 'relative', marginRight: '1rem' }}>
               <button 
                 onClick={() => setShowNotifications(!showNotifications)}
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', borderRadius: '50%', color: role === 'patient' ? (theme === 'dark' ? 'white' : 'var(--text-primary)') : 'var(--text-primary)', transition: 'background 0.2s' }}
-                onMouseEnter={(e) => e.currentTarget.style.background = role === 'patient' ? (theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)') : 'rgba(6, 198, 232, 0.1)'}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', borderRadius: '50%', color: 'var(--text-primary)', transition: 'background 0.2s' }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(6, 198, 232, 0.1)'}
                 onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
               >
                 <Bell size={20} />
