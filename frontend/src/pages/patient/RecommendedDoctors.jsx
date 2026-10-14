@@ -55,7 +55,7 @@ const RecommendedDoctors = () => {
   return (
     <div className="dashboard-view animate-fade-in">
       <div className="dashboard-header mb-6">
-        <h2 style={{ color: '#172033', fontWeight: '800' }}>Recommended Dentists</h2>
+        <h2 style={{ color: '#172033', fontWeight: '800' }}>Find a Dentist</h2>
         <p style={{ color: '#64748B', fontWeight: '500' }}>Based on your dental analysis, connect with a qualified dental professional for further consultation.</p>
       </div>
 

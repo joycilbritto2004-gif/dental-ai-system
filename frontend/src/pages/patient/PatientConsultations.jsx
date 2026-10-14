@@ -40,6 +40,8 @@ const PatientConsultations = () => {
       case 'Accepted':
       case 'In Consultation':
         return 'primary';
+      case 'Rejected':
+        return 'danger';
       default:
         return 'secondary';
     }
@@ -173,8 +175,8 @@ const PatientConsultations = () => {
         <div style={{ position: 'relative', zIndex: 10 }}>
           <div className="flex-between">
             <div>
-              <h2 className="font-extrabold mb-2" style={{ color: 'var(--text-main)', letterSpacing: '-0.5px', fontSize: '2.5rem', lineHeight: '1.2', margin: 0 }}>My Consultations</h2>
-              <p className="font-medium m-0" style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>View and manage your dental consultations.</p>
+              <h2 className="font-extrabold mb-2" style={{ color: 'var(--text-main)', letterSpacing: '-0.5px', fontSize: '2.5rem', lineHeight: '1.2', margin: 0 }}>My Appointments</h2>
+              <p className="font-medium m-0" style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>View and manage your dental appointments.</p>
             </div>
             <Link to="/dashboard/patient/recommended-doctors" state={{ predictionResult }} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 24px', borderRadius: '999px', fontWeight: 'bold', boxShadow: '0 8px 24px rgba(0, 210, 255, 0.25)' }}>
               Find New Doctor
@@ -194,9 +196,9 @@ const PatientConsultations = () => {
               <Clock size={48} className="text-secondary" />
             </div>
           </div>
-          <h3 className="mb-3 font-extrabold text-primary" style={{ fontSize: '1.5rem' }}>No Consultations Yet</h3>
-          <p className="text-muted mb-8 font-medium" style={{ fontSize: '1.1rem', maxWidth: '400px', margin: '0 auto 32px' }}>Your dental consultations will appear here.</p>
-          <Link to="/dashboard/patient/recommended-doctors" state={{ predictionResult }} className="btn btn-primary btn-lg" style={{ display: 'inline-flex', alignItems: 'center', padding: '0 32px', height: '56px', borderRadius: '999px', fontSize: '1.05rem', fontWeight: 'bold', boxShadow: '0 8px 24px rgba(0, 210, 255, 0.25)' }}>Book a Consultation</Link>
+          <h3 className="mb-3 font-extrabold text-primary" style={{ fontSize: '1.5rem' }}>No Appointments Yet</h3>
+          <p className="text-muted mb-8 font-medium" style={{ fontSize: '1.1rem', maxWidth: '400px', margin: '0 auto 32px' }}>Your dental appointments will appear here.</p>
+          <Link to="/dashboard/patient/recommended-doctors" state={{ predictionResult }} className="btn btn-primary btn-lg" style={{ display: 'inline-flex', alignItems: 'center', padding: '0 32px', height: '56px', borderRadius: '999px', fontSize: '1.05rem', fontWeight: 'bold', boxShadow: '0 8px 24px rgba(0, 210, 255, 0.25)' }}>Book an Appointment</Link>
         </motion.div>
       ) : (
         <motion.div variants={item} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -292,8 +294,36 @@ const PatientConsultations = () => {
                       <h5 style={{ color: 'var(--success)', margin: '0 0 12px 0', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Activity size={16} /> Treatment Plan
                       </h5>
-                      <p style={{ fontSize: '0.95rem', color: 'var(--text)', margin: 0, lineHeight: '1.6', fontWeight: 500, whiteSpace: 'pre-line' }}>
+                      <p style={{ fontSize: '0.95rem', color: 'var(--text)', margin: '0 0 16px 0', lineHeight: '1.6', fontWeight: 500, whiteSpace: 'pre-line' }}>
                         {cons.treatmentPlan || 'No additional treatment plan was prescribed.'}
+                      </p>
+
+                      {cons.followUpDate && (
+                        <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(0, 0, 0, 0.08)' }}>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '4px' }}>
+                            Recommended Follow-Up
+                          </span>
+                          <strong style={{ color: 'var(--text-main)', fontSize: '0.95rem' }}>{cons.followUpDate}</strong>
+                          {cons.followUpNote && (
+                            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '4px 0 0 0', fontStyle: 'italic' }}>
+                              "{cons.followUpNote}"
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : status === 'Rejected' ? (
+                  <div style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ background: 'var(--bg-primary)', padding: '24px', borderRadius: '16px', border: '1px solid rgba(220, 38, 38, 0.3)', borderLeft: '4px solid #dc2626', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                      <h5 style={{ color: '#dc2626', margin: '0 0 8px 0', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700 }}>
+                        Consultation Request Declined
+                      </h5>
+                      <p style={{ fontSize: '0.95rem', color: 'var(--text)', margin: '0 0 8px 0', lineHeight: '1.6', fontWeight: 500 }}>
+                        {cons.rejectionReason ? `Reason: "${cons.rejectionReason}"` : 'The specialist was unable to accept this consultation request.'}
+                      </p>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
+                        You may browse the Doctor Directory to schedule a consultation with another qualified dental specialist.
                       </p>
                     </div>
                   </div>

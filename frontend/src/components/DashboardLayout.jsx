@@ -119,11 +119,11 @@ const DashboardLayout = () => {
               </Link>
               <Link to="/dashboard/patient/recommended-doctors" className={`sidebar-link ${currentPath === '/dashboard/patient/recommended-doctors' ? 'active' : ''}`}>
                 <Stethoscope size={20} />
-                <span>Recommended Doctors</span>
+                <span>Find a Dentist</span>
               </Link>
               <Link to="/dashboard/patient/consultations" className={`sidebar-link ${currentPath === '/dashboard/patient/consultations' ? 'active' : ''}`}>
                 <Video size={20} />
-                <span>My Consultations</span>
+                <span>My Appointments</span>
               </Link>
               <Link to="/dashboard/patient/messages" className={`sidebar-link ${currentPath === '/dashboard/patient/messages' ? 'active' : ''}`}>
                 <MessageSquare size={20} />

@@ -126,6 +126,7 @@ const fs = require('fs');
     console.log('=== PHASE 3B: DOCTOR RECEIVES REQUEST ===');
     console.log('Logging in as Doctor...');
     await page.goto('http://localhost:5173/login');
+    await page.click('text="Doctor"');
     await page.fill('input[type="email"]', 'priya.menon@dentaai.com');
     await page.fill('input[type="password"]', 'password123');
     await page.click('button[type="submit"]');
@@ -231,6 +232,7 @@ const fs = require('fs');
     console.log('Doctor Logged Out.');
 
     await page.goto('http://localhost:5173/login');
+    await page.click('text="Patient"');
     await page.fill('input[type="email"]', 'patient@test.com');
     await page.fill('input[type="password"]', 'password123');
     await page.click('button[type="submit"]');
@@ -238,7 +240,7 @@ const fs = require('fs');
     await page.waitForURL('**/dashboard/patient');
     await page.goto('http://localhost:5173/dashboard/patient/consultations');
     
-    await page.waitForSelector('text="My Consultations"');
+    await page.waitForSelector('text="My Appointments"');
     await page.waitForSelector('.card');
     
     const finalPatientConsultationsText = await page.locator('.card').first().textContent();

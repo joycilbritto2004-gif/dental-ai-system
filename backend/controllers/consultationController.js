@@ -2,6 +2,7 @@ const Consultation = require('../models/Consultation');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 const sendEmail = require('../utils/emailService');
+const { sendSMS } = require('../utils/smsService');
 
 const sendNotificationEmail = async (options) => {
   try {
@@ -51,6 +52,8 @@ const createConsultation = async (req, res) => {
       email: req.user.email,
       subject: 'Consultation Booking Confirmed - DentaAI',
       message: `Hello ${req.user.name},\n\nYour consultation booking request for ${createdConsultation.doctorName || 'a doctor'} has been successfully submitted.\n\nStatus: ${createdConsultation.status}\n\nYou can track the status in your dashboard.\n\nRegards,\nDentaAI Team`,
+      deduplicationKey: `booking_${createdConsultation._id}_email`,
+      event: 'consultation_booking',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 24px; color: #333;">
           <h2 style="color: #2563eb;">Consultation Booking Confirmed</h2>
@@ -64,6 +67,21 @@ const createConsultation = async (req, res) => {
         </div>
       `,
     });
+
+    // Notify Patient via SMS if phone on profile
+    if (req.user && req.user.phone) {
+      sendSMS({
+        to: req.user.phone,
+        templateName: 'CONSULTATION_BOOKING',
+        templateData: {
+          doctorName: createdConsultation.doctorName || 'Specialist',
+          date: createdConsultation.date || 'Scheduled Date',
+          time: createdConsultation.time || 'Scheduled Time',
+          ref: createdConsultation._id.toString().slice(-6),
+        },
+        deduplicationKey: `booking_${createdConsultation._id}_sms`,
+      }).catch((smsErr) => console.error('Booking SMS error:', smsErr.message));
+    }
 
     res.status(201).json(createdConsultation);
   } catch (error) {
@@ -124,21 +142,59 @@ const getConsultationById = async (req, res) => {
 
 // @desc    Update consultation status/diagnosis
 // @route   PUT /api/consultations/:id
-// @access  Public
+// @access  Private (Doctor or Admin)
 const updateConsultation = async (req, res) => {
   try {
     const consultation = await Consultation.findById(req.params.id);
 
-    if (consultation) {
-      consultation.status = req.body.status || consultation.status;
-      consultation.finalDiagnosis = req.body.finalDiagnosis || consultation.finalDiagnosis;
-      consultation.treatmentPlan = req.body.treatmentPlan || consultation.treatmentPlan;
-      
-      const updatedConsultation = await consultation.save();
-      res.json(updatedConsultation);
-    } else {
-      res.status(404).json({ message: 'Consultation not found' });
+    if (!consultation) {
+      return res.status(404).json({ message: 'Consultation not found' });
     }
+
+    // Role and ownership check
+    if (req.user.role === 'doctor') {
+      if (consultation.doctorId !== req.user._id.toString()) {
+        return res.status(403).json({ message: 'Not authorized to update this consultation' });
+      }
+    } else if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized to update consultations' });
+    }
+
+    // Disallow modifying protected immutable fields
+    const immutableFields = [
+      '_id', 'id', 'doctorId', 'patientId', 'patientName', 'doctorName',
+      'transactionId', 'paymentStatus', 'fee', 'totalAmount', 'platformFee',
+      'scanId', 'createdAt', 'updatedAt'
+    ];
+    for (const field of immutableFields) {
+      if (req.body[field] !== undefined && String(req.body[field]) !== String(consultation[field])) {
+        return res.status(400).json({ message: `Modifying protected field '${field}' is not permitted` });
+      }
+    }
+
+    // Allowed updates
+    if (req.body.status) {
+      const allowedStatuses = ['Pending', 'Accepted', 'In Consultation', 'Completed', 'Rejected'];
+      if (!allowedStatuses.includes(req.body.status)) {
+        return res.status(400).json({ message: `Invalid status '${req.body.status}'. Allowed: ${allowedStatuses.join(', ')}` });
+      }
+      consultation.status = req.body.status;
+    }
+
+    if (req.body.finalDiagnosis !== undefined) consultation.finalDiagnosis = req.body.finalDiagnosis;
+    if (req.body.treatmentPlan !== undefined) consultation.treatmentPlan = req.body.treatmentPlan;
+    if (req.body.verificationStatus !== undefined) {
+      const allowedVerif = ['Pending', 'Verified', 'Requires further examination'];
+      if (allowedVerif.includes(req.body.verificationStatus)) {
+        consultation.verificationStatus = req.body.verificationStatus;
+      }
+    }
+    if (req.body.followUpDate !== undefined) consultation.followUpDate = req.body.followUpDate;
+    if (req.body.followUpNote !== undefined) consultation.followUpNote = req.body.followUpNote;
+    if (req.body.rejectionReason !== undefined) consultation.rejectionReason = req.body.rejectionReason;
+
+    const updatedConsultation = await consultation.save();
+    res.json(updatedConsultation);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -185,6 +241,8 @@ const acceptConsultation = async (req, res) => {
             email: patientUser.email,
             subject: 'Consultation Accepted - DentaAI',
             message: `Hello ${patientUser.name},\n\nYour consultation request has been accepted by ${consultation.doctorName || 'the doctor'}.\n\nThe doctor will review your scans and provide a diagnosis soon.\n\nRegards,\nDentaAI Team`,
+            deduplicationKey: `accept_${consultation._id}_email`,
+            event: 'consultation_accepted',
             html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 24px; color: #333;">
                 <h2 style="color: #2563eb;">Consultation Accepted</h2>
@@ -195,10 +253,89 @@ const acceptConsultation = async (req, res) => {
               </div>
             `,
           });
+
+          if (patientUser.phone) {
+            sendSMS({
+              to: patientUser.phone,
+              templateName: 'DOCTOR_APPROVAL',
+              templateData: {
+                doctorName: consultation.doctorName || 'Specialist',
+              },
+              deduplicationKey: `accept_${consultation._id}_sms`,
+            }).catch((smsErr) => console.error('Doctor approval SMS error:', smsErr.message));
+          }
         }
       }
     } catch (notifErr) {
       console.error("Failed to notify patient:", notifErr);
+    }
+
+    res.json(consultation);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+// @desc    Reject consultation
+// @route   PUT /api/consultations/:id/reject
+// @access  Private (Doctor only)
+const rejectConsultation = async (req, res) => {
+  try {
+    const consultation = await Consultation.findById(req.params.id);
+    if (!consultation) return res.status(404).json({ message: 'Consultation not found' });
+    
+    if (consultation.doctorId !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to reject this consultation' });
+    }
+    
+    if (consultation.status === 'Completed') {
+      return res.status(400).json({ message: 'Cannot reject an already completed consultation' });
+    }
+
+    const { reason, rejectionReason } = req.body;
+    const finalReason = reason || rejectionReason || '';
+
+    consultation.status = 'Rejected';
+    if (finalReason) {
+      consultation.rejectionReason = finalReason;
+    }
+    await consultation.save();
+    
+    // Notify Patient via in-app and email
+    try {
+      if (consultation.patientId) {
+        await Notification.create({
+          recipientId: consultation.patientId,
+          recipientRole: 'patient',
+          title: 'Consultation Declined',
+          message: `${consultation.doctorName || 'Your doctor'} was unable to accept your consultation request.${finalReason ? ` Reason: ${finalReason}` : ''}`,
+          type: 'update',
+          consultationId: consultation._id.toString()
+        });
+        
+        const patientUser = await User.findById(consultation.patientId);
+        if (patientUser) {
+          sendNotificationEmail({
+            email: patientUser.email,
+            subject: 'Consultation Request Update - DentaAI',
+            message: `Hello ${patientUser.name},\n\nYour consultation request with ${consultation.doctorName || 'the doctor'} has been declined.${finalReason ? `\n\nReason: ${finalReason}` : ''}\n\nYou can select another specialist from the Doctor Directory.\n\nRegards,\nDentaAI Team`,
+            deduplicationKey: `reject_${consultation._id}_email`,
+            event: 'consultation_rejected',
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 24px; color: #333;">
+                <h2 style="color: #dc2626;">Consultation Request Update</h2>
+                <p>Hello ${patientUser.name},</p>
+                <p>Your consultation request with <strong>${consultation.doctorName || 'the doctor'}</strong> has been declined.</p>
+                ${finalReason ? `<div style="background: #fef2f2; padding: 16px; border-radius: 8px; border-left: 4px solid #dc2626;"><p><strong>Reason provided:</strong> ${finalReason}</p></div>` : ''}
+                <p>You can choose another specialist from the Doctor Directory in your dashboard.</p>
+                <p>Regards,<br /><strong>DentaAI Team</strong></p>
+              </div>
+            `,
+          });
+        }
+      }
+    } catch (notifErr) {
+      console.error("Failed to notify patient of rejection:", notifErr);
     }
 
     res.json(consultation);
@@ -232,7 +369,7 @@ const startConsultation = async (req, res) => {
 // @access  Public
 const completeConsultation = async (req, res) => {
   try {
-    const { finalDiagnosis, treatmentPlan } = req.body;
+    const { finalDiagnosis, treatmentPlan, verificationStatus, followUpDate, followUpNote } = req.body;
     
     if (!finalDiagnosis || !treatmentPlan) {
       return res.status(400).json({ message: 'Final diagnosis and treatment plan are required to complete the consultation.' });
@@ -244,10 +381,35 @@ const completeConsultation = async (req, res) => {
     if (consultation.doctorId !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized to complete this consultation' });
     }
+
+    // Validate verificationStatus
+    if (verificationStatus) {
+      const allowedVerif = ['Pending', 'Verified', 'Requires further examination'];
+      if (!allowedVerif.includes(verificationStatus)) {
+        return res.status(400).json({ message: `Invalid verification status. Allowed: ${allowedVerif.join(', ')}` });
+      }
+      consultation.verificationStatus = verificationStatus;
+    } else {
+      consultation.verificationStatus = 'Verified';
+    }
+
+    // Validate and save followUpDate
+    if (followUpDate) {
+      if (typeof followUpDate !== 'string' || (followUpDate.trim() && isNaN(new Date(followUpDate).getTime()))) {
+        return res.status(400).json({ message: 'Invalid follow-up date format.' });
+      }
+      consultation.followUpDate = followUpDate.trim();
+    } else if (followUpDate === '') {
+      consultation.followUpDate = '';
+    }
+
+    if (followUpNote !== undefined) {
+      consultation.followUpNote = String(followUpNote).trim();
+    }
     
     consultation.status = 'Completed';
-    consultation.finalDiagnosis = finalDiagnosis;
-    consultation.treatmentPlan = treatmentPlan;
+    consultation.finalDiagnosis = finalDiagnosis.trim();
+    consultation.treatmentPlan = treatmentPlan.trim();
     
     await consultation.save();
     
@@ -260,7 +422,7 @@ const completeConsultation = async (req, res) => {
           title: 'Consultation Completed',
           message: `Your consultation has been completed. View your final diagnosis and treatment plan.`,
           type: 'update',
-          consultationId: consultation._id
+          consultationId: consultation._id.toString()
         });
         
         const patientUser = await User.findById(consultation.patientId);
@@ -269,6 +431,8 @@ const completeConsultation = async (req, res) => {
             email: patientUser.email,
             subject: 'Consultation Completed - DentaAI',
             message: `Hello ${patientUser.name},\n\nYour consultation with ${consultation.doctorName || 'the doctor'} has been completed.\n\nPlease log in to DentaAI to view the completed consultation and access your diagnosis and treatment plan securely.\n\nRegards,\nDentaAI Team`,
+            deduplicationKey: `complete_${consultation._id}_email`,
+            event: 'consultation_completed',
             html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 24px; color: #333;">
                 <h2 style="color: #2563eb;">Consultation Completed</h2>
@@ -279,6 +443,17 @@ const completeConsultation = async (req, res) => {
               </div>
             `,
           });
+
+          if (patientUser.phone) {
+            sendSMS({
+              to: patientUser.phone,
+              templateName: 'CONSULTATION_COMPLETED',
+              templateData: {
+                doctorName: consultation.doctorName || 'Specialist',
+              },
+              deduplicationKey: `complete_${consultation._id}_sms`,
+            }).catch((smsErr) => console.error('Consultation completed SMS error:', smsErr.message));
+          }
         }
       }
     } catch (notifErr) {
@@ -297,6 +472,7 @@ module.exports = {
   getConsultationById,
   updateConsultation,
   acceptConsultation,
+  rejectConsultation,
   startConsultation,
   completeConsultation
 };

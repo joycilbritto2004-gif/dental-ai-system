@@ -200,7 +200,7 @@ const PatientPaymentCheckout = () => {
             </div>
           </div>
           <Link to="/dashboard/patient/consultations" className="btn btn-primary w-full btn-lg" style={{ display: 'flex', justifyContent: 'center', borderRadius: '999px', fontWeight: 'bold', boxShadow: '0 8px 24px rgba(0, 210, 255, 0.25)' }}>
-            Go to My Consultations
+            Go to My Appointments
           </Link>
         </div>
       </motion.div>

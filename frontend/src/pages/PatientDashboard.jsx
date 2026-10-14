@@ -25,7 +25,10 @@ const PatientDashboard = () => {
       const userStr = localStorage.getItem('dentaai_user');
       if (!userStr) return;
       const user = JSON.parse(userStr);
-      const res = await fetch(`http://localhost:5000/api/scans/${user._id || user.id}`);
+      const token = localStorage.getItem('dentaai_token');
+      const res = await fetch(`http://localhost:5000/api/scans/${user._id || user.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (res.ok) {
         const data = await res.json();
         setScanHistory(data);
@@ -40,7 +43,10 @@ const PatientDashboard = () => {
       const userStr = localStorage.getItem('dentaai_user');
       if (!userStr) return;
       const user = JSON.parse(userStr);
-      const res = await fetch(`http://localhost:5000/api/consultations?patientId=${user._id || user.id}`);
+      const token = localStorage.getItem('dentaai_token');
+      const res = await fetch(`http://localhost:5000/api/consultations?patientId=${user._id || user.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (res.ok) {
         const data = await res.json();
         setConsultations(data);
@@ -123,8 +129,12 @@ const PatientDashboard = () => {
     formData.append('image', imageFile);
 
     try {
+      const userToken = localStorage.getItem('dentaai_token');
       const response = await fetch('http://localhost:5000/api/ai/predict', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${userToken}`
+        },
         body: formData,
       }).catch(() => {
         throw new Error("Failed to connect to the AI neural network. Please ensure the AI server is active.");
@@ -163,7 +173,10 @@ const PatientDashboard = () => {
 
             const saveRes = await fetch('http://localhost:5000/api/scans', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userToken}`
+              },
               body: JSON.stringify(payload)
             });
 
@@ -313,8 +326,39 @@ const PatientDashboard = () => {
                   <button onClick={() => setShowReport(!showReport)} style={{ flex: 1, background: 'var(--card-bg)', border: '1px solid var(--border-color)', padding: '14px', borderRadius: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer', color: 'var(--text-primary)', transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
                     <FileText size={18} /> {showReport ? 'Hide Full Report' : 'View Full Report'}
                   </button>
-                  <Link to={`/dashboard/patient/recommended-doctors`} state={{ predictionResult }} style={{ flex: 1, background: 'var(--secondary)', color: '#FFFFFF', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', textDecoration: 'none', transition: 'all 0.2s', boxShadow: '0 4px 15px rgba(0, 210, 255, 0.3)' }}>
-                    <Search size={18} /> Professional Verification
+                  <Link 
+                    to={`/dashboard/patient/recommended-doctors`} 
+                    state={{ predictionResult }} 
+                    style={{ 
+                      flex: 1, 
+                      background: '#009FA3', 
+                      color: '#FFFFFF', 
+                      border: '1px solid rgba(255, 255, 255, 0.25)', 
+                      padding: '14px', 
+                      borderRadius: '12px', 
+                      fontWeight: 700, 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      gap: '8px', 
+                      textDecoration: 'none', 
+                      transition: 'all 0.2s ease', 
+                      boxShadow: '0 4px 15px rgba(0, 159, 163, 0.25)' 
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#00777C';
+                      e.currentTarget.style.boxShadow = '0 6px 18px rgba(0, 119, 124, 0.35)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = '#009FA3';
+                      e.currentTarget.style.boxShadow = '0 4px 15px rgba(0, 159, 163, 0.25)';
+                    }}
+                  >
+                    <Search size={18} color="#FFFFFF" style={{ flexShrink: 0 }} />
+                    <span style={{ display: 'inline-flex', flexDirection: 'column', textAlign: 'left', lineHeight: 1.25 }}>
+                      <span>Professional</span>
+                      <span>Verification</span>
+                    </span>
                   </Link>
                 </div>
               </motion.div>

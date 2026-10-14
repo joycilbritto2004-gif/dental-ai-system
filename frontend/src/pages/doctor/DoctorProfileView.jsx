@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { UserCircle, Save, MapPin, Building, GraduationCap, Languages, DollarSign, CheckCircle2 } from 'lucide-react';
+import { UserCircle, Save, MapPin, Building, GraduationCap, Languages, DollarSign, CheckCircle2, AlertCircle } from 'lucide-react';
 import '../Dashboard.css';
 
 const DoctorProfileView = () => {
@@ -14,53 +14,105 @@ const DoctorProfileView = () => {
     languages: "English, Hindi"
   });
 
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
-    try {
-      const userStr = localStorage.getItem('dentaai_user');
-      let baseProfile = {
-        name: "Dr. Doctor",
-        specialization: "General Dentist",
-        clinic: "Premium Dental Care",
-        experience: "10 Years",
-        location: "Mumbai, Maharashtra",
-        fee: "500",
-        languages: "English, Hindi"
-      };
-
-      if (userStr) {
-        const user = JSON.parse(userStr);
-        const userName = user.name || user.firstName || 'Doctor';
-        baseProfile.name = userName.includes('Dr.') ? userName : `Dr. ${userName}`;
-        if (user.specialization) baseProfile.specialization = user.specialization;
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch('http://localhost:5000/api/auth/profile');
+        if (res.ok) {
+          const user = await res.json();
+          const cleanName = user.name || '';
+          setProfile(prev => ({
+            ...prev,
+            name: cleanName,
+            specialization: user.specialization || 'General Dentist',
+            clinic: user.clinic || 'Premium Dental Care',
+            location: user.location || 'Mumbai, Maharashtra',
+            fee: user.fee !== undefined ? String(user.fee) : '500',
+            phone: user.phone || ''
+          }));
+        } else {
+          // Fallback to localStorage if server returns non-ok
+          const userStr = localStorage.getItem('dentaai_user');
+          if (userStr) {
+            const user = JSON.parse(userStr);
+            setProfile(prev => ({
+              ...prev,
+              name: user.name || '',
+              specialization: user.specialization || prev.specialization,
+              clinic: user.clinic || prev.clinic,
+              location: user.location || prev.location,
+              fee: user.fee !== undefined ? String(user.fee) : prev.fee
+            }));
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching doctor profile:', err);
+      } finally {
+        setIsLoading(false);
       }
+    };
 
-      const savedProfile = localStorage.getItem('doctor_profile');
-      if (savedProfile) {
-        const parsed = JSON.parse(savedProfile);
-        setProfile({ ...parsed, name: baseProfile.name }); // enforce auth name
-      } else {
-        setProfile(baseProfile);
-      }
-    } catch (e) {
-      console.error("Error loading profile:", e);
-    }
+    fetchProfile();
   }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setProfile(prev => ({ ...prev, [name]: value }));
     setIsSaved(false);
+    setErrorMessage('');
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    setIsSaving(true);
+    setErrorMessage('');
+    setIsSaved(false);
+
     try {
-      localStorage.setItem('doctor_profile', JSON.stringify(profile));
+      const res = await fetch('http://localhost:5000/api/auth/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: profile.name.trim(),
+          specialization: profile.specialization.trim(),
+          clinic: profile.clinic.trim(),
+          location: profile.location.trim(),
+          fee: Number(profile.fee)
+        })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || 'Failed to update profile');
+      }
+
+      const updatedUser = await res.json();
+
+      // Update localStorage so topbar and other components immediately reflect changes
+      const userStr = localStorage.getItem('dentaai_user');
+      if (userStr) {
+        const current = JSON.parse(userStr);
+        localStorage.setItem('dentaai_user', JSON.stringify({
+          ...current,
+          name: updatedUser.name,
+          specialization: updatedUser.specialization,
+          clinic: updatedUser.clinic,
+          location: updatedUser.location,
+          fee: updatedUser.fee
+        }));
+      }
+
       setIsSaved(true);
-      setTimeout(() => setIsSaved(false), 3000);
-    } catch (e) {
-      console.error("Error saving profile:", e);
+      setTimeout(() => setIsSaved(false), 3500);
+    } catch (err) {
+      console.error('Error saving profile:', err);
+      setErrorMessage(err.message || 'Error saving profile.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -84,57 +136,68 @@ const DoctorProfileView = () => {
       <motion.div variants={item} className="card glass-card" style={{ padding: '2rem', width: '100%', maxWidth: '750px' }}>
         <div className="flex-align-center gap-4 mb-6 pb-6 border-b">
           <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--secondary), var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 15px rgba(0, 166, 166, 0.3)' }}>
-              <UserCircle size={48} />
-            </div>
-            <div>
-              <h3 className="font-bold text-primary" style={{ fontSize: '1.5rem' }}>{profile.name}</h3>
-              <p className="text-secondary font-bold">{profile.specialization}</p>
-            </div>
+            <UserCircle size={48} />
           </div>
+          <div>
+            <h3 className="font-bold text-primary" style={{ fontSize: '1.5rem' }}>{profile.name || 'Dr. Doctor'}</h3>
+            <p className="text-secondary font-bold">{profile.specialization}</p>
+          </div>
+        </div>
 
-          <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-            <div className="form-group">
-              <label className="form-label flex-align-center gap-2"><UserCircle size={16} /> Full Name</label>
-              <input type="text" className="form-input" name="name" value={profile.name} onChange={handleChange} />
-            </div>
-            <div className="form-group">
-              <label className="form-label flex-align-center gap-2"><GraduationCap size={16} /> Specialization</label>
-              <input type="text" className="form-input" name="specialization" value={profile.specialization} onChange={handleChange} />
-            </div>
-            <div className="form-group">
-              <label className="form-label flex-align-center gap-2"><Building size={16} /> Clinic Name</label>
-              <input type="text" className="form-input" name="clinic" value={profile.clinic} onChange={handleChange} />
-            </div>
-            <div className="form-group">
-              <label className="form-label flex-align-center gap-2"><MapPin size={16} /> Location</label>
-              <input type="text" className="form-input" name="location" value={profile.location} onChange={handleChange} />
-            </div>
-            <div className="form-group">
-              <label className="form-label flex-align-center gap-2"><GraduationCap size={16} /> Experience</label>
-              <input type="text" className="form-input" name="experience" value={profile.experience} onChange={handleChange} />
-            </div>
-            <div className="form-group">
-              <label className="form-label flex-align-center gap-2"><DollarSign size={16} /> Consultation Fee (₹)</label>
-              <input type="number" className="form-input" name="fee" value={profile.fee} onChange={handleChange} />
-            </div>
-            <div className="form-group col-span-full">
-              <label className="form-label flex-align-center gap-2"><Languages size={16} /> Languages Spoken</label>
-              <input type="text" className="form-input" name="languages" value={profile.languages} onChange={handleChange} />
-            </div>
+        {errorMessage && (
+          <div className="mb-4 p-3 rounded-lg flex-align-center gap-2" style={{ background: 'rgba(220, 38, 38, 0.1)', color: '#dc2626', border: '1px solid rgba(220, 38, 38, 0.3)' }}>
+            <AlertCircle size={18} />
+            <span>{errorMessage}</span>
           </div>
+        )}
 
-          <div className="mt-8 pt-6 border-t flex-between">
-            {isSaved ? (
-              <span className="text-success font-bold flex-align-center gap-2 bg-success-light px-4 py-2 rounded-lg">
-                <CheckCircle2 size={18} /> Profile Saved Successfully!
-              </span>
-            ) : (
-              <span></span>
-            )}
-            <button onClick={handleSave} className="btn btn-primary flex-align-center gap-2 pulse-glow px-8">
-              <Save size={18} /> Save Changes
-            </button>
+        <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+          <div className="form-group">
+            <label className="form-label flex-align-center gap-2 font-bold text-primary"><UserCircle size={16} /> Full Name</label>
+            <input type="text" className="form-input" name="name" value={profile.name} onChange={handleChange} placeholder="Dr. Full Name" />
           </div>
+          <div className="form-group">
+            <label className="form-label flex-align-center gap-2 font-bold text-primary"><GraduationCap size={16} /> Specialization</label>
+            <input type="text" className="form-input" name="specialization" value={profile.specialization} onChange={handleChange} placeholder="e.g. Periodontist & Implantologist" />
+          </div>
+          <div className="form-group">
+            <label className="form-label flex-align-center gap-2 font-bold text-primary"><Building size={16} /> Clinic Name</label>
+            <input type="text" className="form-input" name="clinic" value={profile.clinic} onChange={handleChange} placeholder="e.g. SmileCraft Dental Clinic" />
+          </div>
+          <div className="form-group">
+            <label className="form-label flex-align-center gap-2 font-bold text-primary"><MapPin size={16} /> Location</label>
+            <input type="text" className="form-input" name="location" value={profile.location} onChange={handleChange} placeholder="e.g. Mumbai, Maharashtra" />
+          </div>
+          <div className="form-group">
+            <label className="form-label flex-align-center gap-2 font-bold text-primary"><GraduationCap size={16} /> Experience</label>
+            <input type="text" className="form-input" name="experience" value={profile.experience} onChange={handleChange} placeholder="e.g. 10 Years" />
+          </div>
+          <div className="form-group">
+            <label className="form-label flex-align-center gap-2 font-bold text-primary"><DollarSign size={16} /> Consultation Fee (₹)</label>
+            <input type="number" min="0" step="50" className="form-input" name="fee" value={profile.fee} onChange={handleChange} placeholder="500" />
+          </div>
+          <div className="form-group col-span-full">
+            <label className="form-label flex-align-center gap-2 font-bold text-primary"><Languages size={16} /> Languages Spoken</label>
+            <input type="text" className="form-input" name="languages" value={profile.languages} onChange={handleChange} placeholder="English, Hindi" />
+          </div>
+        </div>
+
+        <div className="mt-8 pt-6 border-t flex-between">
+          {isSaved ? (
+            <span className="text-success font-bold flex-align-center gap-2 bg-success-light px-4 py-2 rounded-lg">
+              <CheckCircle2 size={18} /> Profile Saved to Database!
+            </span>
+          ) : (
+            <span></span>
+          )}
+          <button 
+            onClick={handleSave} 
+            className="btn btn-primary flex-align-center gap-2 pulse-glow px-8"
+            disabled={isSaving}
+          >
+            <Save size={18} /> {isSaving ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
       </motion.div>
     </motion.div>
   );
