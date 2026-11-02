@@ -1,4 +1,5 @@
-const API_URL = 'http://localhost:5000/api/auth';
+import { API_BASE } from '../config';
+const API_URL = `${API_BASE}/api/auth`;
 
 const handleResponse = async (response) => {
   const data = await response.json();
@@ -38,7 +39,7 @@ export const initApiInterceptor = () => {
     let [resource, config] = args;
     
     // Only intercept requests to our API
-    if (typeof resource === 'string' && resource.startsWith('http://localhost:5000/api')) {
+    if (typeof resource === 'string' && resource.startsWith(`${API_BASE}/api`)) {
       // Do not attach token for auth endpoints
       if (!resource.includes('/auth/login') && !resource.includes('/auth/register')) {
         const token = localStorage.getItem('dentaai_token');

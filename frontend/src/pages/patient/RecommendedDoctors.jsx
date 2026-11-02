@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Search, Star, ChevronRight, BriefcaseMedical } from 'lucide-react';
 import { motion } from 'framer-motion';
 import '../Dashboard.css';
+import { API_BASE } from '../../config';
 
 const RecommendedDoctors = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -33,7 +34,7 @@ const RecommendedDoctors = () => {
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/doctors');
+        const res = await fetch(`${API_BASE}/api/doctors`);
         if (res.ok) {
           const data = await res.json();
           setDoctors(data);

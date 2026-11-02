@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Activity, Clock, ShieldCheck, AlertTriangle, Calendar } from 'lucide-react';
 import '../Dashboard.css';
+import { API_BASE } from '../../config';
 
 const PatientPredictions = () => {
   const [scanHistory, setScanHistory] = useState([]);
@@ -17,7 +18,7 @@ const PatientPredictions = () => {
       }
       const user = JSON.parse(userStr);
 
-      const response = await fetch(`http://localhost:5000/api/scans/${user._id || user.id}`);
+      const response = await fetch(`${API_BASE}/api/scans/${user._id || user.id}`);
       if (!response.ok) {
         throw new Error('Failed to fetch scan history');
       }

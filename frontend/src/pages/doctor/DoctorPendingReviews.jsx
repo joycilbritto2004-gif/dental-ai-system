@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { UserCircle, Calendar, Eye, Activity, CheckCircle2, XCircle, X, AlertTriangle } from 'lucide-react';
 import '../Dashboard.css';
+import { API_BASE } from '../../config';
 
 const DoctorPendingReviews = () => {
   const [requests, setRequests] = useState([]);
@@ -21,7 +22,7 @@ const DoctorPendingReviews = () => {
     if (!userStr) return;
     const user = JSON.parse(userStr);
     if (user && (user._id || user.id)) {
-      fetch(`http://localhost:5000/api/doctors/${user._id || user.id}`)
+      fetch(`${API_BASE}/api/doctors/${user._id || user.id}`)
         .then(res => res.json())
         .then(data => {
           if (!data.message) {
@@ -42,7 +43,7 @@ const DoctorPendingReviews = () => {
       }
       const token = localStorage.getItem('dentaai_token') || localStorage.getItem('token');
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-      const res = await fetch(`http://localhost:5000/api/consultations?doctorId=${DOCTOR_ID}`, { headers });
+      const res = await fetch(`${API_BASE}/api/consultations?doctorId=${DOCTOR_ID}`, { headers });
       if (!res.ok) throw new Error('Failed to fetch');
       const stored = await res.json();
       const myPending = stored.filter(c => c.status === "Pending" || c.status === "Booked");
@@ -69,7 +70,7 @@ const DoctorPendingReviews = () => {
         'Content-Type': 'application/json',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       };
-      const res = await fetch(`http://localhost:5000/api/consultations/${reqId}/accept`, {
+      const res = await fetch(`${API_BASE}/api/consultations/${reqId}/accept`, {
         method: 'PUT',
         headers
       });
@@ -91,7 +92,7 @@ const DoctorPendingReviews = () => {
         'Content-Type': 'application/json',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       };
-      const res = await fetch(`http://localhost:5000/api/consultations/${targetId}/reject`, {
+      const res = await fetch(`${API_BASE}/api/consultations/${targetId}/reject`, {
         method: 'PUT',
         headers,
         body: JSON.stringify({ reason: rejectionReason.trim() })

@@ -3,6 +3,7 @@ import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { Activity, UserCircle, LogOut, LayoutDashboard, HeartPulse, Stethoscope, BriefcaseMedical, Users, CheckCircle2, BrainCircuit, Settings, FileText, MessageSquare, CreditCard, History, Video, Bell, Menu, X } from 'lucide-react';
 import { getSocket, registerUserSocket } from '../utils/socket';
 import './DashboardLayout.css';
+import { API_BASE } from '../config';
 
 const DashboardLayout = () => {
   const [userName, setUserName] = useState('');
@@ -63,7 +64,7 @@ const DashboardLayout = () => {
   const fetchNotifications = useCallback(async () => {
     if (!userId) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/notifications/${userId}`);
+      const res = await fetch(`${API_BASE}/api/notifications/${userId}`);
       if (res.ok) {
         const data = await res.json();
         setNotifications(data);
@@ -115,7 +116,7 @@ const DashboardLayout = () => {
 
   const handleNotificationClick = async (notif) => {
     try {
-      await fetch(`http://localhost:5000/api/notifications/${notif.id || notif._id}/read`, {
+      await fetch(`${API_BASE}/api/notifications/${notif.id || notif._id}/read`, {
         method: 'PUT'
       });
       fetchNotifications();

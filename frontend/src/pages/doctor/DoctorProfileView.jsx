@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { UserCircle, Save, MapPin, Building, GraduationCap, Languages, DollarSign, CheckCircle2, AlertCircle } from 'lucide-react';
 import '../Dashboard.css';
+import { API_BASE } from '../../config';
 
 const DoctorProfileView = () => {
   const [profile, setProfile] = useState({
@@ -24,7 +25,7 @@ const DoctorProfileView = () => {
       try {
         const token = localStorage.getItem('dentaai_token') || localStorage.getItem('token');
         const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-        const res = await fetch('http://localhost:5000/api/auth/profile', { headers });
+        const res = await fetch(`${API_BASE}/api/auth/profile`, { headers });
         if (res.ok) {
           const user = await res.json();
           const cleanName = user.name || '';
@@ -76,7 +77,7 @@ const DoctorProfileView = () => {
 
     try {
       const token = localStorage.getItem('dentaai_token') || localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/auth/profile', {
+      const res = await fetch(`${API_BASE}/api/auth/profile`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',

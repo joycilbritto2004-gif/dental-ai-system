@@ -14,6 +14,7 @@ import {
   Stethoscope
 } from 'lucide-react';
 import '../Dashboard.css';
+import { API_BASE } from '../../config';
 
 /**
  * PatientScreeningHistory
@@ -39,7 +40,7 @@ const PatientScreeningHistory = () => {
       const user = JSON.parse(userStr);
       const token = localStorage.getItem('dentaai_token');
 
-      const response = await fetch(`http://localhost:5000/api/scans/${user._id || user.id}`, {
+      const response = await fetch(`${API_BASE}/api/scans/${user._id || user.id}`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
 

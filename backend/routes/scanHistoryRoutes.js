@@ -1,10 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const { protect, restrictTo } = require('../middleware/authMiddleware');
-const { saveScanResult, getPatientScanHistory, getAllScans } = require('../controllers/scanHistoryController');
+const { getPatientScanHistory, getAllScans, getScanImage } = require('../controllers/scanHistoryController');
 
-router.post('/', protect, restrictTo('patient'), saveScanResult);
+// Scan records are written only by POST /api/ai/predict, from the model's own response.
+// There is deliberately no client-writable create route here.
 router.get('/all', protect, restrictTo('admin'), getAllScans);
+router.get('/image/:filename', protect, getScanImage);
 router.get('/:patientId', protect, getPatientScanHistory);
 
 module.exports = router;

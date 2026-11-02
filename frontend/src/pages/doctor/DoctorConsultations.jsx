@@ -5,6 +5,7 @@ import { UserCircle, Calendar, Eye, CheckCircle2, BrainCircuit, MessageSquare, A
 import { getConsultationStatusMeta } from '../../utils/consultationStatus';
 import { getSocket } from '../../utils/socket';
 import '../Dashboard.css';
+import { API_BASE } from '../../config';
 
 const DoctorConsultations = () => {
   const [requests, setRequests] = useState([]);
@@ -33,7 +34,7 @@ const DoctorConsultations = () => {
       }
       const token = localStorage.getItem('dentaai_token') || localStorage.getItem('token');
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-      const res = await fetch(`http://localhost:5000/api/consultations?doctorId=${DOCTOR_ID}`, { headers });
+      const res = await fetch(`${API_BASE}/api/consultations?doctorId=${DOCTOR_ID}`, { headers });
       if (!res.ok) throw new Error('Failed to fetch consultations');
       const myConsultations = await res.json();
       
@@ -100,7 +101,7 @@ const DoctorConsultations = () => {
         'Content-Type': 'application/json',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       };
-      const res = await fetch(`http://localhost:5000/api/consultations/${id}/start`, { method: 'PUT', headers });
+      const res = await fetch(`${API_BASE}/api/consultations/${id}/start`, { method: 'PUT', headers });
       if (!res.ok) throw new Error('Failed to start consultation');
       navigate(`/dashboard/doctor/consultation/${id}`);
     } catch (e) {
@@ -119,7 +120,7 @@ const DoctorConsultations = () => {
         'Content-Type': 'application/json',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       };
-      const res = await fetch(`http://localhost:5000/api/consultations/${id}/accept`, { method: 'PUT', headers });
+      const res = await fetch(`${API_BASE}/api/consultations/${id}/accept`, { method: 'PUT', headers });
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         throw new Error(errData.message || 'Failed to accept consultation');
@@ -143,7 +144,7 @@ const DoctorConsultations = () => {
         'Content-Type': 'application/json',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       };
-      const res = await fetch(`http://localhost:5000/api/consultations/${targetId}/reject`, {
+      const res = await fetch(`${API_BASE}/api/consultations/${targetId}/reject`, {
         method: 'PUT',
         headers,
         body: JSON.stringify({ reason: rejectionReason.trim() })

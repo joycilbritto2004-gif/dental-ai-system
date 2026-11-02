@@ -1,45 +1,35 @@
+const path = require('path');
+const fs = require('fs');
 const ScanHistory = require('../models/ScanHistory');
+const Consultation = require('../models/Consultation');
 
-// @desc    Save a new AI scan result
-// @route   POST /api/scans
-// @access  Public (should ideally be protected, but keeping it simple as per current auth flow)
-const saveScanResult = async (req, res) => {
-  try {
-    const { imagePath, condition, confidence, recommendation, scanId } = req.body;
-    
-    const patientId = req.user._id.toString();
+const UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
 
-    if (!condition || !confidence || !scanId) {
-      return res.status(400).json({ message: 'Missing required fields' });
-    }
-
-    const scan = new ScanHistory({
-      patientId,
-      imagePath,
-      condition,
-      confidence,
-      recommendation,
-      scanId
-    });
-
-    const createdScan = await scan.save();
-    res.status(201).json(createdScan);
-  } catch (error) {
-    console.error('Error saving scan result:', error);
-    res.status(500).json({ message: 'Failed to save scan result' });
-  }
+// A doctor may see a patient's scans only through a consultation they are assigned to.
+const doctorHasCaseFor = async (doctorId, patientId) => {
+  const consultation = await Consultation.findOne({
+    doctorId: String(doctorId),
+    patientId: String(patientId),
+  }).select('_id');
+  return Boolean(consultation);
 };
 
 // @desc    Get all scan history for a patient
 // @route   GET /api/scans/:patientId
-// @access  Public
+// @access  Private (own records, assigned doctor, or admin)
 const getPatientScanHistory = async (req, res) => {
   try {
-    if (req.user.role === 'patient' && req.params.patientId !== req.user._id.toString()) {
+    const { patientId } = req.params;
+    const requesterId = req.user._id.toString();
+
+    if (req.user.role === 'patient' && patientId !== requesterId) {
       return res.status(403).json({ message: 'Not authorized to view these scans' });
     }
-    
-    const scans = await ScanHistory.find({ patientId: req.params.patientId }).sort({ createdAt: -1 });
+    if (req.user.role === 'doctor' && !(await doctorHasCaseFor(requesterId, patientId))) {
+      return res.status(403).json({ message: 'Not authorized to view these scans' });
+    }
+
+    const scans = await ScanHistory.find({ patientId }).sort({ createdAt: -1 });
     res.json(scans);
   } catch (error) {
     console.error('Error fetching scan history:', error);
@@ -47,9 +37,9 @@ const getPatientScanHistory = async (req, res) => {
   }
 };
 
-// @desc    Get all scan history across the platform (for admin)
+// @desc    Get all scan history across the platform
 // @route   GET /api/scans/all
-// @access  Public (should ideally be protected, but keeping it simple as per current auth flow)
+// @access  Private (admin)
 const getAllScans = async (req, res) => {
   try {
     const scans = await ScanHistory.find({}).sort({ createdAt: -1 });
@@ -60,8 +50,51 @@ const getAllScans = async (req, res) => {
   }
 };
 
+// @desc    Stream an uploaded dental image to an authorised viewer
+// @route   GET /api/scans/image/:filename
+// @access  Private (owning patient, assigned doctor, or admin)
+//
+// Replaces the old express.static('/uploads') mount, which served every patient's
+// intraoral photograph to anyone who had or guessed the URL.
+const getScanImage = async (req, res) => {
+  try {
+    const { filename } = req.params;
+
+    // Reject traversal attempts outright: the stored name is always a plain basename.
+    if (filename !== path.basename(filename)) {
+      return res.status(400).json({ message: 'Invalid image reference' });
+    }
+
+    const scan = await ScanHistory.findOne({ imagePath: `/uploads/${filename}` });
+    if (!scan) {
+      return res.status(404).json({ message: 'Image not found' });
+    }
+
+    const requesterId = req.user._id.toString();
+    const isOwner = scan.patientId.toString() === requesterId;
+    const isAdmin = req.user.role === 'admin';
+    const isAssignedDoctor =
+      req.user.role === 'doctor' && (await doctorHasCaseFor(requesterId, scan.patientId));
+
+    if (!isOwner && !isAdmin && !isAssignedDoctor) {
+      return res.status(403).json({ message: 'Not authorized to view this image' });
+    }
+
+    const filePath = path.join(UPLOAD_DIR, filename);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ message: 'Image file is no longer available' });
+    }
+
+    res.setHeader('Cache-Control', 'private, max-age=0, no-store');
+    res.sendFile(filePath);
+  } catch (error) {
+    console.error('Error serving scan image:', error);
+    res.status(500).json({ message: 'Failed to load image' });
+  }
+};
+
 module.exports = {
-  saveScanResult,
   getPatientScanHistory,
-  getAllScans
+  getAllScans,
+  getScanImage,
 };

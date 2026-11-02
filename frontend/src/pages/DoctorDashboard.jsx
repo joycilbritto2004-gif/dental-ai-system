@@ -12,6 +12,7 @@ import {
   BarChart, Bar
 } from 'recharts';
 import './Dashboard.css';
+import { API_BASE } from '../config';
 
 const DoctorDashboard = () => {
   const [stats, setStats] = useState({
@@ -49,7 +50,7 @@ const DoctorDashboard = () => {
     if (!userStr) return;
     const user = JSON.parse(userStr);
     if (user && (user._id || user.id)) {
-      fetch(`http://localhost:5000/api/doctors/${user._id || user.id}`, {
+      fetch(`${API_BASE}/api/doctors/${user._id || user.id}`, {
         headers: getAuthHeaders()
       })
         .then(res => res.json())
@@ -85,7 +86,7 @@ const DoctorDashboard = () => {
         DOCTOR_ID = user._id || user.id;
       }
       
-      const res = await fetch(`http://localhost:5000/api/consultations?doctorId=${DOCTOR_ID}`, {
+      const res = await fetch(`${API_BASE}/api/consultations?doctorId=${DOCTOR_ID}`, {
         headers: getAuthHeaders()
       });
       if (!res.ok) throw new Error('Failed to fetch');
@@ -163,7 +164,7 @@ const DoctorDashboard = () => {
         'Content-Type': 'application/json',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       };
-      const res = await fetch(`http://localhost:5000/api/consultations/${id}/accept`, {
+      const res = await fetch(`${API_BASE}/api/consultations/${id}/accept`, {
         method: 'PUT',
         headers
       });
@@ -199,7 +200,7 @@ const DoctorDashboard = () => {
         'Content-Type': 'application/json',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       };
-      const res = await fetch(`http://localhost:5000/api/consultations/${targetId}/reject`, {
+      const res = await fetch(`${API_BASE}/api/consultations/${targetId}/reject`, {
         method: 'PUT',
         headers,
         body: JSON.stringify({ reason: rejectionReason.trim() })

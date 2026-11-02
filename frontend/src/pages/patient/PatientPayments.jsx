@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { CreditCard, FileText, Download, ShieldCheck, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import '../Dashboard.css';
+import { API_BASE } from '../../config';
 
 const PatientPayments = () => {
   const [payments, setPayments] = useState([]);
@@ -12,7 +13,7 @@ const PatientPayments = () => {
       try {
         const token = localStorage.getItem('dentaai_token') || localStorage.getItem('token');
         const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-        const res = await fetch('http://localhost:5000/api/consultations', { headers });
+        const res = await fetch(`${API_BASE}/api/consultations`, { headers });
         if (!res.ok) throw new Error('Failed to fetch payments');
         const myPayments = await res.json();
 

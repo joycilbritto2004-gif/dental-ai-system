@@ -3,6 +3,7 @@ import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle2, ChevronLeft, CreditCard, Lock, ShieldCheck, Smartphone, Landmark, Loader2 } from 'lucide-react';
 import '../Dashboard.css';
+import { API_BASE } from '../../config';
 
 const PatientPaymentCheckout = () => {
   const location = useLocation();
@@ -78,7 +79,7 @@ const PatientPaymentCheckout = () => {
     
     try {
       const token = localStorage.getItem('dentaai_token');
-      const orderRes = await fetch('http://localhost:5000/api/payment/create-order', {
+      const orderRes = await fetch(`${API_BASE}/api/payment/create-order`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -112,7 +113,7 @@ const PatientPaymentCheckout = () => {
         handler: async function (response) {
           try {
             // Verify signature on backend
-            const verifyRes = await fetch('http://localhost:5000/api/payment/verify', {
+            const verifyRes = await fetch(`${API_BASE}/api/payment/verify`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -156,7 +157,7 @@ const PatientPaymentCheckout = () => {
                  createdAt: new Date().toISOString()
                };
 
-               const consRes = await fetch('http://localhost:5000/api/consultations', {
+               const consRes = await fetch(`${API_BASE}/api/consultations`, {
                  method: 'POST',
                  headers: {
                    'Content-Type': 'application/json',

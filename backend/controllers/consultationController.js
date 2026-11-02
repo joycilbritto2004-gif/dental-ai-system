@@ -18,13 +18,28 @@ const sendNotificationEmail = async (options) => {
 // @desc    Create new consultation
 // @route   POST /api/consultations
 // @access  Public
+// Fixed DentaAI platform fee, in INR. Must stay in step with the checkout screen.
+const PLATFORM_FEE = 49;
+
 const createConsultation = async (req, res) => {
   try {
     const { doctorId } = req.body;
-    
+
     // Validate patient identity
     const patientId = req.user._id.toString();
     const patientName = req.user.name;
+
+    // Validate the doctor rather than trusting the name/specialisation/fee in the body.
+    if (!doctorId || !mongoose.Types.ObjectId.isValid(doctorId)) {
+      return res.status(400).json({ message: 'A valid doctor must be selected' });
+    }
+    const doctor = await User.findById(doctorId);
+    if (!doctor || doctor.role !== 'doctor') {
+      return res.status(404).json({ message: 'Selected doctor not found' });
+    }
+    if (doctor.verificationStatus !== 'Approved' || doctor.accountStatus !== 'Active') {
+      return res.status(400).json({ message: 'Selected doctor is not currently accepting consultations' });
+    }
 
     // Validate scan ownership if a scanId is provided
     let validatedScanId = undefined;
@@ -47,13 +62,45 @@ const createConsultation = async (req, res) => {
       }
     }
 
+    // Only these fields may come from the request. Spreading req.body here previously let a
+    // patient set fee, totalAmount, paymentStatus, status, finalDiagnosis, treatmentPlan and
+    // verificationStatus — i.e. book a consultation that was already "Completed" with a
+    // diagnosis they wrote themselves.
+    const fee = Number(doctor.fee) || 0;
+
     const consultation = new Consultation({
-      ...req.body,
-      scanId: validatedScanId,
+      // Patient-supplied booking details
+      transactionId: String(req.body.transactionId || ''),
+      message: req.body.message ? String(req.body.message) : '',
+      consultationType: req.body.consultationType ? String(req.body.consultationType) : undefined,
+      date: req.body.date ? String(req.body.date) : undefined,
+      time: req.body.time ? String(req.body.time) : undefined,
+
+      // Identities and clinical findings, resolved server-side
       patientId,
       patientName,
+      doctorId: doctor._id.toString(),
+      doctorName: doctor.name,
+      doctorSpecialization: doctor.specialization,
+      scanId: validatedScanId,
+      condition: req.body.condition,
+      confidence: req.body.confidence,
+      recommendation: req.body.recommendation,
+
+      // Money, derived from the doctor record — never from the client
+      fee,
+      platformFee: PLATFORM_FEE,
+      totalAmount: fee + PLATFORM_FEE,
+
+      // Lifecycle fields always start here. paymentStatus is only 'Paid' when the checkout
+      // supplied a transaction reference from a verified Razorpay payment.
+      // TODO (P1): bind this to the verified order id so it cannot be set by replaying a
+      // transactionId — see item 9 of the review.
+      paymentStatus: req.body.transactionId ? 'Paid' : 'Pending',
+      status: 'Pending',
+      verificationStatus: 'Pending',
     });
-    
+
     const createdConsultation = await consultation.save();
     
     // Notify Doctor via in-app

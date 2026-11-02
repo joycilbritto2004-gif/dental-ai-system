@@ -7,6 +7,7 @@ import { generatePDF } from '../utils/pdfGenerator';
 import { getSocket } from '../utils/socket';
 import PersonalPrescriptionSection from '../components/PersonalPrescriptionSection';
 import './Dashboard.css';
+import { API_BASE } from '../config';
 
 const PatientDashboard = () => {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -29,7 +30,7 @@ const PatientDashboard = () => {
       if (!userStr) return;
       const user = JSON.parse(userStr);
       const token = localStorage.getItem('dentaai_token');
-      const res = await fetch(`http://localhost:5000/api/scans/${user._id || user.id}`, {
+      const res = await fetch(`${API_BASE}/api/scans/${user._id || user.id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -53,7 +54,7 @@ const PatientDashboard = () => {
       if (!userStr) return;
       const user = JSON.parse(userStr);
       const token = localStorage.getItem('dentaai_token');
-      const res = await fetch(`http://localhost:5000/api/consultations?patientId=${user._id || user.id}`, {
+      const res = await fetch(`${API_BASE}/api/consultations?patientId=${user._id || user.id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -160,7 +161,7 @@ const PatientDashboard = () => {
 
     try {
       const userToken = localStorage.getItem('dentaai_token');
-      const response = await fetch('http://localhost:5000/api/ai/predict', {
+      const response = await fetch(`${API_BASE}/api/ai/predict`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${userToken}`
@@ -183,43 +184,14 @@ const PatientDashboard = () => {
       }
       if (data.error) throw new Error(data.error);
 
-      setTimeout(async () => {
+      setTimeout(() => {
         setIsLoading(false);
-        let finalData = { ...data };
 
-        try {
-          const userStr = localStorage.getItem('dentaai_user');
-          if (userStr) {
-            const user = JSON.parse(userStr);
-            const scanId = `SCAN-${Math.floor(Math.random() * 1000000)}`;
-            const payload = {
-              patientId: user._id || user.id,
-              condition: data.condition,
-              confidence: data.confidence,
-              recommendation: data.recommendation,
-              scanId,
-              imagePath: data.imagePath || 'uploaded_image'
-            };
+        // The backend already persisted this record from the model's own output and
+        // returned the saved document, so there is nothing to post back from here.
+        const finalData = { ...data };
+        setScanHistory(prev => [finalData, ...prev]);
 
-            const saveRes = await fetch('http://localhost:5000/api/scans', {
-              method: 'POST',
-              headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${userToken}`
-              },
-              body: JSON.stringify(payload)
-            });
-
-            if (saveRes.ok) {
-              const newScan = await saveRes.json();
-              setScanHistory(prev => [newScan, ...prev]);
-              finalData = { ...finalData, _id: newScan._id, date: newScan.createdAt };
-            }
-          }
-        } catch (saveErr) {
-          console.error("Failed to save scan history", saveErr);
-        }
-        
         sessionStorage.setItem('dentaai_active_scan', JSON.stringify(finalData));
         setPredictionResult(finalData);
       }, 1500);

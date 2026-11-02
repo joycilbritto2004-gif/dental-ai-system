@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FileText, Calendar, Activity, ShieldCheck, Clock, AlertTriangle, Image as ImageIcon, Search } from 'lucide-react';
 import '../Dashboard.css';
+import { API_BASE } from '../../config';
 
 const PatientReports = () => {
   const [scanHistory, setScanHistory] = useState([]);
@@ -19,7 +20,7 @@ const PatientReports = () => {
       }
       const user = JSON.parse(userStr);
 
-      const response = await fetch(`http://localhost:5000/api/scans/${user._id || user.id}`);
+      const response = await fetch(`${API_BASE}/api/scans/${user._id || user.id}`);
       if (!response.ok) {
         throw new Error('Failed to fetch reports');
       }

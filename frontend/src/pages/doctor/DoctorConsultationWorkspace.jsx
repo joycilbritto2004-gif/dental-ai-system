@@ -5,6 +5,9 @@ import { UserCircle, BrainCircuit, Scan, CheckCircle2, Send, ChevronLeft, Shield
 import { getCareSuggestions } from '../../utils/careSuggestions';
 import { getSocket, joinConsultationRoom, leaveConsultationRoom } from '../../utils/socket';
 import '../Dashboard.css';
+import { API_BASE } from '../../config';
+import ScanImage from '../../components/ScanImage';
+import { hasScanImage } from '../../utils/scanImage';
 
 const DoctorConsultationWorkspace = () => {
   const { id } = useParams();
@@ -45,7 +48,7 @@ const DoctorConsultationWorkspace = () => {
       try {
         const token = localStorage.getItem('dentaai_token') || localStorage.getItem('token');
         const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-        const res = await fetch(`http://localhost:5000/api/consultations/${id}`, { headers });
+        const res = await fetch(`${API_BASE}/api/consultations/${id}`, { headers });
         if (!res.ok) throw new Error('Failed to fetch');
         const record = await res.json();
         
@@ -61,7 +64,7 @@ const DoctorConsultationWorkspace = () => {
 
         // Fetch existing prescription for this consultation
         try {
-          const prescRes = await fetch(`http://localhost:5000/api/prescriptions/consultation/${id}`, { headers });
+          const prescRes = await fetch(`${API_BASE}/api/prescriptions/consultation/${id}`, { headers });
           if (prescRes.ok) {
             const prescData = await prescRes.json();
             if (prescData && prescData._id) {
@@ -117,7 +120,7 @@ const DoctorConsultationWorkspace = () => {
         'Content-Type': 'application/json',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       };
-      const res = await fetch(`http://localhost:5000/api/consultations/${consId}/accept`, {
+      const res = await fetch(`${API_BASE}/api/consultations/${consId}/accept`, {
         method: 'PUT',
         headers
       });
@@ -144,7 +147,7 @@ const DoctorConsultationWorkspace = () => {
         'Content-Type': 'application/json',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       };
-      const res = await fetch(`http://localhost:5000/api/consultations/${consId}/reject`, {
+      const res = await fetch(`${API_BASE}/api/consultations/${consId}/reject`, {
         method: 'PUT',
         headers,
         body: JSON.stringify({ reason: rejectionReason.trim() })
@@ -202,7 +205,7 @@ const DoctorConsultationWorkspace = () => {
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       };
 
-      const res = await fetch('http://localhost:5000/api/prescriptions', {
+      const res = await fetch(`${API_BASE}/api/prescriptions`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -238,7 +241,7 @@ const DoctorConsultationWorkspace = () => {
     try {
       const consId = consultation?.id || consultation?._id;
       const token = localStorage.getItem('dentaai_token') || localStorage.getItem('token');
-      const res = await fetch(`http://localhost:5000/api/consultations/${consId}/complete`, {
+      const res = await fetch(`${API_BASE}/api/consultations/${consId}/complete`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -411,11 +414,11 @@ const DoctorConsultationWorkspace = () => {
           </motion.div>
 
           <motion.div variants={item} className="xray-preview-large mb-6" style={{ background: '#0F172A', borderRadius: '16px', overflow: 'hidden', border: '1px solid #cbd5e1', position: 'relative', boxShadow: '0 4px 20px rgba(15, 23, 42, 0.05)' }}>
-            {scanRecord?.imagePath && scanRecord?.imagePath !== 'uploaded_image' ? (
-              <img 
-                src={scanRecord.imagePath.startsWith('http') ? scanRecord.imagePath : `http://localhost:5000${scanRecord.imagePath}`} 
-                alt="Patient Dental Scan" 
-                style={{ width: '100%', maxHeight: '420px', objectFit: 'contain', background: '#0F172A', display: 'block' }} 
+            {hasScanImage(scanRecord?.imagePath) ? (
+              <ScanImage
+                imagePath={scanRecord.imagePath}
+                alt="Patient Dental Scan"
+                style={{ width: '100%', maxHeight: '420px', objectFit: 'contain', background: '#0F172A', display: 'block' }}
               />
             ) : consultation.imageReference ? (
               <img 

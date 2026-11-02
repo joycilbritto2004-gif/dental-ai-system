@@ -6,6 +6,8 @@ import jsPDF from 'jspdf';
 import { getConsultationStatusMeta, isMessagingActive, isMessagingPending, isMessagingCompleted, isMessagingCancelled } from '../../utils/consultationStatus';
 import { getSocket } from '../../utils/socket';
 import '../Dashboard.css';
+import { API_BASE } from '../../config';
+import { fetchScanImageUrl, hasScanImage } from '../../utils/scanImage';
 
 const PatientConsultations = () => {
   const [expandedRow, setExpandedRow] = useState(null);
@@ -25,7 +27,7 @@ const PatientConsultations = () => {
     try {
       const token = localStorage.getItem('dentaai_token') || localStorage.getItem('token');
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-      const res = await fetch('http://localhost:5000/api/consultations', { headers });
+      const res = await fetch(`${API_BASE}/api/consultations`, { headers });
       if (!res.ok) throw new Error('Failed to fetch consultations');
       const data = await res.json();
       if (isMountedRef.current) {
@@ -87,7 +89,7 @@ const PatientConsultations = () => {
     else setExpandedRow(id);
   };
 
-  const generatePDF = (cons) => {
+  const generatePDF = async (cons) => {
     const doc = new jsPDF();
     
     doc.setFontSize(22);
@@ -143,13 +145,24 @@ const PatientConsultations = () => {
     currentY = currentY + 20 + (splitTreatment.length * 7);
     
     const imagePath = cons.scanId?.imagePath;
-    if (imagePath && imagePath !== 'uploaded_image') {
+    if (hasScanImage(imagePath)) {
       doc.text("Uploaded Intraoral Scan:", 20, currentY + 10);
-      
+
+      // The image endpoint needs an Authorization header, so it is fetched as a blob
+      // and loaded from an object URL rather than pointed at directly.
+      const objectUrl = await fetchScanImageUrl(imagePath).catch((err) => {
+        console.error('Could not attach scan image to PDF:', err.message);
+        return null;
+      });
+
+      if (!objectUrl) {
+        doc.save(`DentaAI_Report_${cons.id || cons._id}.pdf`);
+        return;
+      }
+
       const img = new Image();
-      img.crossOrigin = "Anonymous";
-      img.src = imagePath.startsWith('http') ? imagePath : `http://localhost:5000${imagePath}`;
-      
+      img.src = objectUrl;
+
       img.onload = () => {
         const canvas = document.createElement("canvas");
         canvas.width = img.width;
@@ -169,10 +182,12 @@ const PatientConsultations = () => {
         
         doc.addImage(dataUrl, "JPEG", 20, currentY + 20, maxW, h);
         doc.save(`DentaAI_Report_${cons.id}.pdf`);
+        URL.revokeObjectURL(objectUrl);
       };
-      
+
       img.onerror = () => {
         doc.save(`DentaAI_Report_${cons.id}.pdf`);
+        URL.revokeObjectURL(objectUrl);
       };
     } else {
       doc.save(`DentaAI_Report_${cons.id}.pdf`);

@@ -18,6 +18,9 @@ import PrecautionsSection from '../../components/PrecautionsSection';
 import PersonalPrescriptionSection from '../../components/PersonalPrescriptionSection';
 import { getCareSuggestions } from '../../utils/careSuggestions';
 import '../Dashboard.css';
+import { API_BASE } from '../../config';
+import ScanImage from '../../components/ScanImage';
+import { hasScanImage } from '../../utils/scanImage';
 
 const PatientReportDetails = () => {
   const { id } = useParams();
@@ -38,7 +41,7 @@ const PatientReportDetails = () => {
         const token = localStorage.getItem('dentaai_token') || localStorage.getItem('token');
         const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
-        const response = await fetch(`http://localhost:5000/api/scans/${user._id || user.id}`, { headers });
+        const response = await fetch(`${API_BASE}/api/scans/${user._id || user.id}`, { headers });
         if (!response.ok) {
           throw new Error('Failed to fetch report');
         }
@@ -114,10 +117,7 @@ const PatientReportDetails = () => {
   });
   const status = getStatusInfo(report.confidence);
 
-  const hasImage = Boolean(report.imagePath && report.imagePath !== 'uploaded_image' && !imageError);
-  const imageUrl = hasImage
-    ? (report.imagePath.startsWith('http') ? report.imagePath : `http://localhost:5000${report.imagePath}`)
-    : null;
+  const hasImage = hasScanImage(report.imagePath) && !imageError;
 
   const careData = getCareSuggestions(report.condition);
 
@@ -180,9 +180,9 @@ const PatientReportDetails = () => {
           {/* Rounded Rectangular Preview Canvas with object-fit: contain */}
           <div className="scan-image-viewer">
             {hasImage ? (
-              <img 
-                src={imageUrl} 
-                alt={`Dental Scan - ${report.condition || 'Analysis'}`} 
+              <ScanImage
+                imagePath={report.imagePath}
+                alt={`Dental Scan - ${report.condition || 'Analysis'}`}
                 className="scan-image-img"
                 onError={() => setImageError(true)}
               />

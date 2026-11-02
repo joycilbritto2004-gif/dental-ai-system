@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { UserPlus, User, Stethoscope, Shield, BriefcaseMedical, AlertCircle } from 'lucide-react';
+import { UserPlus, User, Stethoscope, BriefcaseMedical, AlertCircle } from 'lucide-react';
 import { api } from '../services/api';
 import './Auth.css';
 
@@ -90,11 +90,11 @@ const Register = () => {
               <Stethoscope size={24} />
               <span>Doctor</span>
             </motion.div>
-            <motion.div whileHover={{ y: -2 }} className={`role-card ${role === 'admin' ? 'active' : ''}`} onClick={() => setRole('admin')}>
-              <Shield size={24} />
-              <span>Admin</span>
-            </motion.div>
           </div>
+
+          <p className="text-sm mb-4" style={{ color: '#64748b' }}>
+            Administrator accounts are provisioned by the DentaAI team and cannot be self-registered.
+          </p>
 
           <form onSubmit={handleRegister} className="auth-form">
             <div className="form-group mb-4">
