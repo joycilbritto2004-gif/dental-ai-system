@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Calendar, Clock, CreditCard, MessageSquare, Eye, Download, Activity, ShieldCheck } from 'lucide-react';
+import { Calendar, Clock, CreditCard, MessageSquare, Eye, Download, Activity, ShieldCheck, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import jsPDF from 'jspdf';
+import { getConsultationStatusMeta, isMessagingActive, isMessagingPending, isMessagingCompleted, isMessagingCancelled } from '../../utils/consultationStatus';
+import { getSocket } from '../../utils/socket';
 import '../Dashboard.css';
 
 const PatientConsultations = () => {
@@ -12,40 +14,73 @@ const PatientConsultations = () => {
   const location = useLocation();
   const predictionResult = location.state?.predictionResult;
 
-  useEffect(() => {
-    const fetchConsultations = async () => {
-      try {
-        const res = await fetch('http://localhost:5000/api/consultations');
-        if (!res.ok) throw new Error('Failed to fetch consultations');
-        const data = await res.json();
-        setConsultations(data);
-      } catch (err) {
-        console.error(err);
-      } finally {
+  const isFetchingRef = useRef(false);
+  const isMountedRef = useRef(true);
+
+  const fetchConsultations = useCallback(async (isInitial = false) => {
+    // Prevent overlapping / duplicate requests
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+
+    try {
+      const token = localStorage.getItem('dentaai_token') || localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await fetch('http://localhost:5000/api/consultations', { headers });
+      if (!res.ok) throw new Error('Failed to fetch consultations');
+      const data = await res.json();
+      if (isMountedRef.current) {
+        setConsultations(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      if (isMountedRef.current) {
+        console.error('Error fetching consultations:', err);
+      }
+    } finally {
+      isFetchingRef.current = false;
+      if (isInitial && isMountedRef.current) {
         setLoading(false);
       }
-    };
-    
-    fetchConsultations();
+    }
   }, []);
 
-  const getStatusType = (status) => {
-    switch (status) {
-      case 'Completed':
-      case 'Verified':
-        return 'success';
-      case 'Payment Requested':
-      case 'Pending':
-        return 'warning';
-      case 'Accepted':
-      case 'In Consultation':
-        return 'primary';
-      case 'Rejected':
-        return 'danger';
-      default:
-        return 'secondary';
+  useEffect(() => {
+    isMountedRef.current = true;
+    // Initial fetch with spinner
+    fetchConsultations(true);
+
+    // Socket.IO real-time acceptance event listener
+    const socket = getSocket();
+    const handleConsultationAccepted = (payload) => {
+      if (!isMountedRef.current) return;
+      const targetId = payload.consultationId || payload.id;
+      setConsultations(prev => prev.map(c => {
+        const cId = c.id || c._id;
+        if (String(cId) === String(targetId)) {
+          return { ...c, status: 'Accepted', ...(payload.consultation || {}) };
+        }
+        return c;
+      }));
+      fetchConsultations(false);
+    };
+
+    if (socket) {
+      socket.on('consultation-accepted', handleConsultationAccepted);
     }
-  };
+
+    // Poll every 4 seconds for automatic real-time status updates without full-page refresh as fallback
+    const intervalId = setInterval(() => {
+      fetchConsultations(false);
+    }, 4000);
+
+    // Clean up timer and unmount guard
+    return () => {
+      isMountedRef.current = false;
+      clearInterval(intervalId);
+      if (socket) {
+        socket.off('consultation-accepted', handleConsultationAccepted);
+      }
+    };
+  }, [fetchConsultations]);
 
   const toggleRow = (id) => {
     if (expandedRow === id) setExpandedRow(null);
@@ -159,7 +194,7 @@ const PatientConsultations = () => {
     >
       <motion.div 
         variants={item} 
-        className="mb-8" 
+        className="mb-8 page-header-card" 
         style={{ 
           background: 'var(--bg-card)', 
           padding: '32px 40px', 
@@ -175,8 +210,8 @@ const PatientConsultations = () => {
         <div style={{ position: 'relative', zIndex: 10 }}>
           <div className="flex-between">
             <div>
-              <h2 className="font-extrabold mb-2" style={{ color: 'var(--text-main)', letterSpacing: '-0.5px', fontSize: '2.5rem', lineHeight: '1.2', margin: 0 }}>My Appointments</h2>
-              <p className="font-medium m-0" style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>View and manage your dental appointments.</p>
+              <h2 className="font-extrabold mb-2" style={{ color: 'var(--text-primary, #17324D)', letterSpacing: '-0.5px', fontSize: '2.5rem', lineHeight: '1.2', margin: 0 }}>My Appointments</h2>
+              <p className="font-medium m-0" style={{ color: 'var(--text-secondary, #52677A)', fontSize: '1.1rem' }}>View and manage your dental appointments.</p>
             </div>
             <Link to="/dashboard/patient/recommended-doctors" state={{ predictionResult }} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 24px', borderRadius: '999px', fontWeight: 'bold', boxShadow: '0 8px 24px rgba(0, 210, 255, 0.25)' }}>
               Find New Doctor
@@ -210,8 +245,9 @@ const PatientConsultations = () => {
             const timeStr = cons?.time || '';
             const fee = cons?.fee || cons?.totalAmount || 0;
             const status = cons?.status || 'Pending';
-            const statusType = cons?.statusType || getStatusType(status);
+            const statusMeta = getConsultationStatusMeta(status);
             const isCompleted = status === 'Completed' || status === 'Verified';
+            const isCancelled = status === 'Rejected' || status === 'Cancelled';
 
             return (
               <div key={cons._id || cons.id || 'cons'} className="card" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', padding: '32px', display: 'flex', flexWrap: 'wrap', gap: '32px', alignItems: 'stretch' }}>
@@ -229,8 +265,8 @@ const PatientConsultations = () => {
                       <p style={{ color: 'var(--text-muted)', margin: '4px 0 0 0', fontSize: '0.9rem', fontWeight: 500 }}>{clinicName}</p>
                     </div>
                     <div style={{ marginLeft: 'auto' }}>
-                      <span className={`badge bg-${statusType}-light text-${statusType}`} style={{ display: 'inline-flex', alignItems: 'center', padding: '6px 14px', borderRadius: '999px', fontSize: '0.85rem', fontWeight: 800 }}>
-                        {status}
+                      <span className="badge" style={{ display: 'inline-flex', alignItems: 'center', padding: '6px 14px', borderRadius: '999px', fontSize: '0.85rem', fontWeight: 800, background: statusMeta.bg, color: statusMeta.color, border: `1px solid ${statusMeta.border}` }}>
+                        {statusMeta.label}
                       </span>
                     </div>
                   </div>
@@ -253,30 +289,65 @@ const PatientConsultations = () => {
                     </div>
                   </div>
                   
-                  {/* Action Buttons */}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: 'auto' }}>
-                    {status === 'Payment Requested' && (
-                      <Link to="/dashboard/patient/payments" className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '999px', fontWeight: 'bold' }}>
-                        <CreditCard size={16} /> Pay Now
-                      </Link>
-                    )}
-                    {(status === 'Accepted' || status === 'In Consultation') && (
-                      <Link to="/dashboard/patient/messages" state={{ consultationId: cons.id }} className="btn btn-success" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '999px', fontWeight: 'bold' }}>
-                        <MessageSquare size={16} /> Message Doctor
-                      </Link>
-                    )}
-                    
-                    {/* View Report is still a functional expansion option for uncompleted ones, or for checking notes if not rendered right */}
-                    <button className="btn btn-outline" onClick={() => toggleRow(cons.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '999px', fontWeight: 'bold' }}>
-                      <Eye size={16} /> {expandedRow === cons.id ? 'Hide Details' : 'View Details'}
-                    </button>
-                    
-                    {isCompleted && (
-                      <button className="btn btn-primary" onClick={() => generatePDF(cons)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '999px', fontWeight: 'bold', boxShadow: '0 4px 12px rgba(0, 210, 255, 0.2)' }}>
-                        <Download size={16} /> Download Report
-                      </button>
-                    )}
-                  </div>
+                    {/* Action Buttons */}
+                    {(() => {
+                      const consId = cons.id || cons._id;
+                      return (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: 'auto' }}>
+                          {status === 'Payment Requested' && (
+                            <Link to="/dashboard/patient/payments" className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '999px', fontWeight: 'bold' }}>
+                              <CreditCard size={16} /> Pay Now
+                            </Link>
+                          )}
+                          
+                          {isMessagingPending(status) && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <Link 
+                                to={`/dashboard/patient/consultation/${consId}/messages`} 
+                                state={{ consultationId: consId }} 
+                                className="btn btn-primary" 
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '999px', fontWeight: 'bold' }}
+                              >
+                                <MessageSquare size={16} /> Open Consultation
+                              </Link>
+                              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic', maxWidth: '300px', lineHeight: 1.3 }}>
+                                Request pending doctor acceptance. Messaging unlocks upon acceptance.
+                              </span>
+                            </div>
+                          )}
+
+                          {isMessagingActive(status) && (
+                            <Link to={`/dashboard/patient/consultation/${consId}/messages`} state={{ consultationId: consId }} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '999px', fontWeight: 'bold' }}>
+                              <MessageSquare size={16} /> Message Doctor
+                            </Link>
+                          )}
+
+                          {isMessagingCompleted(status) && (
+                            <Link to={`/dashboard/patient/consultation/${consId}/messages`} state={{ consultationId: consId }} className="btn btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '999px', fontWeight: 'bold' }}>
+                              <MessageSquare size={16} /> View Messages
+                            </Link>
+                          )}
+                          
+                          {isMessagingCancelled(status) && (
+                            <Link to={`/dashboard/patient/consultation/${consId}/messages`} state={{ consultationId: consId }} className="btn btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '999px', fontWeight: 'bold', color: '#dc2626', borderColor: '#fca5a5' }}>
+                              <MessageSquare size={16} /> View Details & Chat
+                            </Link>
+                          )}
+                          
+                          {/* View Report is still a functional expansion option for uncompleted ones, or for checking notes if not rendered right */}
+                          <button className="btn btn-outline" onClick={() => toggleRow(consId)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '999px', fontWeight: 'bold' }}>
+                            <Eye size={16} /> {expandedRow === consId ? 'Hide Details' : 'View Details'}
+                          </button>
+                          
+                          {isCompleted && (
+                            <button className="btn btn-primary" onClick={() => generatePDF(cons)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '999px', fontWeight: 'bold', boxShadow: '0 4px 12px rgba(0, 210, 255, 0.2)' }}>
+                              <Download size={16} /> Download Report
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
+
                   
                 </div>
 
@@ -329,10 +400,10 @@ const PatientConsultations = () => {
                   </div>
                 ) : (
                   <div style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {expandedRow === cons.id ? (
+                    {expandedRow === (cons.id || cons._id) ? (
                       <div style={{ background: 'var(--bg-primary)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border-color)', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
                         <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: 0, fontWeight: 500 }}>
-                          This consultation is currently marked as <strong style={{ color: `var(--${statusType})` }}>{status}</strong>. Please wait for the doctor to review your case and provide a final diagnosis.
+                          This consultation is currently marked as <strong style={{ color: statusMeta.color }}>{statusMeta.label}</strong>. Please wait for the doctor to review your case and provide a final diagnosis.
                         </p>
                       </div>
                     ) : (

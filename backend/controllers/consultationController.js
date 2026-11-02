@@ -1,8 +1,11 @@
 const Consultation = require('../models/Consultation');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
+const ScanHistory = require('../models/ScanHistory');
+const mongoose = require('mongoose');
 const sendEmail = require('../utils/emailService');
 const { sendSMS } = require('../utils/smsService');
+const { getIO } = require('../socket');
 
 const sendNotificationEmail = async (options) => {
   try {
@@ -23,8 +26,30 @@ const createConsultation = async (req, res) => {
     const patientId = req.user._id.toString();
     const patientName = req.user.name;
 
+    // Validate scan ownership if a scanId is provided
+    let validatedScanId = undefined;
+    if (req.body.scanId && req.body.scanId !== 'undefined' && req.body.scanId !== 'null') {
+      if (mongoose.Types.ObjectId.isValid(req.body.scanId)) {
+        const scan = await ScanHistory.findById(req.body.scanId);
+        if (!scan) {
+          return res.status(404).json({ message: 'Selected scan record not found' });
+        }
+        if (scan.patientId.toString() !== patientId) {
+          return res.status(403).json({ message: 'Not authorized: scan belongs to another patient' });
+        }
+        validatedScanId = scan._id;
+        // Ensure clinical findings match the authenticated patient scan
+        req.body.condition = scan.condition.replace(/_/g, ' ');
+        req.body.confidence = `${scan.confidence}%`;
+        req.body.recommendation = scan.recommendation || '';
+      } else {
+        return res.status(400).json({ message: 'Invalid scan ID format' });
+      }
+    }
+
     const consultation = new Consultation({
       ...req.body,
+      scanId: validatedScanId,
       patientId,
       patientName,
     });
@@ -122,16 +147,82 @@ const getConsultations = async (req, res) => {
 // @access  Public
 const getConsultationById = async (req, res) => {
   try {
-    const consultation = await Consultation.findById(req.params.id).populate('scanId');
+    let consultation = null;
+    if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+      consultation = await Consultation.findById(req.params.id).populate('scanId');
+    }
+    if (!consultation) {
+      consultation = await Consultation.findOne({ id: req.params.id }).populate('scanId');
+    }
     if (consultation) {
       // Ownership check
-      if (req.user.role === 'patient' && consultation.patientId !== req.user._id.toString()) {
+      if (req.user.role === 'patient' && String(consultation.patientId) !== req.user._id.toString()) {
         return res.status(403).json({ message: 'Not authorized to view this consultation' });
       }
-      if (req.user.role === 'doctor' && consultation.doctorId !== req.user._id.toString()) {
+      if (req.user.role === 'doctor' && String(consultation.doctorId) !== req.user._id.toString()) {
         return res.status(403).json({ message: 'Not authorized to view this consultation' });
       }
-      res.json(consultation);
+
+      const consultObj = consultation.toObject ? consultation.toObject({ virtuals: true }) : { ...consultation };
+
+      // Verify that scan belongs to the same patient if already attached
+      let unauthorizedScanDetected = false;
+      if (consultObj.scanId) {
+        const scanPatientId = consultObj.scanId.patientId ? consultObj.scanId.patientId.toString() : null;
+        if (scanPatientId && scanPatientId !== consultObj.patientId.toString()) {
+          // Security violation: scan belongs to another patient, detach foreign scan
+          consultObj.scanId = null;
+          unauthorizedScanDetected = true;
+        }
+      }
+
+      // Safe, unambiguous fallback for existing consultations where scanId was omitted:
+      // Only resolve if scanId is missing, was not an unauthorized foreign scan, and we can unambiguously identify a scan created by the SAME patient within 2 hours prior to consultation creation
+      if (!consultObj.scanId && !unauthorizedScanDetected) {
+        const consultCreatedAt = new Date(consultObj.createdAt || Date.now());
+        const twoHoursBefore = new Date(consultCreatedAt.getTime() - 2 * 60 * 60 * 1000);
+
+        const candidateScans = await ScanHistory.find({
+          patientId: mongoose.Types.ObjectId.isValid(consultObj.patientId) 
+            ? new mongoose.Types.ObjectId(consultObj.patientId) 
+            : consultObj.patientId,
+          createdAt: { $lte: consultCreatedAt, $gte: twoHoursBefore }
+        }).sort({ createdAt: -1 });
+
+        // Unambiguous only if exactly one candidate scan exists, or all candidate scans in the session share the same condition
+        let unambiguousScan = null;
+        if (candidateScans.length === 1) {
+          unambiguousScan = candidateScans[0];
+        } else if (candidateScans.length > 1) {
+          if (consultObj.condition && consultObj.condition !== 'N/A') {
+            const matches = candidateScans.filter(s => s.condition.replace(/_/g, ' ').toLowerCase() === consultObj.condition.toLowerCase());
+            if (matches.length > 0) {
+              unambiguousScan = matches[0];
+            }
+          } else {
+            const uniqueConditions = new Set(candidateScans.map(s => s.condition.toLowerCase()));
+            if (uniqueConditions.size === 1) {
+              unambiguousScan = candidateScans[0];
+            }
+          }
+        }
+
+        if (unambiguousScan) {
+          consultObj.scanId = unambiguousScan;
+          if (!consultObj.condition || consultObj.condition === 'N/A') {
+            consultObj.condition = unambiguousScan.condition.replace(/_/g, ' ');
+          }
+          if (!consultObj.confidence || consultObj.confidence === 'N/A') {
+            consultObj.confidence = `${unambiguousScan.confidence}%`;
+          }
+          if (!consultObj.recommendation) {
+            consultObj.recommendation = unambiguousScan.recommendation || '';
+          }
+          consultObj.isSafelyResolvedScan = true;
+        }
+      }
+
+      res.json(consultObj);
     } else {
       res.status(404).json({ message: 'Consultation not found' });
     }
@@ -174,7 +265,7 @@ const updateConsultation = async (req, res) => {
 
     // Allowed updates
     if (req.body.status) {
-      const allowedStatuses = ['Pending', 'Accepted', 'In Consultation', 'Completed', 'Rejected'];
+      const allowedStatuses = ['Pending', 'Accepted', 'In Consultation', 'Completed', 'Rejected', 'Booked', 'Confirmed', 'In Progress', 'Cancelled'];
       if (!allowedStatuses.includes(req.body.status)) {
         return res.status(400).json({ message: `Invalid status '${req.body.status}'. Allowed: ${allowedStatuses.join(', ')}` });
       }
@@ -212,6 +303,16 @@ const acceptConsultation = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to accept this consultation' });
     }
     
+    // Idempotency: If already accepted, return existing record safely without duplicate work
+    if (consultation.status === 'Accepted') {
+      return res.json(consultation);
+    }
+
+    // Disallow accepting consultations that are already completed, cancelled, or rejected
+    if (['Completed', 'Cancelled', 'Rejected'].includes(consultation.status)) {
+      return res.status(400).json({ message: `Cannot accept a consultation that is already ${consultation.status.toLowerCase()}` });
+    }
+
     // Verify Doctor Status
     if (consultation.doctorId) {
       const doctor = await User.findById(consultation.doctorId);
@@ -222,6 +323,34 @@ const acceptConsultation = async (req, res) => {
     
     consultation.status = 'Accepted';
     await consultation.save();
+
+    // Emit real-time Socket.IO event to authorized patient and doctor
+    try {
+      const io = getIO();
+      if (io) {
+        const payload = {
+          consultationId: consultation._id.toString(),
+          id: consultation._id.toString(),
+          status: 'Accepted',
+          doctorName: consultation.doctorName || 'Doctor',
+          doctorId: consultation.doctorId ? consultation.doctorId.toString() : null,
+          patientId: consultation.patientId ? consultation.patientId.toString() : null,
+          consultation: consultation.toObject ? consultation.toObject() : consultation
+        };
+        if (consultation.patientId) {
+          io.to(`user_${consultation.patientId}`).emit('consultation-accepted', payload);
+        }
+        if (consultation.doctorId) {
+          io.to(`user_${consultation.doctorId}`).emit('consultation-accepted', payload);
+        }
+        io.to(`consultation_${consultation._id}`).emit('consultation-accepted', payload);
+        if (consultation.id && consultation.id !== consultation._id.toString()) {
+          io.to(`consultation_${consultation.id}`).emit('consultation-accepted', payload);
+        }
+      }
+    } catch (sockErr) {
+      console.error('Socket emission error in acceptConsultation:', sockErr.message);
+    }
     
     // Notify Patient via in-app and email
     try {
@@ -288,8 +417,8 @@ const rejectConsultation = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to reject this consultation' });
     }
     
-    if (consultation.status === 'Completed') {
-      return res.status(400).json({ message: 'Cannot reject an already completed consultation' });
+    if (consultation.status === 'Completed' || consultation.status === 'Cancelled') {
+      return res.status(400).json({ message: `Cannot reject an already ${consultation.status.toLowerCase()} consultation` });
     }
 
     const { reason, rejectionReason } = req.body;
@@ -366,20 +495,39 @@ const startConsultation = async (req, res) => {
 
 // @desc    Complete consultation
 // @route   PUT /api/consultations/:id/complete
-// @access  Public
+// @access  Private (Assigned Doctor only)
 const completeConsultation = async (req, res) => {
   try {
-    const { finalDiagnosis, treatmentPlan, verificationStatus, followUpDate, followUpNote } = req.body;
-    
-    if (!finalDiagnosis || !treatmentPlan) {
-      return res.status(400).json({ message: 'Final diagnosis and treatment plan are required to complete the consultation.' });
+    let consultation = null;
+    if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+      consultation = await Consultation.findById(req.params.id);
     }
-    
-    const consultation = await Consultation.findById(req.params.id);
+    if (!consultation) {
+      consultation = await Consultation.findOne({ id: req.params.id });
+    }
     if (!consultation) return res.status(404).json({ message: 'Consultation not found' });
     
-    if (consultation.doctorId !== req.user._id.toString()) {
+    // Authorization: Only the assigned doctor can complete this consultation
+    if (String(consultation.doctorId) !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized to complete this consultation' });
+    }
+
+    // Disallow completing already finalized or cancelled cases
+    if (consultation.status === 'Completed') {
+      return res.status(400).json({ message: 'This consultation is already completed' });
+    }
+    if (['Cancelled', 'Rejected'].includes(consultation.status)) {
+      return res.status(400).json({ message: `Cannot complete a consultation that is already ${consultation.status.toLowerCase()}` });
+    }
+
+    const { finalDiagnosis, treatmentPlan, verificationStatus, followUpDate, followUpNote } = req.body;
+
+    // Use provided diagnosis/treatment or fall back to previously drafted or default summary
+    const resolvedDiagnosis = (finalDiagnosis || consultation.finalDiagnosis || 'Consultation concluded by specialist.').trim();
+    const resolvedTreatment = (treatmentPlan || consultation.treatmentPlan || 'Follow general oral hygiene and specialist recommendations.').trim();
+
+    if (!resolvedDiagnosis || !resolvedTreatment) {
+      return res.status(400).json({ message: 'Final diagnosis and treatment plan are required to complete the consultation.' });
     }
 
     // Validate verificationStatus
@@ -408,8 +556,8 @@ const completeConsultation = async (req, res) => {
     }
     
     consultation.status = 'Completed';
-    consultation.finalDiagnosis = finalDiagnosis.trim();
-    consultation.treatmentPlan = treatmentPlan.trim();
+    consultation.finalDiagnosis = resolvedDiagnosis;
+    consultation.treatmentPlan = resolvedTreatment;
     
     await consultation.save();
     

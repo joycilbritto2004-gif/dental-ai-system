@@ -18,29 +18,29 @@ const AdminAIModel = () => {
         </div>
       </motion.div>
 
-      <div className="dashboard-grid mt-6">
-        <motion.div variants={item} className="card glass-card" style={{ padding: '2rem', background: 'var(--bg-dark)', color: 'white' }}>
+      <div className="dashboard-grid">
+        <motion.div variants={item} className="card glass-card" style={{ padding: '2rem' }}>
           <div className="card-header mb-6 flex-align-center gap-2">
-            <BrainCircuit size={24} color="#00f0ff" />
-            <h3 className="font-bold" style={{ color: 'white', fontSize: '1.25rem' }}>Current Model Status</h3>
+            <BrainCircuit size={24} color="#1677FF" />
+            <h3 className="font-bold text-primary" style={{ color: '#17324D', fontSize: '1.25rem' }}>Current Model Status</h3>
           </div>
           
-          <div className="model-details mb-6" style={{ background: 'rgba(255,255,255,0.05)', padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <div className="model-detail-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-              <span style={{ color: 'rgba(255,255,255,0.6)' }}>Architecture:</span>
-              <span className="font-bold text-white">MobileNetV2</span>
+          <div className="model-details mb-6" style={{ background: 'rgba(240, 246, 252, 0.75)', padding: '1.5rem', borderRadius: '14px', border: '1px solid rgba(191, 212, 229, 0.60)' }}>
+            <div className="model-detail-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid rgba(191, 212, 229, 0.40)' }}>
+              <span className="model-detail-label" style={{ color: '#536579', fontWeight: 600 }}>Architecture:</span>
+              <span className="model-detail-value font-bold" style={{ color: '#102A43' }}>MobileNetV2</span>
             </div>
-            <div className="model-detail-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-              <span style={{ color: 'rgba(255,255,255,0.6)' }}>Version:</span>
-              <span className="font-bold text-white">v2.4.1</span>
+            <div className="model-detail-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid rgba(191, 212, 229, 0.40)' }}>
+              <span className="model-detail-label" style={{ color: '#536579', fontWeight: 600 }}>Version:</span>
+              <span className="model-detail-value font-bold" style={{ color: '#102A43' }}>v2.4.1</span>
             </div>
-            <div className="model-detail-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-              <span style={{ color: 'rgba(255,255,255,0.6)' }}>Status:</span>
-              <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#10b981' }}>Active</span>
+            <div className="model-detail-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid rgba(191, 212, 229, 0.40)' }}>
+              <span className="model-detail-label" style={{ color: '#536579', fontWeight: 600 }}>Status:</span>
+              <span className="badge badge-success" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#059669', border: '1px solid rgba(16, 185, 129, 0.35)', fontWeight: 700 }}>Active</span>
             </div>
-            <div className="model-detail-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'rgba(255,255,255,0.6)' }}>Last Trained:</span>
-              <span className="font-bold text-white">August 25, 2026</span>
+            <div className="model-detail-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0' }}>
+              <span className="model-detail-label" style={{ color: '#536579', fontWeight: 600 }}>Last Trained:</span>
+              <span className="model-detail-value font-bold" style={{ color: '#102A43' }}>August 25, 2026</span>
             </div>
           </div>
           
@@ -48,34 +48,34 @@ const AdminAIModel = () => {
         </motion.div>
 
         <motion.div variants={item} className="card glass-card" style={{ padding: '2rem' }}>
-          <h3 className="font-bold text-primary mb-6" style={{ fontSize: '1.25rem' }}>System Performance</h3>
+          <h3 className="font-bold text-primary mb-6" style={{ color: '#17324D', fontSize: '1.25rem' }}>System Performance</h3>
           
           <div style={{ marginBottom: '1.5rem' }}>
             <div className="flex-between mb-2">
-              <span className="text-muted">Average Inference Time</span>
-              <span className="font-bold">120ms</span>
+              <span className="text-muted" style={{ color: '#536579', fontWeight: 600 }}>Average Inference Time</span>
+              <span className="font-bold text-primary" style={{ color: '#102A43' }}>120ms</span>
             </div>
-            <div style={{ width: '100%', height: '8px', background: 'rgba(0,0,0,0.1)', borderRadius: '4px' }}>
-              <div style={{ width: '15%', height: '100%', background: '#10b981', borderRadius: '4px' }}></div>
+            <div style={{ width: '100%', height: '8px', background: 'rgba(191, 212, 229, 0.40)', borderRadius: '4px' }}>
+              <div style={{ width: '15%', height: '100%', background: '#10B981', borderRadius: '4px' }}></div>
             </div>
           </div>
 
           <div style={{ marginBottom: '1.5rem' }}>
             <div className="flex-between mb-2">
-              <span className="text-muted">Prediction Accuracy (Verified)</span>
-              <span className="font-bold text-primary">94.2%</span>
+              <span className="text-muted" style={{ color: '#536579', fontWeight: 600 }}>Prediction Accuracy (Verified)</span>
+              <span className="font-bold text-primary" style={{ color: '#102A43' }}>94.2%</span>
             </div>
-            <div style={{ width: '100%', height: '8px', background: 'rgba(0,0,0,0.1)', borderRadius: '4px' }}>
-              <div style={{ width: '94.2%', height: '100%', background: 'var(--primary)', borderRadius: '4px' }}></div>
+            <div style={{ width: '100%', height: '8px', background: 'rgba(191, 212, 229, 0.40)', borderRadius: '4px' }}>
+              <div style={{ width: '94.2%', height: '100%', background: '#1677FF', borderRadius: '4px' }}></div>
             </div>
           </div>
           
-          <div className="alert alert-info" style={{ marginTop: '2rem', padding: '1rem', background: 'rgba(0, 210, 255, 0.1)', borderRadius: '8px', border: '1px solid rgba(0, 210, 255, 0.2)', color: 'var(--primary)' }}>
+          <div className="alert alert-info" style={{ marginTop: '2rem', padding: '1rem', background: 'rgba(22, 119, 255, 0.08)', borderRadius: '12px', border: '1px solid rgba(22, 119, 255, 0.22)', color: '#17324D' }}>
             <div className="flex-align-center gap-2 mb-2">
-              <Activity size={18} />
-              <span className="font-bold">System is operating normally</span>
+              <Activity size={18} color="#1677FF" />
+              <span className="font-bold" style={{ color: '#17324D' }}>System is operating normally</span>
             </div>
-            <p className="text-sm">The Flask API is actively handling requests via port 5001.</p>
+            <p className="text-sm" style={{ color: '#536579', margin: 0 }}>The Python AI service is actively handling requests via port 5002.</p>
           </div>
         </motion.div>
       </div>

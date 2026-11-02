@@ -10,7 +10,9 @@ const PatientPayments = () => {
   useEffect(() => {
     const fetchPayments = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/consultations');
+        const token = localStorage.getItem('dentaai_token') || localStorage.getItem('token');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        const res = await fetch('http://localhost:5000/api/consultations', { headers });
         if (!res.ok) throw new Error('Failed to fetch payments');
         const myPayments = await res.json();
 

@@ -159,8 +159,17 @@ const PatientHealthTips = () => {
 
           {/* GENERAL TIPS SECTION */}
           <div style={{ marginTop: '16px' }}>
-            <h3 className="mb-6 font-extrabold flex-align-center gap-2" style={{ color: 'var(--text-primary)', fontSize: '1.5rem' }}>
-              <ShieldCheck size={24} className="text-secondary" /> General Dental Health Guidelines
+            <h3 
+              className="mb-6 flex-align-center gap-2" 
+              style={{ 
+                color: '#FFFFFF', 
+                fontWeight: 700, 
+                fontSize: '1.5rem', 
+                letterSpacing: '-0.3px',
+                textShadow: '0 2px 10px rgba(0, 0, 0, 0.4)' 
+              }}
+            >
+              <ShieldCheck size={24} color="#00D2FF" style={{ flexShrink: 0 }} /> General Dental Health Guidelines
             </h3>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>

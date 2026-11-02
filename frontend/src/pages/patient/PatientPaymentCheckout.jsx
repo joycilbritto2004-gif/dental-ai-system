@@ -7,11 +7,43 @@ import '../Dashboard.css';
 const PatientPaymentCheckout = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { doctor, consultationType, date, time, platformFee, message, predictionResult } = location.state || {};
+
+  // Persist and restore checkout state across browser refreshes
+  const [sessionData] = useState(() => {
+    if (location.state && location.state.doctor) {
+      sessionStorage.setItem('dentaai_checkout_session', JSON.stringify(location.state));
+      return location.state;
+    }
+    const saved = sessionStorage.getItem('dentaai_checkout_session');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to parse saved checkout session', e);
+      }
+    }
+    return {};
+  });
+
+  const { doctor, consultationType, date, time, platformFee, message, predictionResult } = sessionData;
+
+  // Preserve active scan across page refreshes or route transitions
+  const activeScan = predictionResult || (() => {
+    const savedScan = sessionStorage.getItem('dentaai_active_scan');
+    if (savedScan) {
+      try {
+        return JSON.parse(savedScan);
+      } catch (e) {
+        console.error('Failed to parse saved active scan', e);
+      }
+    }
+    return null;
+  })();
 
   const [paymentMethod, setPaymentMethod] = useState('upi');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [createdConsultationId, setCreatedConsultationId] = useState(null);
   const [transactionId, setTransactionId] = useState('');
 
   const stagger = {
@@ -98,19 +130,20 @@ const PatientPaymentCheckout = () => {
             if (verifyRes.ok && verifyData.verified) {
                // Proceed to create consultation in database
                const txnId = response.razorpay_payment_id;
+               const scanMongoId = activeScan ? (activeScan._id || activeScan.id) : undefined;
                
                const newConsultation = {
                  id: Date.now().toString(),
                  transactionId: txnId,
                  patientId: dynamicPatientId,
                  patientName: dynamicPatientName, 
-                 doctorId: doctor.id,
+                 doctorId: doctor.id || doctor._id,
                  doctorName: doctor.name,
                  doctorSpecialization: doctor.specialization,
-                 scanId: predictionResult ? (predictionResult._id || predictionResult.id) : undefined,
-                 condition: predictionResult?.condition?.replace('_', ' ') || "N/A",
-                 confidence: predictionResult ? `${predictionResult.confidence}%` : "N/A",
-                 recommendation: predictionResult?.recommendation || "",
+                 scanId: scanMongoId,
+                 condition: activeScan?.condition ? activeScan.condition.replace(/_/g, ' ') : "N/A",
+                 confidence: activeScan?.confidence ? (String(activeScan.confidence).includes('%') ? activeScan.confidence : `${activeScan.confidence}%`) : "N/A",
+                 recommendation: activeScan?.recommendation || "",
                  message: message || "",
                  consultationType,
                  date,
@@ -133,8 +166,17 @@ const PatientPaymentCheckout = () => {
                });
                
                if (!consRes.ok) {
-                 throw new Error('Failed to create consultation record after payment');
+                 const errJson = await consRes.json().catch(() => ({}));
+                 throw new Error(errJson.message || 'Failed to create consultation record after payment');
                }
+
+               // Clean up persisted booking cache on success
+               const createdData = await consRes.json().catch(() => ({}));
+               const newId = createdData?._id || createdData?.id;
+               if (newId) setCreatedConsultationId(newId);
+
+               sessionStorage.removeItem('dentaai_checkout_session');
+               sessionStorage.removeItem('dentaai_active_scan');
 
                setTransactionId(txnId);
                setIsProcessing(false);
@@ -199,7 +241,17 @@ const PatientPaymentCheckout = () => {
               <span className="font-bold text-secondary">{transactionId}</span>
             </div>
           </div>
-          <Link to="/dashboard/patient/consultations" className="btn btn-primary w-full btn-lg" style={{ display: 'flex', justifyContent: 'center', borderRadius: '999px', fontWeight: 'bold', boxShadow: '0 8px 24px rgba(0, 210, 255, 0.25)' }}>
+          {createdConsultationId && (
+            <Link 
+              to={`/dashboard/patient/consultation/${createdConsultationId}/messages`} 
+              state={{ consultationId: createdConsultationId }}
+              className="btn btn-primary w-full btn-lg mb-3" 
+              style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', borderRadius: '999px', fontWeight: 'bold', boxShadow: '0 8px 24px rgba(0, 210, 255, 0.25)' }}
+            >
+              Open Consultation Workspace
+            </Link>
+          )}
+          <Link to="/dashboard/patient/consultations" className={`btn ${createdConsultationId ? 'btn-outline' : 'btn-primary'} w-full btn-lg`} style={{ display: 'flex', justifyContent: 'center', borderRadius: '999px', fontWeight: 'bold' }}>
             Go to My Appointments
           </Link>
         </div>
@@ -379,6 +431,23 @@ const PatientPaymentCheckout = () => {
                 <strong className="text-primary" style={{ width: '120px' }}>Schedule:</strong>
                 <span className="text-muted font-medium">{date} at {time}</span>
               </div>
+              {activeScan && (
+                <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px dashed var(--border-color)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--secondary)', fontWeight: 700, fontSize: '0.85rem', textTransform: 'uppercase', marginBottom: '8px' }}>
+                    <ShieldCheck size={16} /> Attached AI Scan
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span className="text-muted">Finding:</span>
+                    <strong className="text-primary" style={{ textTransform: 'capitalize' }}>{activeScan.condition?.replace(/_/g, ' ') || 'Scan Attached'}</strong>
+                  </div>
+                  {activeScan.confidence && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span className="text-muted">AI Confidence:</span>
+                      <strong className="text-secondary">{String(activeScan.confidence).includes('%') ? activeScan.confidence : `${activeScan.confidence}%`}</strong>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </motion.div>
 

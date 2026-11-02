@@ -19,7 +19,7 @@ const consultationSchema = new mongoose.Schema({
   platformFee: { type: Number },
   totalAmount: { type: Number },
   paymentStatus: { type: String, default: 'Paid' },
-  status: { type: String, default: 'Pending', enum: ['Pending', 'Accepted', 'In Consultation', 'Completed', 'Rejected'] },
+  status: { type: String, default: 'Pending', enum: ['Pending', 'Accepted', 'In Consultation', 'Completed', 'Rejected', 'Booked', 'Confirmed', 'In Progress', 'Cancelled'] },
   finalDiagnosis: { type: String },
   treatmentPlan: { type: String },
   verificationStatus: { type: String, default: 'Pending', enum: ['Pending', 'Verified', 'Requires further examination'] },
@@ -30,6 +30,13 @@ const consultationSchema = new mongoose.Schema({
 
 // We transform _id to id so frontend can just use .id
 consultationSchema.set('toJSON', {
+  virtuals: true,
+  versionKey: false,
+  transform: function (doc, ret) {
+    ret.id = ret._id;
+  }
+});
+consultationSchema.set('toObject', {
   virtuals: true,
   versionKey: false,
   transform: function (doc, ret) {

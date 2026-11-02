@@ -3,11 +3,339 @@
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
   position: relative;
   z-index: 10;
+  box-sizing: border-box;
 }
+
+/* Responsive Patient KPI Grid */
+.patient-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+  width: 100%;
+  margin-bottom: 24px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1200px) {
+  .patient-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .patient-kpi-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* Responsive Patient Main 2-Column Grid */
+.patient-main-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  width: 100%;
+  align-items: start;
+  box-sizing: border-box;
+}
+
+@media (max-width: 992px) {
+  .patient-main-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+/* Responsive Precautions & Recommendations Styling */
+.precautions-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  color: #17324D;
+  box-sizing: border-box;
+}
+
+.precautions-card-wrapper {
+  background: var(--card-bg, #FFFFFF);
+  border: 1px solid var(--border-color, #BFD4E5);
+  border-radius: 24px !important;
+  padding: 32px 36px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.precautions-header-bar {
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+.precautions-header-title {
+  color: #17324D !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.3px;
+  line-height: 1.25;
+  text-shadow: none !important;
+  opacity: 1 !important;
+}
+
+.precautions-header-subtitle {
+  color: #40566F !important;
+  font-weight: 600 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+.precautions-header-icon.is-supported {
+  background: rgba(0, 166, 166, 0.12) !important;
+  color: #00A6A6 !important;
+}
+
+.precautions-header-icon.is-supported svg {
+  color: #00A6A6 !important;
+  stroke: #00A6A6 !important;
+}
+
+@media (max-width: 640px) {
+  .precautions-card-wrapper {
+    padding: 20px 16px !important;
+  }
+}
+
+.precautions-daily-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .precautions-daily-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+.precautions-dentist-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .precautions-dentist-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+.precautions-action-buttons {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .precautions-action-buttons {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .precautions-action-buttons > button,
+  .precautions-action-buttons > a {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+/* Safety & Compliance Notices Layout */
+.precautions-safety-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  margin-top: 2px;
+  box-sizing: border-box;
+}
+
+/* Emergency Red-Flag Notice Banner (Compact Medical Alert) */
+.emergency-notice-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: rgba(254, 242, 242, 0.75);
+  border: 1px solid rgba(239, 68, 68, 0.22);
+  border-left: 3px solid #EF4444;
+  border-radius: 8px;
+  padding: 7px 12px;
+  width: 100%;
+  box-sizing: border-box;
+  box-shadow: 0 1px 2px rgba(220, 38, 38, 0.02);
+  transition: all 0.2s ease;
+}
+
+.emergency-notice-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #DC2626;
+  margin-top: 1px;
+}
+
+.emergency-notice-content {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #7F1D1D;
+  text-align: left;
+}
+
+.emergency-notice-heading {
+  font-weight: 700;
+  color: #991B1B;
+  display: inline;
+  margin-right: 5px;
+  letter-spacing: -0.01em;
+}
+
+.emergency-notice-text {
+  font-weight: 500;
+  color: #7F1D1D;
+  display: inline;
+}
+
+/* AI Dental Safety Disclaimer Banner */
+.ai-disclaimer-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #F4F8FD;
+  border: 1px solid #D6E4F0;
+  border-radius: 8px;
+  padding: 7px 12px;
+  width: 100%;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.ai-disclaimer-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #0284C7;
+  margin-top: 1px;
+}
+
+.ai-disclaimer-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.785rem;
+  line-height: 1.4;
+  color: #1E3A5F;
+  font-weight: 500;
+  text-align: left;
+}
+
+/* Responsive adjustments for safety notices */
+@media (max-width: 768px) {
+  .emergency-notice-banner {
+    padding: 6px 10px;
+    gap: 7px;
+  }
+  .emergency-notice-content {
+    font-size: 0.78rem;
+    line-height: 1.38;
+  }
+  .ai-disclaimer-banner {
+    padding: 6px 10px;
+    gap: 7px;
+  }
+  .ai-disclaimer-text {
+    font-size: 0.765rem;
+    line-height: 1.38;
+  }
+}
+
+@media (max-width: 480px) {
+  .precautions-safety-group {
+    gap: 5px;
+  }
+  .emergency-notice-banner {
+    padding: 6px 8px;
+    gap: 6px;
+    border-radius: 6px;
+  }
+  .emergency-notice-content {
+    font-size: 0.76rem;
+    line-height: 1.35;
+  }
+  .ai-disclaimer-banner {
+    padding: 5px 8px;
+    gap: 6px;
+    border-radius: 6px;
+  }
+  .ai-disclaimer-text {
+    font-size: 0.745rem;
+    line-height: 1.35;
+  }
+}
+
+
+/* Patient Welcome Banner AI Dental Visual Treatment */
+.welcome-banner-artwork {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 440px;
+  max-width: 48%;
+  pointer-events: none;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  overflow: hidden;
+  transition: opacity 0.3s ease;
+}
+
+.welcome-banner-text {
+  position: relative;
+  z-index: 10;
+  max-width: calc(100% - 240px);
+}
+
+@media (max-width: 992px) {
+  .welcome-banner-text {
+    max-width: 100% !important;
+  }
+  .welcome-banner-artwork {
+    opacity: 0.35 !important;
+    width: 260px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .welcome-banner-artwork {
+    opacity: 0.2 !important;
+    width: 180px !important;
+  }
+}
+
+
 
 .dashboard-header {
   margin-bottom: 0.5rem;
@@ -170,11 +498,12 @@
 }
 
 .patient-meta-box {
-  background: var(--bg-card);
-  border: 1px solid var(--border-glass);
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
   border-radius: var(--radius-lg);
   padding: 1.5rem 2rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+  color: #0f172a;
 }
 .patient-id-group {
   display: flex;
@@ -223,6 +552,42 @@
   margin-bottom: 1.5rem;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--border-color);
+}
+
+/* Physician Verification Form Typography & Inputs */
+.verification-form {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+.verification-form .form-section-title {
+  color: #0f172a !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.verification-form .form-label {
+  color: #334155 !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+}
+
+.verification-form .form-input {
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  background-color: #ffffff;
+}
+
+.verification-form .form-input:disabled {
+  background-color: #f8fafc !important;
+  color: #334155 !important;
+  -webkit-text-fill-color: #334155 !important;
+  opacity: 0.9 !important;
+  cursor: not-allowed;
+}
+
+.verification-form .form-input::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1 !important;
 }
 
 .btn-lg {
@@ -283,24 +648,25 @@
 }
 
 .ai-result-box {
-  background: var(--bg-dark);
-  border: 1px solid rgba(0, 210, 255, 0.4);
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
   border-radius: var(--radius-lg);
-  padding: 2rem;
-  color: white;
+  padding: 1.5rem;
+  color: #0f172a;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
 }
 .result-header {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   font-weight: 700;
-  color: var(--secondary);
+  color: #0f172a;
   margin-bottom: 1rem;
 }
 .disease-name {
   font-size: 1.75rem;
   font-weight: 800;
-  color: white;
+  color: #0f172a;
   margin-bottom: 1rem;
 }
 
@@ -309,21 +675,100 @@
   justify-content: space-between;
   font-size: 0.9rem;
   margin-bottom: 0.75rem;
-  color: rgba(255,255,255,0.7);
+  color: #475569;
 }
 .font-semibold { font-weight: 600; }
 .font-bold { font-weight: 700; }
 .progress-bar {
   height: 8px;
-  background: rgba(255,255,255,0.1);
+  background: #e2e8f0;
   border-radius: 999px;
   overflow: hidden;
 }
 .progress-fill {
   height: 100%;
-  background: var(--secondary);
+  background: linear-gradient(90deg, #1677FF 0%, #00A6A6 100%);
   border-radius: 999px;
-  box-shadow: 0 0 10px var(--secondary);
+  box-shadow: none;
+}
+
+/* AI Result Box Dedicated Sub-Sections */
+.ai-result-box .pathology-section,
+.ai-result-box .confidence-section,
+.ai-result-box .suggestions-section {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.ai-result-box .recommendation-section {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.ai-result-box .section-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: block;
+}
+
+.ai-result-box .section-value {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-top: 6px;
+}
+
+.ai-result-box .recommendation-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: #0369a1;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-result-box .recommendation-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #334155;
+  line-height: 1.6;
+  margin-top: 8px;
+}
+
+.ai-result-box .suggestions-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: #0f766e;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-result-box .suggestions-list {
+  font-size: 14px;
+  font-weight: 500;
+  color: #334155;
+  line-height: 1.6;
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+}
+
+.ai-result-box .suggestions-list li {
+  color: #334155;
+  margin-bottom: 6px;
 }
 
 .verification-actions {
@@ -712,3 +1157,341 @@
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
 }
+
+/* ==========================================================================
+   Report Details & AI Analysis Result - Modern Glassmorphism Styling
+   ========================================================================== */
+
+/* Report Page Responsive Layout: Top 2-Column Grid */
+.report-columns-grid {
+  display: grid;
+  grid-template-columns: minmax(360px, 460px) 1fr;
+  gap: 28px;
+  align-items: stretch;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1080px) {
+  .report-columns-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+/* Backward-compatible layout class */
+.report-details-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Translucent Glassmorphic Cards for Report Page */
+.report-glass-card {
+  background: rgba(255, 255, 255, 0.84) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.75) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 10px 35px rgba(10, 25, 48, 0.08) !important;
+  box-sizing: border-box !important;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Scan Image Card (Left Column) */
+.report-scan-card {
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-sizing: border-box;
+}
+
+.report-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.report-header-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: rgba(0, 166, 166, 0.12);
+  color: #00A6A6;
+  flex-shrink: 0;
+}
+
+.report-card-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #17324D;
+  letter-spacing: -0.3px;
+}
+
+/* Scan Image Preview Canvas */
+.scan-image-viewer {
+  width: 100%;
+  aspect-ratio: 16/10;
+  min-height: 250px;
+  max-height: 380px;
+  border-radius: 18px;
+  background: radial-gradient(circle at center, rgba(15, 30, 55, 0.03) 0%, rgba(15, 30, 55, 0.07) 100%), #F8FAFC;
+  border: 1px solid rgba(191, 212, 229, 0.65);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.02);
+}
+
+.scan-image-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  transition: transform 0.25s ease;
+}
+
+.scan-image-img:hover {
+  transform: scale(1.02);
+}
+
+.scan-image-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 20px;
+  text-align: center;
+  color: #52677A;
+  gap: 10px;
+}
+
+.scan-image-empty-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  background: rgba(191, 212, 229, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #00A6A6;
+  margin-bottom: 4px;
+}
+
+.scan-image-empty-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #17324D;
+  margin: 0;
+}
+
+.scan-image-empty-sub {
+  font-size: 0.85rem;
+  color: #64748B;
+  margin: 0;
+  max-width: 240px;
+  line-height: 1.4;
+}
+
+/* Metadata Rows below Scan Image */
+.report-metadata-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.report-metadata-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(248, 250, 252, 0.75);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  font-size: 0.92rem;
+}
+
+.report-metadata-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #52677A;
+  font-weight: 600;
+}
+
+.report-metadata-value {
+  font-weight: 700;
+  color: #17324D;
+  letter-spacing: -0.2px;
+}
+
+/* AI Analysis Result Card (Right Column) */
+.ai-analysis-card {
+  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-sizing: border-box;
+  justify-content: flex-start;
+}
+
+.predicted-condition-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.predicted-condition-label {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  font-weight: 800;
+  color: #52677A;
+  margin: 0;
+}
+
+.predicted-condition-value {
+  font-size: 2.15rem;
+  font-weight: 800;
+  color: #17324D;
+  margin: 0;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+  text-transform: capitalize;
+}
+
+/* Confidence Score & Progress Bar */
+.confidence-score-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.confidence-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.confidence-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #40566F;
+  margin: 0;
+}
+
+.confidence-value-teal {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #00A6A6;
+  letter-spacing: -0.3px;
+}
+
+.confidence-progress-track {
+  width: 100%;
+  height: 9px;
+  background: rgba(191, 212, 229, 0.45);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.confidence-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #F59E0B 0%, #FBBF24 100%);
+  transition: width 1s ease-in-out;
+}
+
+.ai-preliminary-card {
+  background: rgba(240, 249, 255, 0.85);
+  border: 1px solid rgba(186, 230, 253, 0.8);
+  border-left: 4px solid #00A6A6;
+  border-radius: 14px;
+  padding: 16px 20px;
+  box-sizing: border-box;
+}
+
+.ai-preliminary-header {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 800;
+  color: #00A6A6;
+  margin: 0 0 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ai-preliminary-text {
+  margin: 0;
+  font-size: 0.96rem;
+  line-height: 1.6;
+  font-weight: 500;
+  color: #17324D;
+}
+
+/* Recommendations Card — Spanning full container width */
+.report-recommendations-card {
+  padding: 30px 34px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Consult Specialist Button */
+.report-consult-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 28px;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #FFFFFF;
+  background: linear-gradient(135deg, #00A6A6 0%, #06C6E8 100%);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 166, 166, 0.35);
+  transition: all 0.25s ease;
+  text-decoration: none;
+}
+
+.report-consult-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 166, 166, 0.45);
+  filter: brightness(1.05);
+}
+
+@media (max-width: 640px) {
+  .report-scan-card,
+  .ai-analysis-card,
+  .report-recommendations-card {
+    padding: 20px 16px !important;
+    border-radius: 18px !important;
+  }
+  .predicted-condition-value {
+    font-size: 1.75rem;
+  }
+  .scan-image-viewer {
+    min-height: 220px;
+  }
+}
+

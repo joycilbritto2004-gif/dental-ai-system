@@ -15,7 +15,10 @@ const AdminDoctors = () => {
       const user = JSON.parse(userStr);
       const userId = user._id || user.id;
 
-      const res = await fetch(`http://localhost:5000/api/admin/users?userId=${userId}`);
+      const token = localStorage.getItem('dentaai_token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+      const res = await fetch(`http://localhost:5000/api/admin/users?userId=${userId}`, { headers });
       if (res.ok) {
         const data = await res.json();
         setDoctors(data.filter(u => u.role === 'doctor'));
@@ -39,22 +42,29 @@ const AdminDoctors = () => {
     try {
       const userStr = localStorage.getItem('dentaai_user');
       const user = JSON.parse(userStr);
-      const userId = user._id || user.id;
+      const adminId = user._id || user.id;
 
-      const res = await fetch(`http://localhost:5000/api/admin/users/${doctorId}/doctor-status?userId=${userId}`, {
+      const token = localStorage.getItem('dentaai_token');
+      const headers = { 
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      };
+
+      const res = await fetch(`http://localhost:5000/api/admin/users/${doctorId}/doctor-status?userId=${adminId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ status: newStatus })
       });
 
       if (res.ok) {
-        fetchDoctors(); // Refresh the list
+        fetchDoctors();
       } else {
-        alert("Failed to update status.");
+        const data = await res.json();
+        alert(`Failed to update status: ${data.message || 'Unknown error'}`);
       }
     } catch (err) {
-      console.error("Error updating status:", err);
-      alert("Error updating status.");
+      console.error("Error updating doctor status:", err);
+      alert("Error updating doctor status.");
     }
   };
 
@@ -73,70 +83,88 @@ const AdminDoctors = () => {
     <motion.div className="dashboard-view" initial="hidden" animate="show" variants={stagger}>
       <motion.div variants={item} className="dashboard-header flex-between mb-6">
         <div>
-          <h2>Doctors Management</h2>
-          <p>Manage specialist accounts and verifications.</p>
+          <h2>Doctor Verification Management</h2>
+          <p>Review and verify doctors applying to join the DentaAI platform.</p>
         </div>
       </motion.div>
 
       <motion.div variants={item} className="card glass-card" style={{ padding: '2rem' }}>
         <div className="flex-between mb-6">
-          <div className="search-bar flex-align-center" style={{ background: 'rgba(255,255,255,0.05)', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', width: '300px' }}>
-            <Search size={18} className="text-muted mr-2" />
+          <div className="search-bar flex-align-center" style={{ background: 'rgba(255, 255, 255, 0.85)', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid rgba(191, 212, 229, 0.70)', width: '300px' }}>
+            <Search size={18} className="mr-2" style={{ color: '#536579' }} />
             <input 
               type="text" 
               placeholder="Search doctors..." 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{ background: 'transparent', border: 'none', color: 'var(--text-light)', outline: 'none', width: '100%' }}
+              style={{ background: 'transparent', border: 'none', color: '#17324D', outline: 'none', width: '100%', fontWeight: 500 }}
             />
           </div>
         </div>
 
         {isLoading ? (
-          <div className="p-8 text-center"><Activity className="animate-spin mx-auto text-primary mb-4" size={32} /> Loading Doctors...</div>
+          <div className="p-8 text-center" style={{ color: '#536579' }}><Activity className="animate-spin mx-auto text-primary mb-4" size={32} /> Loading Doctors...</div>
         ) : (
           <div className="table-responsive">
             <table className="modern-table">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Verification</th>
-                  <th>Joined</th>
-                  <th>Account</th>
+                  <th>Doctor</th>
+                  <th>License Number</th>
+                  <th>Specialization</th>
+                  <th>Experience</th>
+                  <th>Status</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredDoctors.length > 0 ? filteredDoctors.map(u => (
-                  <motion.tr key={u._id} whileHover={{ backgroundColor: 'rgba(0, 210, 255, 0.05)' }}>
-                    <td className="font-bold text-primary flex-align-center gap-2">
-                      <div className="avatar-circle bg-primary text-white" style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem' }}>
+                  <motion.tr key={u._id} whileHover={{ backgroundColor: 'rgba(22, 119, 255, 0.05)' }}>
+                    <td className="font-bold flex-align-center gap-2">
+                      <div className="avatar-circle" style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', background: '#1677FF', color: '#FFFFFF' }}>
                         {u.name.charAt(0)}
                       </div>
-                      {u.name}
+                      <div>
+                        <div style={{ color: '#17324D', fontWeight: 700 }}>{u.name}</div>
+                        <span className="text-muted text-xs" style={{ color: '#536579' }}>{u.email}</span>
+                      </div>
                     </td>
-                    <td className="text-muted text-sm">{u.email}</td>
+                    <td className="text-sm font-semibold" style={{ color: '#102A43' }}>{u.licenseNumber || 'PENDING-LIC'}</td>
+                    <td className="text-sm" style={{ color: '#536579' }}>{u.specialization || 'General Dentistry'}</td>
+                    <td className="text-sm" style={{ color: '#536579' }}>{u.experience ? `${u.experience} yrs` : 'N/A'}</td>
                     <td>
                       <span className="badge" style={{ 
                         background: u.verificationStatus === 'Approved' ? 'rgba(16, 185, 129, 0.1)' : u.verificationStatus === 'Rejected' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)', 
-                        color: u.verificationStatus === 'Approved' ? '#10b981' : u.verificationStatus === 'Rejected' ? '#ef4444' : '#f59e0b',
+                        color: u.verificationStatus === 'Approved' ? '#059669' : u.verificationStatus === 'Rejected' ? '#ef4444' : '#d97706',
                         border: `1px solid ${u.verificationStatus === 'Approved' ? 'rgba(16, 185, 129, 0.3)' : u.verificationStatus === 'Rejected' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`
                       }}>
                         {u.verificationStatus || 'Pending'}
                       </span>
                     </td>
-                    <td className="text-muted text-sm">{new Date(u.createdAt).toLocaleDateString()}</td>
-                    <td><span className="badge" style={{ background: u.accountStatus === 'Blocked' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)', color: u.accountStatus === 'Blocked' ? '#ef4444' : '#059669', border: `1px solid ${u.accountStatus === 'Blocked' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'}` }}>{u.accountStatus || 'Active'}</span></td>
                     <td>
-                      {(!u.verificationStatus || u.verificationStatus === 'Pending') ? (
-                        <div className="flex-align-center gap-2">
-                          <button onClick={() => handleStatusUpdate(u._id, 'Approved')} className="btn btn-sm" style={{ padding: '0.25rem 0.5rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer' }}>Approve</button>
-                          <button onClick={() => handleStatusUpdate(u._id, 'Rejected')} className="btn btn-sm" style={{ padding: '0.25rem 0.5rem', background: 'transparent', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer' }}>Reject</button>
-                        </div>
-                      ) : (
-                        <span className="text-muted text-sm">Actioned</span>
-                      )}
+                      <div className="flex-align-center gap-2">
+                        {u.verificationStatus !== 'Approved' && (
+                          <button 
+                            onClick={() => handleStatusUpdate(u._id, 'Approved')} 
+                            className="btn btn-sm" 
+                            style={{ padding: '0.25rem 0.5rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer' }}
+                          >
+                            Approve
+                          </button>
+                        )}
+                        {u.verificationStatus !== 'Rejected' && (
+                          <button 
+                            onClick={() => handleStatusUpdate(u._id, 'Rejected')} 
+                            className="btn btn-sm" 
+                            style={{ padding: '0.25rem 0.5rem', background: 'transparent', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer' }}
+                          >
+                            Reject
+                          </button>
+                        )}
+                        {u.verificationStatus === 'Approved' && (
+                          <span className="text-muted text-xs">Verified</span>
+                        )}
+                      </div>
                     </td>
                   </motion.tr>
                 )) : (

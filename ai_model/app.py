@@ -78,7 +78,7 @@ def predict():
             img_array = np.expand_dims(img_array, axis=0)
             img_array = tf.keras.applications.mobilenet_v2.preprocess_input(img_array)
             
-            predictions = model.predict(img_array)
+            predictions = model.predict(img_array, verbose=0)
             predicted_index = np.argmax(predictions[0])
             confidence = float(predictions[0][predicted_index]) * 100
             condition = CLASS_NAMES[predicted_index]

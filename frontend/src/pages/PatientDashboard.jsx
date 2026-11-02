@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, Image as ImageIcon, HeartPulse, CheckCircle2, Clock, Info, X, ShieldCheck, Search, Calendar, Zap, FileText, Download, Check, FileStack, ArrowRight } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getCareSuggestions } from '../utils/careSuggestions';
 import { generatePDF } from '../utils/pdfGenerator';
+import { getSocket } from '../utils/socket';
 import './Dashboard.css';
 
 const PatientDashboard = () => {
@@ -17,6 +18,8 @@ const PatientDashboard = () => {
   const [consultations, setConsultations] = useState([]);
   const [showReport, setShowReport] = useState(false);
   const fileInputRef = useRef(null);
+  const isFetchingConsultationsRef = useRef(false);
+  const isMountedRef = useRef(true);
 
   const [userName, setUserName] = useState('');
   
@@ -31,14 +34,20 @@ const PatientDashboard = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        setScanHistory(data);
+        if (isMountedRef.current) {
+          setScanHistory(data);
+        }
       }
     } catch (err) {
-      console.error('Error fetching history:', err);
+      if (isMountedRef.current) {
+        console.error('Error fetching history:', err);
+      }
     }
   };
 
-  const fetchConsultations = async () => {
+  const fetchConsultations = useCallback(async () => {
+    if (isFetchingConsultationsRef.current) return;
+    isFetchingConsultationsRef.current = true;
     try {
       const userStr = localStorage.getItem('dentaai_user');
       if (!userStr) return;
@@ -49,16 +58,39 @@ const PatientDashboard = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        setConsultations(data);
+        if (isMountedRef.current) {
+          setConsultations(Array.isArray(data) ? data : []);
+        }
       }
     } catch (err) {
-      console.error('Error fetching consultations:', err);
+      if (isMountedRef.current) {
+        console.error('Error fetching consultations:', err);
+      }
+    } finally {
+      isFetchingConsultationsRef.current = false;
     }
-  };
+  }, []);
 
   useEffect(() => {
+    isMountedRef.current = true;
     fetchScanHistory();
     fetchConsultations();
+
+    // Socket.IO real-time acceptance event listener
+    const socket = getSocket();
+    const handleAccepted = () => {
+      fetchConsultations();
+    };
+
+    if (socket) {
+      socket.on('consultation-accepted', handleAccepted);
+    }
+    
+    // Polling every 5 seconds for automatic consultation updates as fallback
+    const intervalId = setInterval(() => {
+      fetchConsultations();
+    }, 5000);
+
     const userStr = localStorage.getItem('dentaai_user');
     if (userStr) {
       try {
@@ -68,7 +100,15 @@ const PatientDashboard = () => {
         console.error('Error parsing user data:', e);
       }
     }
-  }, []);
+
+    return () => {
+      isMountedRef.current = false;
+      clearInterval(intervalId);
+      if (socket) {
+        socket.off('consultation-accepted', handleAccepted);
+      }
+    };
+  }, [fetchConsultations]);
 
   const stagger = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.1 } } };
   const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
@@ -190,6 +230,7 @@ const PatientDashboard = () => {
           console.error("Failed to save scan history", saveErr);
         }
         
+        sessionStorage.setItem('dentaai_active_scan', JSON.stringify(finalData));
         setPredictionResult(finalData);
       }, 1500);
 
@@ -258,16 +299,10 @@ const PatientDashboard = () => {
                     <button onClick={handleRemoveImage} style={{ position: 'absolute', top: '12px', right: '12px', background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-muted)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
                       <X size={16} />
                     </button>
-                    {isLoading && (
-                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ position: 'absolute', inset: 0, background: 'rgba(255, 255, 255, 0.9)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: '16px' }}>
-                        <div style={{ width: '60px', height: '60px', border: '4px solid rgba(0, 210, 255, 0.2)', borderTopColor: 'var(--secondary)', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: '16px' }}></div>
-                        <div style={{ color: 'var(--secondary)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>Analyzing Image...</div>
-                      </motion.div>
-                    )}
                   </motion.div>
                 ) : (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                    <div style={{ background: '#E0EEFF', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                    <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 4px 15px rgba(22, 119, 255, 0.15)' }}>
                       <Upload size={28} color="#1677FF" />
                     </div>
                     <h4 style={{ color: 'var(--text-primary)', fontWeight: 800, margin: '0 0 8px 0', fontSize: '1.1rem' }}>Drop intraoral image here</h4>
@@ -458,12 +493,10 @@ const PatientDashboard = () => {
           
           {/* CONSULTATION CTA */}
           <motion.div variants={item} style={{ background: 'var(--gradient-primary)', borderRadius: '24px', padding: '32px', color: '#FFFFFF', boxShadow: '0 10px 30px rgba(22, 119, 255, 0.25)', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '150px', height: '150px', background: 'var(--secondary)', opacity: 0.15, borderRadius: '50%', filter: 'blur(30px)' }}></div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-              <div style={{ background: 'rgba(0, 210, 255, 0.2)', padding: '10px', borderRadius: '12px', color: 'var(--secondary)' }}><ShieldCheck size={24} /></div>
-              <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800 }}>Need Professional Verification?</h3>
-            </div>
-            <p style={{ margin: '0 0 24px 0', fontSize: '1rem', opacity: 0.9, lineHeight: 1.5, fontWeight: 500 }}>Connect with verified dental specialists to review your AI scan results and get a personalized care plan.</p>
+            <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: '0 0 12px 0' }}>Need an Official Diagnosis?</h3>
+            <p style={{ fontSize: '1rem', lineHeight: 1.5, opacity: 0.9, margin: '0 0 24px 0', fontWeight: 500 }}>
+              Connect with a licensed dentist to verify your AI scan, receive clinical assessments, and discuss treatment options.
+            </p>
             <Link to="/dashboard/patient/recommended-doctors" state={{ predictionResult }} style={{ background: 'var(--secondary)', color: '#FFFFFF', padding: '14px 24px', borderRadius: '12px', fontWeight: 800, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s', boxShadow: '0 4px 15px rgba(0, 210, 255, 0.25)' }}>
               Get Verified by a Dentist <ArrowRight size={18} />
             </Link>
@@ -559,12 +592,11 @@ const KPICard = ({ icon, value, label, color, bg, borderColor }) => (
     <div style={{ width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: bg, color: color, borderRadius: '16px', flexShrink: 0 }}>
       {icon}
     </div>
-    <div>
-      <span style={{ display: 'block', fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>{value}</span>
-      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</span>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <span style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>{value}</span>
+      <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600, marginTop: '2px' }}>{label}</span>
     </div>
   </motion.div>
 );
 
 export default PatientDashboard;
-

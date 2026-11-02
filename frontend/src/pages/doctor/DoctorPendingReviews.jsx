@@ -40,10 +40,12 @@ const DoctorPendingReviews = () => {
         const user = JSON.parse(userStr);
         DOCTOR_ID = user._id || user.id;
       }
-      const res = await fetch(`http://localhost:5000/api/consultations?doctorId=${DOCTOR_ID}`);
+      const token = localStorage.getItem('dentaai_token') || localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await fetch(`http://localhost:5000/api/consultations?doctorId=${DOCTOR_ID}`, { headers });
       if (!res.ok) throw new Error('Failed to fetch');
       const stored = await res.json();
-      const myPending = stored.filter(c => c.status === "Pending");
+      const myPending = stored.filter(c => c.status === "Pending" || c.status === "Booked");
       
       myPending.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
       setRequests(myPending);
@@ -62,11 +64,17 @@ const DoctorPendingReviews = () => {
       return;
     }
     try {
+      const token = localStorage.getItem('dentaai_token') || localStorage.getItem('token');
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      };
       const res = await fetch(`http://localhost:5000/api/consultations/${reqId}/accept`, {
-        method: 'PUT'
+        method: 'PUT',
+        headers
       });
       if (!res.ok) throw new Error('Failed to accept consultation');
-      setRequests(prev => prev.map(r => r.id === reqId ? { ...r, status: 'Accepted' } : r));
+      setRequests(prev => prev.map(r => ((r.id === reqId || r._id === reqId) ? { ...r, status: 'Accepted' } : r)));
     } catch (e) {
       console.error(e);
       alert('Failed to accept consultation.');
@@ -75,18 +83,24 @@ const DoctorPendingReviews = () => {
 
   const handleConfirmReject = async () => {
     if (!rejectingItem) return;
+    const targetId = rejectingItem.id || rejectingItem._id;
     setIsRejecting(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/consultations/${rejectingItem.id}/reject`, {
+      const token = localStorage.getItem('dentaai_token') || localStorage.getItem('token');
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      };
+      const res = await fetch(`http://localhost:5000/api/consultations/${targetId}/reject`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ reason: rejectionReason.trim() })
       });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.message || 'Failed to reject consultation');
       }
-      setRequests(prev => prev.filter(r => r.id !== rejectingItem.id));
+      setRequests(prev => prev.filter(r => (r.id !== targetId && r._id !== targetId)));
       setRejectingItem(null);
       setRejectionReason('');
     } catch (err) {
@@ -178,6 +192,13 @@ const DoctorPendingReviews = () => {
                           >
                             <XCircle size={14} /> Decline
                           </button>
+                          <Link 
+                            to={`/dashboard/doctor/consultation/${req.id || req._id}`} 
+                            className="btn btn-sm btn-outline flex-align-center gap-1 font-semibold"
+                            style={{ borderColor: '#cbd5e1', color: '#0f172a' }}
+                          >
+                            <Eye size={14} /> View Case
+                          </Link>
                         </div>
                       ) : (
                         <Link 

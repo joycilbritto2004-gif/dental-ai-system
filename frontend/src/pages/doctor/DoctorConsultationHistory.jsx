@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, History, Eye, UserCircle, Search, Filter } from 'lucide-react';
+import { Calendar, History, Eye, UserCircle, Search, Filter, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getConsultationStatusMeta } from '../../utils/consultationStatus';
 import '../Dashboard.css';
 
 const DoctorConsultationHistory = () => {
@@ -20,14 +21,17 @@ const DoctorConsultationHistory = () => {
           DOCTOR_ID = user._id || user.id;
         }
         
-        const res = await fetch(`http://localhost:5000/api/consultations?doctorId=${DOCTOR_ID}`);
+        const token = localStorage.getItem('dentaai_token') || localStorage.getItem('token');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        const res = await fetch(`http://localhost:5000/api/consultations?doctorId=${DOCTOR_ID}`, { headers });
         if (!res.ok) throw new Error('Failed to fetch from backend');
         const stored = await res.json();
         
         const myHistory = stored.filter(c => (
           c.status === "Completed" || 
           c.status === "Verified" || 
-          c.status === "Rejected"
+          c.status === "Rejected" ||
+          c.status === "Cancelled"
         ));
         
         myHistory.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
@@ -40,16 +44,6 @@ const DoctorConsultationHistory = () => {
     };
     fetchHistory();
   }, []);
-
-  const getStatusBadge = (status) => {
-    if (status === 'Completed' || status === 'Verified') {
-      return { bg: 'rgba(22, 163, 74, 0.1)', color: '#16A34A', border: 'rgba(22, 163, 74, 0.3)' };
-    }
-    if (status === 'Rejected') {
-      return { bg: 'rgba(220, 38, 38, 0.1)', color: '#DC2626', border: 'rgba(220, 38, 38, 0.3)' };
-    }
-    return { bg: 'rgba(245, 158, 11, 0.1)', color: '#F59E0B', border: 'rgba(245, 158, 11, 0.3)' };
-  };
 
   const filteredCases = historyCases.filter(req => {
     const term = searchTerm.toLowerCase().trim();
@@ -130,7 +124,7 @@ const DoctorConsultationHistory = () => {
             <tbody>
               {filteredCases.length > 0 ? (
                 filteredCases.map(req => {
-                  const badge = getStatusBadge(req.status);
+                  const statusMeta = getConsultationStatusMeta(req.status);
                   return (
                     <motion.tr key={req.id} whileHover={{ backgroundColor: 'rgba(0, 166, 166, 0.05)' }}>
                       <td>
@@ -145,7 +139,7 @@ const DoctorConsultationHistory = () => {
                         </div>
                       </td>
                       <td className="text-main">
-                        {req.status === 'Rejected' ? (
+                        {req.status === 'Rejected' || req.status === 'Cancelled' ? (
                           <div>
                             <span style={{ color: '#dc2626', fontWeight: 600 }}>Declined</span>
                             {req.rejectionReason && (
@@ -172,14 +166,19 @@ const DoctorConsultationHistory = () => {
                       </td>
                       <td className="font-bold">₹{req.fee || req.totalAmount || 0}</td>
                       <td>
-                        <span className="badge" style={{ background: badge.bg, color: badge.color, border: `1px solid ${badge.border}` }}>
-                          {req.status}
+                        <span className="badge" style={{ background: statusMeta.bg, color: statusMeta.color, border: `1px solid ${statusMeta.border}`, padding: '4px 10px', borderRadius: '999px', fontWeight: 700 }}>
+                          {statusMeta.label}
                         </span>
                       </td>
                       <td>
-                        <Link to={`/dashboard/doctor/consultation/${req.id}`} className="btn btn-outline btn-sm flex-align-center gap-1">
-                          <Eye size={14} /> View
-                        </Link>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <Link to={`/dashboard/doctor/consultation/${req.id}`} className="btn btn-outline btn-sm flex-align-center gap-1" title="View Workspace">
+                            <Eye size={14} /> View
+                          </Link>
+                          <Link to={`/dashboard/doctor/consultation/${req.id}/messages`} state={{ consultationId: req.id }} className="btn btn-outline btn-sm flex-align-center gap-1" title="View Consultation Messages">
+                            <MessageSquare size={14} /> Messages
+                          </Link>
+                        </div>
                       </td>
                     </motion.tr>
                   );

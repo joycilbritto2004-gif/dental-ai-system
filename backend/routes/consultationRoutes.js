@@ -13,11 +13,11 @@ const {
 } = require('../controllers/consultationController');
 
 router.route('/').get(protect, getConsultations).post(protect, restrictTo('patient'), createConsultation);
-router.route('/:id').get(protect, getConsultationById).put(protect, updateConsultation);
+router.route('/:id').get(protect, getConsultationById).put(protect, updateConsultation).patch(protect, updateConsultation);
 
-router.route('/:id/accept').put(protect, restrictTo('doctor'), acceptConsultation);
-router.route('/:id/reject').put(protect, restrictTo('doctor'), rejectConsultation);
-router.route('/:id/start').put(protect, restrictTo('doctor'), startConsultation);
-router.route('/:id/complete').put(protect, restrictTo('doctor'), completeConsultation);
+router.route('/:id/accept').put(protect, restrictTo('doctor'), acceptConsultation).patch(protect, restrictTo('doctor'), acceptConsultation);
+router.route('/:id/reject').put(protect, restrictTo('doctor'), rejectConsultation).patch(protect, restrictTo('doctor'), rejectConsultation);
+router.route('/:id/start').put(protect, restrictTo('doctor'), startConsultation).patch(protect, restrictTo('doctor'), startConsultation);
+router.route('/:id/complete').put(protect, restrictTo('doctor'), completeConsultation).patch(protect, restrictTo('doctor'), completeConsultation);
 
 module.exports = router;
