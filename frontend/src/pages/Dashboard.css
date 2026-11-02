@@ -1495,3 +1495,21 @@
   }
 }
 
+
+
+/* Personal Prescription Styles & Print View */
+.personal-prescription-wrapper {
+  transition: all 0.2s ease;
+}
+
+@media print {
+  .print-prescription-sheet {
+    display: block !important;
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    padding: 20px !important;
+  }
+  .btn-print-prescription {
+    display: none !important;
+  }
+}

@@ -25,7 +25,8 @@ const consultationSchema = new mongoose.Schema({
   verificationStatus: { type: String, default: 'Pending', enum: ['Pending', 'Verified', 'Requires further examination'] },
   followUpDate: { type: String },
   followUpNote: { type: String },
-  rejectionReason: { type: String }
+  rejectionReason: { type: String },
+  prescriptionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Prescription' }
 }, { timestamps: true });
 
 // We transform _id to id so frontend can just use .id

@@ -68,3 +68,5 @@ frontend/lint_output.txt
 # Local Database & QA Artifacts
 data/
 qa/screenshots/
+scratch/
+

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UserCircle, BrainCircuit, Scan, CheckCircle2, Send, ChevronLeft, ShieldCheck, Zap, AlertCircle, MessageSquare, Clock, XCircle, X, Lock } from 'lucide-react';
+import { UserCircle, BrainCircuit, Scan, CheckCircle2, Send, ChevronLeft, ShieldCheck, Zap, AlertCircle, MessageSquare, Clock, XCircle, X, Lock, Pill, Plus, Trash2, Printer } from 'lucide-react';
 import { getCareSuggestions } from '../../utils/careSuggestions';
 import { getSocket, joinConsultationRoom, leaveConsultationRoom } from '../../utils/socket';
 import '../Dashboard.css';
@@ -17,6 +17,13 @@ const DoctorConsultationWorkspace = () => {
   const [verificationStatus, setVerificationStatus] = useState('Verified');
   const [followUpDate, setFollowUpDate] = useState('');
   const [followUpNote, setFollowUpNote] = useState('');
+
+  // Personal Prescription State
+  const [medications, setMedications] = useState([]);
+  const [additionalCareInstructions, setAdditionalCareInstructions] = useState('');
+  const [isSavingPrescription, setIsSavingPrescription] = useState(false);
+  const [prescriptionMessage, setPrescriptionMessage] = useState(null);
+  const [prescriptionId, setPrescriptionId] = useState(null);
 
   // Approval / Decline state
   const [isActionLoading, setIsActionLoading] = useState(false);
@@ -50,6 +57,25 @@ const DoctorConsultationWorkspace = () => {
           setFollowUpDate(record.followUpDate || '');
           setFollowUpNote(record.followUpNote || '');
           if (record.status === 'Completed') setIsCompleted(true);
+        }
+
+        // Fetch existing prescription for this consultation
+        try {
+          const prescRes = await fetch(`http://localhost:5000/api/prescriptions/consultation/${id}`, { headers });
+          if (prescRes.ok) {
+            const prescData = await prescRes.json();
+            if (prescData && prescData._id) {
+              setPrescriptionId(prescData._id);
+              if (Array.isArray(prescData.medications) && prescData.medications.length > 0) {
+                setMedications(prescData.medications);
+              }
+              if (prescData.additionalInstructions) {
+                setAdditionalCareInstructions(prescData.additionalInstructions);
+              }
+            }
+          }
+        } catch (pErr) {
+          console.warn('No existing prescription or fetch error:', pErr.message);
         }
       } catch (err) {
         console.error(err);
@@ -137,6 +163,72 @@ const DoctorConsultationWorkspace = () => {
     }
   };
 
+  const handleAddMedication = () => {
+    setMedications(prev => [
+      ...prev,
+      { medicineName: '', dosage: '', frequency: '', duration: '', instructions: '' }
+    ]);
+  };
+
+  const handleRemoveMedication = (index) => {
+    setMedications(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleMedicationChange = (index, field, value) => {
+    setMedications(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  const handleSavePrescription = async (e) => {
+    if (e) e.preventDefault();
+    const consId = consultation?.id || consultation?._id || id;
+    if (!consId) return;
+
+    const validMeds = medications.filter(m => m.medicineName?.trim() && m.dosage?.trim());
+    if (validMeds.length === 0) {
+      alert('Please add at least one medication with medicine name, dosage, frequency, and duration.');
+      return;
+    }
+
+    try {
+      setIsSavingPrescription(true);
+      setPrescriptionMessage(null);
+      const token = localStorage.getItem('dentaai_token') || localStorage.getItem('token');
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      };
+
+      const res = await fetch('http://localhost:5000/api/prescriptions', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          consultationId: consId,
+          medications: validMeds,
+          additionalInstructions: additionalCareInstructions
+        })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || 'Failed to save prescription');
+      }
+
+      const savedData = await res.json();
+      setPrescriptionId(savedData._id);
+      setPrescriptionMessage('Prescription successfully saved and issued to patient!');
+      setTimeout(() => setPrescriptionMessage(null), 5000);
+    } catch (err) {
+      console.error('Save prescription error:', err);
+      alert(err.message || 'Error saving prescription');
+    } finally {
+      setIsSavingPrescription(false);
+    }
+  };
+
   const handleComplete = async () => {
     if (!finalDiagnosis || !treatmentPlan) {
       alert("Please enter both a final diagnosis and a treatment plan before completing.");
@@ -152,7 +244,7 @@ const DoctorConsultationWorkspace = () => {
           'Content-Type': 'application/json',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
-        body: JSON.stringify({ finalDiagnosis, treatmentPlan, verificationStatus, followUpDate, followUpNote })
+        body: JSON.stringify({ finalDiagnosis, treatmentPlan, verificationStatus, followUpDate, followUpNote, medications: medications.filter(m => m.medicineName?.trim()), additionalInstructions: additionalCareInstructions })
       });
       if (!res.ok) throw new Error('Failed to update');
       setIsCompleted(true);
@@ -478,6 +570,217 @@ const DoctorConsultationWorkspace = () => {
                 disabled={isCompleted} 
                 style={{ background: isCompleted ? '#f8fafc' : '#ffffff', color: '#0f172a', borderColor: '#cbd5e1', resize: 'vertical' }}
               ></textarea>
+            </div>
+
+            {/* PRESCRIPTION MANAGEMENT SECTION */}
+            <div 
+              style={{
+                margin: '20px 0',
+                padding: '20px',
+                background: '#F0FDF9',
+                border: '1.5px solid #99E3D8',
+                borderRadius: '14px'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ background: 'rgba(0, 166, 166, 0.15)', color: '#00A6A6', padding: '6px', borderRadius: '8px', display: 'flex' }}>
+                    <Pill size={18} />
+                  </div>
+                  <div>
+                    <h5 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#17324D' }}>
+                      Personal Prescription (Rx)
+                    </h5>
+                    <span style={{ fontSize: '0.8rem', color: '#52677A', fontWeight: 500 }}>
+                      Add verified medications and specific dosage instructions
+                    </span>
+                  </div>
+                </div>
+
+                {prescriptionId && (
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#15803D', background: '#DCFCE7', border: '1px solid #86EFAC', padding: '4px 10px', borderRadius: '999px' }}>
+                    ✓ Active Prescription
+                  </span>
+                )}
+              </div>
+
+              {/* Success Notification */}
+              {prescriptionMessage && (
+                <div style={{ background: '#DCFCE7', color: '#15803D', border: '1px solid #86EFAC', padding: '10px 14px', borderRadius: '10px', fontSize: '0.88rem', fontWeight: 700, marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle2 size={16} /> {prescriptionMessage}
+                </div>
+              )}
+
+              {/* Medication List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '14px' }}>
+                {medications.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '16px', background: '#FFFFFF', borderRadius: '10px', border: '1px dashed #CBD5E1', color: '#64748B', fontSize: '0.88rem' }}>
+                    No medications added yet. Click &quot;Add Medication&quot; below to prescribe.
+                  </div>
+                ) : (
+                  medications.map((med, idx) => (
+                    <div 
+                      key={idx}
+                      style={{
+                        background: '#FFFFFF',
+                        border: '1px solid #E2E8F0',
+                        borderRadius: '10px',
+                        padding: '12px 14px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#00A6A6' }}>
+                          Medication #{idx + 1}
+                        </span>
+                        {!isCompleted && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMedication(idx)}
+                            style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                            title="Remove medication"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
+                        <div>
+                          <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '2px' }}>Medicine Name</label>
+                          <input 
+                            type="text"
+                            placeholder="e.g. Amoxicillin"
+                            value={med.medicineName}
+                            onChange={(e) => handleMedicationChange(idx, 'medicineName', e.target.value)}
+                            disabled={isCompleted}
+                            style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '2px' }}>Dosage</label>
+                          <input 
+                            type="text"
+                            placeholder="e.g. 500mg"
+                            value={med.dosage}
+                            onChange={(e) => handleMedicationChange(idx, 'dosage', e.target.value)}
+                            disabled={isCompleted}
+                            style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '2px' }}>Frequency</label>
+                          <input 
+                            type="text"
+                            placeholder="e.g. Twice daily"
+                            value={med.frequency}
+                            onChange={(e) => handleMedicationChange(idx, 'frequency', e.target.value)}
+                            disabled={isCompleted}
+                            style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '2px' }}>Duration</label>
+                          <input 
+                            type="text"
+                            placeholder="e.g. 5 days"
+                            value={med.duration}
+                            onChange={(e) => handleMedicationChange(idx, 'duration', e.target.value)}
+                            disabled={isCompleted}
+                            style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '2px' }}>Instructions</label>
+                        <input 
+                          type="text"
+                          placeholder="e.g. Take after food with a full glass of water"
+                          value={med.instructions}
+                          onChange={(e) => handleMedicationChange(idx, 'instructions', e.target.value)}
+                          disabled={isCompleted}
+                          style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
+                        />
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Add Medication & Save Prescription Buttons */}
+              {!isCompleted && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={handleAddMedication}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      background: '#FFFFFF',
+                      color: '#00A6A6',
+                      border: '1px dashed #00A6A6',
+                      padding: '7px 14px',
+                      borderRadius: '8px',
+                      fontWeight: 700,
+                      fontSize: '0.84rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Plus size={15} /> Add Medication
+                  </button>
+
+                  {medications.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleSavePrescription}
+                      disabled={isSavingPrescription}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: '#00A6A6',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        padding: '7px 16px',
+                        borderRadius: '8px',
+                        fontWeight: 700,
+                        fontSize: '0.84rem',
+                        cursor: isSavingPrescription ? 'not-allowed' : 'pointer',
+                        boxShadow: '0 2px 8px rgba(0, 166, 166, 0.25)'
+                      }}
+                    >
+                      <Pill size={15} /> {isSavingPrescription ? 'Saving...' : 'Save & Issue Prescription'}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Additional Dental Care Instructions */}
+              <div style={{ marginTop: '16px' }}>
+                <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                  Additional Dental Care Instructions (Patient Advice)
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Rinse with warm saline water twice daily, avoid hard or sticky foods on affected side."
+                  value={additionalCareInstructions}
+                  onChange={(e) => setAdditionalCareInstructions(e.target.value)}
+                  disabled={isCompleted}
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px',
+                    borderRadius: '8px',
+                    border: '1px solid #CBD5E1',
+                    fontSize: '0.85rem',
+                    background: isCompleted ? '#F8FAFC' : '#FFFFFF',
+                    resize: 'vertical'
+                  }}
+                />
+              </div>
             </div>
 
             <div className="form-group mb-5">

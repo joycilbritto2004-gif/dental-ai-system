@@ -22,7 +22,9 @@ const DoctorProfileView = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/auth/profile');
+        const token = localStorage.getItem('dentaai_token') || localStorage.getItem('token');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        const res = await fetch('http://localhost:5000/api/auth/profile', { headers });
         if (res.ok) {
           const user = await res.json();
           const cleanName = user.name || '';
@@ -73,9 +75,13 @@ const DoctorProfileView = () => {
     setIsSaved(false);
 
     try {
+      const token = localStorage.getItem('dentaai_token') || localStorage.getItem('token');
       const res = await fetch('http://localhost:5000/api/auth/profile', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({
           name: profile.name.trim(),
           specialization: profile.specialization.trim(),

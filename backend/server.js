@@ -43,6 +43,7 @@ app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/doctors', require('./routes/doctorRoutes'));
 app.use('/api/ai', require('./routes/aiRoutes'));
 app.use('/api/payment', require('./routes/paymentRoutes'));
+app.use('/api/prescriptions', require('./routes/prescriptionRoutes'));
 
 // Basic route
 app.get('/', (req, res) => {

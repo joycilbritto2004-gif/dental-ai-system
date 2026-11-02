@@ -15,6 +15,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import PrecautionsSection from '../../components/PrecautionsSection';
+import PersonalPrescriptionSection from '../../components/PersonalPrescriptionSection';
 import { getCareSuggestions } from '../../utils/careSuggestions';
 import '../Dashboard.css';
 
@@ -297,6 +298,15 @@ const PatientReportDetails = () => {
           )}
         </motion.div>
       </div>
+
+      {/* PERSONAL PRESCRIPTION SECTION */}
+      <motion.div variants={item}>
+        <PersonalPrescriptionSection
+          condition={report.condition}
+          confidence={report.confidence}
+          scanId={report._id || report.scanId}
+        />
+      </motion.div>
 
       {/* RECOMMENDATIONS SECTION — Spanning full container width, perfectly aligned with the report columns above */}
       <motion.div variants={item} className="report-glass-card report-recommendations-card">
