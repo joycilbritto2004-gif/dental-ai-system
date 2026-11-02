@@ -11,8 +11,13 @@ const protect = async (req, res, next) => {
     try {
       token = req.headers.authorization.split(' ')[1];
 
+      if (!process.env.JWT_SECRET) {
+        console.error('CRITICAL: JWT_SECRET environment variable is not configured.');
+        return res.status(500).json({ message: 'Authentication configuration error' });
+      }
+
       // Verify token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret_fallback');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
       // Get user from the token
       req.user = await User.findById(decoded.id).select('-password');
@@ -29,7 +34,7 @@ const protect = async (req, res, next) => {
   }
 
   if (!token) {
-    res.status(401).json({ message: 'Not authorized, no token' });
+    return res.status(401).json({ message: 'Not authorized, no token' });
   }
 };
 

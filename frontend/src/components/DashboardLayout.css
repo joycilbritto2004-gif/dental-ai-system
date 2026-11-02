@@ -5,76 +5,349 @@
   transition: all 0.3s ease;
 }
 
-.patient-portal-theme, .doctor-portal-theme {
-  --bg-main: #E8F1F8;
-  --bg-card: #FFFFFF;
-  --card-bg: #FFFFFF;
-  --card-bg-dark: #FFFFFF;
+.patient-portal-theme.dashboard-layout {
+  background-color: #0A192F;
+  background-image: 
+    linear-gradient(135deg, rgba(8, 20, 42, 0.65) 0%, rgba(10, 25, 48, 0.55) 50%, rgba(6, 16, 32, 0.70) 100%),
+    url('../assets/doctor-patient-bg.png');
+  background-size: cover;
+  background-position: center right;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.doctor-portal-theme.dashboard-layout {
+  background-color: #0A192F;
+  background-image: 
+    linear-gradient(135deg, rgba(8, 20, 42, 0.62) 0%, rgba(10, 25, 48, 0.52) 50%, rgba(6, 16, 32, 0.66) 100%),
+    url('../assets/dentaai-background.png');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.admin-portal-theme.dashboard-layout {
+  background-color: #0A192F;
+  background-image: 
+    linear-gradient(135deg, rgba(8, 20, 42, 0.52) 0%, rgba(10, 25, 48, 0.42) 50%, rgba(6, 16, 32, 0.58) 100%),
+    url('../assets/dentaai-background.png');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.patient-portal-theme {
+  --bg-main: transparent;
+  --bg-card: rgba(255, 255, 255, 0.78);
+  --card-bg: rgba(255, 255, 255, 0.78);
+  --card-bg-dark: rgba(255, 255, 255, 0.70);
+  --bg-primary: rgba(255, 255, 255, 0.70);
+  --bg-secondary: rgba(255, 255, 255, 0.70);
   --text-primary: #17324D;
   --text-main: #17324D;
-  --text-secondary: #52677A;
-  --text-muted: #718496;
-  --border-color: #BFD4E5;
-  --border-glass: #BFD4E5;
-  --sidebar-bg: #D6E8F5;
+  --text-secondary: #334155;
+  --text-muted: #475569;
+  --border-color: rgba(255, 255, 255, 0.65);
+  --border-glass: rgba(191, 212, 229, 0.50);
+  --sidebar-bg: rgba(255, 255, 255, 0.55);
   --success: #16A34A;
   --warning: #F59E0B;
   --danger: #DC2626;
   --primary: #1677FF;
-  --primary-dark: #1261D6;
-  --primary-light: #14B8A6;
+  --primary-dark: #00A6A6;
+  --primary-light: #00D2FF;
   --secondary: #00A6A6;
   --indigo: #CFE8FF;
-  --gradient-primary: linear-gradient(135deg, #1677FF, #00A6A6);
-  --gradient-secondary: linear-gradient(135deg, #1677FF, #00A6A6);
-  --gradient-soft: linear-gradient(90deg, #1677FF, #00A6A6);
-  --gradient-card: linear-gradient(135deg, #1677FF, #00A6A6);
-  --gradient-header: linear-gradient(135deg, #CFE8FF, #D9F7F2);
-  --gradient-upload: linear-gradient(135deg, #F0F7FF, #E7FAF7);
+  --gradient-primary: linear-gradient(135deg, #1677FF, #00D2FF);
+  --gradient-secondary: linear-gradient(135deg, #1677FF, #00D2FF);
+  --gradient-soft: linear-gradient(90deg, #1677FF, #00D2FF);
+  --gradient-card: rgba(255, 255, 255, 0.78);
+  --gradient-header: rgba(255, 255, 255, 0.80);
+  --gradient-upload: linear-gradient(135deg, rgba(235, 248, 255, 0.65) 0%, rgba(225, 245, 252, 0.65) 100%);
 }
 
-.patient-portal-theme .dashboard-sidebar, .doctor-portal-theme .dashboard-sidebar {
-  background: var(--sidebar-bg);
-  border-right: 1px solid var(--border-color);
-  box-shadow: none;
+.doctor-portal-theme {
+  --bg-main: transparent;
+  --bg-card: rgba(255, 255, 255, 0.82);
+  --card-bg: rgba(255, 255, 255, 0.82);
+  --card-bg-dark: rgba(255, 255, 255, 0.72);
+  --bg-primary: rgba(255, 255, 255, 0.75);
+  --bg-secondary: rgba(255, 255, 255, 0.75);
+  --text-primary: #17324D;
+  --text-main: #17324D;
+  --text-secondary: #334155;
+  --text-muted: #475569;
+  --border-color: rgba(255, 255, 255, 0.65);
+  --border-glass: rgba(191, 212, 229, 0.50);
+  --sidebar-bg: rgba(255, 255, 255, 0.55);
+  --success: #16A34A;
+  --warning: #F59E0B;
+  --danger: #DC2626;
+  --primary: #1677FF;
+  --primary-dark: #00A6A6;
+  --primary-light: #00D2FF;
+  --secondary: #008DFF;
+  --indigo: #CFE8FF;
+  --gradient-primary: linear-gradient(135deg, #1677FF, #00D2FF);
+  --gradient-secondary: linear-gradient(135deg, #1677FF, #00D2FF);
+  --gradient-soft: linear-gradient(90deg, #1677FF, #00D2FF);
+  --gradient-card: rgba(255, 255, 255, 0.82);
+  --gradient-header: rgba(255, 255, 255, 0.80);
+  --gradient-upload: linear-gradient(135deg, rgba(235, 248, 255, 0.65) 0%, rgba(225, 245, 252, 0.65) 100%);
 }
 
-.patient-portal-theme .sidebar-brand, .doctor-portal-theme .sidebar-brand {
-  border-bottom: 1px solid var(--border-color);
+.admin-portal-theme {
+  --bg-main: transparent;
+  --bg-card: rgba(255, 255, 255, 0.82);
+  --card-bg: rgba(255, 255, 255, 0.82);
+  --card-bg-dark: rgba(255, 255, 255, 0.72);
+  --bg-primary: rgba(255, 255, 255, 0.75);
+  --bg-secondary: rgba(255, 255, 255, 0.75);
+  --text-primary: #17324D;
+  --text-main: #17324D;
+  --text-secondary: #334155;
+  --text-muted: #475569;
+  --border-color: rgba(255, 255, 255, 0.65);
+  --border-glass: rgba(191, 212, 229, 0.50);
+  --sidebar-bg: rgba(255, 255, 255, 0.55);
+  --success: #16A34A;
+  --warning: #F59E0B;
+  --danger: #DC2626;
+  --primary: #1677FF;
+  --primary-dark: #00A6A6;
+  --primary-light: #00D2FF;
+  --secondary: #008DFF;
+  --indigo: #CFE8FF;
+  --gradient-primary: linear-gradient(135deg, #1677FF, #00D2FF);
+  --gradient-secondary: linear-gradient(135deg, #1677FF, #00D2FF);
+  --gradient-soft: linear-gradient(90deg, #1677FF, #00D2FF);
+  --gradient-card: rgba(255, 255, 255, 0.82);
+  --gradient-header: rgba(255, 255, 255, 0.80);
+  --gradient-upload: linear-gradient(135deg, rgba(235, 248, 255, 0.65) 0%, rgba(225, 245, 252, 0.65) 100%);
 }
 
-.patient-portal-theme .sidebar-link, .doctor-portal-theme .sidebar-link {
-  color: #334155;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+.patient-portal-theme .dashboard-sidebar,
+.doctor-portal-theme .dashboard-sidebar,
+.admin-portal-theme .dashboard-sidebar {
+  background: rgba(255, 255, 255, 0.55) !important;
+  background-image: none !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.45) !important;
+  box-shadow: 4px 0 24px rgba(0, 10, 25, 0.05) !important;
 }
 
-.patient-portal-theme .sidebar-link svg, .doctor-portal-theme .sidebar-link svg {
-  color: var(--primary);
+.patient-portal-theme .sidebar-brand,
+.doctor-portal-theme .sidebar-brand,
+.admin-portal-theme .sidebar-brand {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.45) !important;
+  background: transparent !important;
 }
 
-.patient-portal-theme .sidebar-link:hover, .doctor-portal-theme .sidebar-link:hover {
-  background-color: rgba(37, 99, 235, 0.08);
-  color: #2563EB;
+.patient-portal-theme .sidebar-brand .brand-text,
+.doctor-portal-theme .sidebar-brand .brand-text,
+.admin-portal-theme .sidebar-brand .brand-text {
+  color: #17324D !important;
+  font-weight: 800;
 }
 
-.patient-portal-theme .sidebar-link.active, .doctor-portal-theme .sidebar-link.active {
-  background: var(--gradient-soft);
-  color: #FFFFFF;
-  border-left: none;
-  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.2);
-  font-weight: 700;
+.patient-portal-theme .sidebar-brand .brand-icon,
+.doctor-portal-theme .sidebar-brand .brand-icon,
+.admin-portal-theme .sidebar-brand .brand-icon {
+  color: #17324D !important;
 }
 
-.patient-portal-theme .sidebar-link.active svg, .doctor-portal-theme .sidebar-link.active svg {
-  color: #FFFFFF;
+.patient-portal-theme .sidebar-link,
+.doctor-portal-theme .sidebar-link,
+.admin-portal-theme .sidebar-link {
+  background: transparent !important;
+  color: #17324D !important;
+  font-weight: 600 !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 12px;
+  margin: 3px 12px;
 }
 
-.patient-portal-theme .sidebar-footer, .doctor-portal-theme .sidebar-footer {
-  border-top: 1px solid var(--border-color);
+.patient-portal-theme .sidebar-link span,
+.doctor-portal-theme .sidebar-link span,
+.admin-portal-theme .sidebar-link span {
+  color: #17324D !important;
+  font-weight: 600 !important;
+  transition: color 0.2s ease;
 }
 
-.patient-portal-theme .sidebar-footer .sidebar-link, .doctor-portal-theme .sidebar-footer .sidebar-link {
-  color: var(--text-muted);
+.patient-portal-theme .sidebar-link svg,
+.doctor-portal-theme .sidebar-link svg,
+.admin-portal-theme .sidebar-link svg {
+  color: #008DFF !important;
+  stroke: #008DFF !important;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.patient-portal-theme .sidebar-link:hover:not(.active),
+.doctor-portal-theme .sidebar-link:hover:not(.active),
+.admin-portal-theme .sidebar-link:hover:not(.active) {
+  background-color: rgba(22, 119, 255, 0.08) !important;
+  color: #1677FF !important;
+  transform: translateX(3px);
+}
+
+.patient-portal-theme .sidebar-link:hover:not(.active) span,
+.doctor-portal-theme .sidebar-link:hover:not(.active) span,
+.admin-portal-theme .sidebar-link:hover:not(.active) span {
+  color: #1677FF !important;
+}
+
+.patient-portal-theme .sidebar-link:hover:not(.active) svg,
+.doctor-portal-theme .sidebar-link:hover:not(.active) svg,
+.admin-portal-theme .sidebar-link:hover:not(.active) svg {
+  color: #1677FF !important;
+  stroke: #1677FF !important;
+  transform: scale(1.05);
+}
+
+.patient-portal-theme .sidebar-link.active,
+.doctor-portal-theme .sidebar-link.active,
+.admin-portal-theme .sidebar-link.active {
+  background: linear-gradient(135deg, #1677FF 0%, #00D2FF 100%) !important;
+  color: #FFFFFF !important;
+  border: none !important;
+  box-shadow: 0 4px 16px rgba(22, 119, 255, 0.30) !important;
+  font-weight: 700 !important;
+  transform: none !important;
+}
+
+.patient-portal-theme .sidebar-link.active span,
+.doctor-portal-theme .sidebar-link.active span,
+.admin-portal-theme .sidebar-link.active span {
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+}
+
+.patient-portal-theme .sidebar-link.active svg,
+.doctor-portal-theme .sidebar-link.active svg,
+.admin-portal-theme .sidebar-link.active svg {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+.patient-portal-theme .sidebar-link.active:hover,
+.doctor-portal-theme .sidebar-link.active:hover,
+.admin-portal-theme .sidebar-link.active:hover {
+  background: linear-gradient(135deg, #1677FF 0%, #00D2FF 100%) !important;
+  color: #FFFFFF !important;
+  transform: none !important;
+}
+
+.patient-portal-theme .sidebar-link.active:hover span,
+.doctor-portal-theme .sidebar-link.active:hover span,
+.admin-portal-theme .sidebar-link.active:hover span,
+.patient-portal-theme .sidebar-link.active:hover svg,
+.doctor-portal-theme .sidebar-link.active:hover svg,
+.admin-portal-theme .sidebar-link.active:hover svg {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+.patient-portal-theme .sidebar-nav,
+.doctor-portal-theme .sidebar-nav,
+.admin-portal-theme .sidebar-nav {
+  background: transparent !important;
+}
+
+.patient-portal-theme .sidebar-footer,
+.doctor-portal-theme .sidebar-footer,
+.admin-portal-theme .sidebar-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.40) !important;
+  background: rgba(255, 255, 255, 0.35) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+.patient-portal-theme .sidebar-footer::before,
+.patient-portal-theme .sidebar-footer::after,
+.doctor-portal-theme .sidebar-footer::before,
+.doctor-portal-theme .sidebar-footer::after,
+.admin-portal-theme .sidebar-footer::before,
+.admin-portal-theme .sidebar-footer::after {
+  display: none !important;
+  content: none !important;
+}
+
+.patient-portal-theme .sidebar-footer .sidebar-link,
+.patient-portal-theme .sidebar-footer .text-logout,
+.doctor-portal-theme .sidebar-footer .sidebar-link,
+.doctor-portal-theme .sidebar-footer .text-logout,
+.admin-portal-theme .sidebar-footer .sidebar-link,
+.admin-portal-theme .sidebar-footer .text-logout {
+  color: #17324D !important;
+  font-weight: 600 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.patient-portal-theme .sidebar-footer .sidebar-link span,
+.patient-portal-theme .sidebar-footer .text-logout span,
+.doctor-portal-theme .sidebar-footer .sidebar-link span,
+.doctor-portal-theme .sidebar-footer .text-logout span,
+.admin-portal-theme .sidebar-footer .sidebar-link span,
+.admin-portal-theme .sidebar-footer .text-logout span {
+  color: #17324D !important;
+  font-weight: 600 !important;
+  transition: color 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.patient-portal-theme .sidebar-footer .sidebar-link svg,
+.patient-portal-theme .sidebar-footer .text-logout svg,
+.doctor-portal-theme .sidebar-footer .sidebar-link svg,
+.doctor-portal-theme .sidebar-footer .text-logout svg,
+.admin-portal-theme .sidebar-footer .sidebar-link svg,
+.admin-portal-theme .sidebar-footer .text-logout svg {
+  color: #008DFF !important;
+  stroke: #008DFF !important;
+  transition: color 0.25s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.patient-portal-theme .sidebar-footer .sidebar-link:hover,
+.patient-portal-theme .sidebar-footer .text-logout:hover,
+.doctor-portal-theme .sidebar-footer .sidebar-link:hover,
+.doctor-portal-theme .sidebar-footer .text-logout:hover,
+.admin-portal-theme .sidebar-footer .sidebar-link:hover,
+.admin-portal-theme .sidebar-footer .text-logout:hover {
+  background: rgba(22, 119, 255, 0.10) !important;
+  background-color: rgba(22, 119, 255, 0.10) !important;
+  color: #17324D !important;
+}
+
+.patient-portal-theme .sidebar-footer .sidebar-link:hover span,
+.patient-portal-theme .sidebar-footer .text-logout:hover span,
+.doctor-portal-theme .sidebar-footer .sidebar-link:hover span,
+.doctor-portal-theme .sidebar-footer .text-logout:hover span,
+.admin-portal-theme .sidebar-footer .sidebar-link:hover span,
+.admin-portal-theme .sidebar-footer .text-logout:hover span {
+  color: #17324D !important;
+}
+
+.patient-portal-theme .sidebar-footer .sidebar-link:hover svg,
+.patient-portal-theme .sidebar-footer .text-logout:hover svg,
+.doctor-portal-theme .sidebar-footer .sidebar-link:hover svg,
+.doctor-portal-theme .sidebar-footer .text-logout:hover svg,
+.admin-portal-theme .sidebar-footer .sidebar-link:hover svg,
+.admin-portal-theme .sidebar-footer .text-logout:hover svg {
+  color: #1677FF !important;
+  stroke: #1677FF !important;
 }
 
 .dashboard-sidebar {
@@ -94,20 +367,26 @@
   opacity: 1 !important;
 }
 
-.patient-portal-theme .dashboard-sidebar, .doctor-portal-theme .dashboard-sidebar {
+.patient-portal-theme .dashboard-sidebar, .doctor-portal-theme .dashboard-sidebar, .admin-portal-theme .dashboard-sidebar {
   width: 300px !important;
   min-width: 300px !important;
   flex: 0 0 300px !important;
 }
 
-.patient-portal-theme .dashboard-main, .doctor-portal-theme .dashboard-main {
+.patient-portal-theme .dashboard-main, .doctor-portal-theme .dashboard-main, .admin-portal-theme .dashboard-main {
   margin-left: 300px !important;
+  width: calc(100% - 300px) !important;
+  max-width: calc(100% - 300px) !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
 }
 
-.patient-portal-theme .dashboard-view, .doctor-portal-theme .dashboard-view {
+.patient-portal-theme .dashboard-view, .doctor-portal-theme .dashboard-view, .admin-portal-theme .dashboard-view {
   margin: 0 !important;
-  max-width: 1200px !important;
+  max-width: none !important;
   width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
 }
 
 .sidebar-brand {
@@ -186,9 +465,12 @@
 /* Main Area */
 .dashboard-main {
   flex: 1;
-  margin-left: var(--sidebar-width);
+  min-width: 0;
+  width: calc(100% - var(--sidebar-width, 300px));
+  margin-left: var(--sidebar-width, 300px);
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 .patient-dashboard-main {
@@ -197,9 +479,13 @@
   transition: all 0.3s ease;
 }
 
-.patient-portal-theme .patient-dashboard-main, .doctor-portal-theme .patient-dashboard-main {
-  background: var(--bg-main);
+.patient-portal-theme .patient-dashboard-main,
+.doctor-portal-theme .patient-dashboard-main,
+.admin-portal-theme .patient-dashboard-main {
+  background: transparent !important;
+  background-image: none !important;
   color: var(--text-primary);
+  min-height: 100vh;
 }
 
 .dashboard-header-top {
@@ -224,23 +510,70 @@
   color: var(--primary);
 }
 
-.patient-portal-theme .dashboard-header-top, .doctor-portal-theme .dashboard-header-top {
-  background-color: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border-color);
+.patient-portal-theme .dashboard-header-top,
+.doctor-portal-theme .dashboard-header-top,
+.admin-portal-theme .dashboard-header-top {
+  background: rgba(255, 255, 255, 0.65) !important;
+  background-image: none !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.50) !important;
+  box-shadow: 0 4px 20px rgba(0, 10, 25, 0.04) !important;
 }
 
-.patient-portal-theme .header-title h3, .doctor-portal-theme .header-title h3 {
-  color: var(--text-primary);
+.patient-portal-theme .header-title h3,
+.doctor-portal-theme .header-title h3,
+.admin-portal-theme .header-title h3 {
+  color: #17324D !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.3px;
+  text-shadow: none !important;
 }
 
 .patient-dashboard-main .user-name {
   color: var(--text-primary);
 }
 
-.patient-portal-theme .notification-bell-container button, .doctor-portal-theme .notification-bell-container button {
-  color: var(--primary) !important;
+.patient-portal-theme .dashboard-header-top .user-name,
+.doctor-portal-theme .dashboard-header-top .user-name,
+.admin-portal-theme .dashboard-header-top .user-name {
+  color: #17324D !important;
+  font-weight: 600 !important;
+  text-shadow: none !important;
+}
+
+.patient-portal-theme .notification-bell-container button,
+.doctor-portal-theme .notification-bell-container button,
+.admin-portal-theme .notification-bell-container button {
+  color: #008DFF !important;
+  background: rgba(22, 119, 255, 0.08) !important;
+  border: 1px solid rgba(22, 119, 255, 0.22) !important;
+  border-radius: 50% !important;
+  box-shadow: none !important;
+}
+
+.patient-portal-theme .notification-bell-container button:hover,
+.doctor-portal-theme .notification-bell-container button:hover,
+.admin-portal-theme .notification-bell-container button:hover {
+  background: rgba(22, 119, 255, 0.16) !important;
+  border-color: #1677FF !important;
+}
+
+.patient-portal-theme .notification-bell-container button svg,
+.doctor-portal-theme .notification-bell-container button svg,
+.admin-portal-theme .notification-bell-container button svg {
+  color: #008DFF !important;
+  stroke: #008DFF !important;
+  filter: none !important;
+}
+
+.patient-portal-theme .notification-bell-container button span,
+.doctor-portal-theme .notification-bell-container button span,
+.admin-portal-theme .notification-bell-container button span {
+  background: #EF4444 !important;
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.5) !important;
 }
 
 .header-user {
@@ -255,6 +588,33 @@
   align-items: center;
 }
 
+.patient-portal-theme .user-avatar-circle,
+.doctor-portal-theme .user-avatar-circle,
+.admin-portal-theme .user-avatar-circle {
+  background: rgba(22, 119, 255, 0.08) !important;
+  border: 1px solid rgba(22, 119, 255, 0.22) !important;
+  color: #008DFF !important;
+  border-radius: 50%;
+  padding: 4px;
+  box-shadow: none !important;
+  transition: all 0.2s ease;
+}
+
+.patient-portal-theme .user-avatar-circle:hover,
+.doctor-portal-theme .user-avatar-circle:hover,
+.admin-portal-theme .user-avatar-circle:hover {
+  background: rgba(22, 119, 255, 0.16) !important;
+  border-color: #1677FF !important;
+}
+
+.patient-portal-theme .user-avatar-circle svg,
+.doctor-portal-theme .user-avatar-circle svg,
+.admin-portal-theme .user-avatar-circle svg {
+  color: #008DFF !important;
+  stroke: #008DFF !important;
+  filter: none !important;
+}
+
 .user-name {
   font-weight: 500;
   font-size: 0.95rem;
@@ -262,54 +622,1461 @@
 }
 
 .dashboard-content {
-  padding: 2.5rem;
+  padding: 2rem 2.5rem;
   flex: 1;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+/* Desktop default states for mobile navigation elements */
+.mobile-hamburger-btn {
+  display: none;
+}
+
+.mobile-sidebar-close {
+  display: none;
+}
+
+.sidebar-backdrop {
+  display: none;
 }
 
 @media (max-width: 1024px) {
-  .dashboard-sidebar {
+  /* Mobile Hamburger Button */
+  .mobile-hamburger-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(191, 212, 229, 0.6);
+    color: #17324D;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 0;
+  }
+
+  .mobile-hamburger-btn:hover {
+    background: rgba(255, 255, 255, 0.95);
+    color: #1677FF;
+  }
+
+  .mobile-hamburger-btn:focus-visible {
+    outline: 2px solid #1677FF;
+    outline-offset: 2px;
+  }
+
+  /* Mobile Close Button in Sidebar Brand */
+  .mobile-sidebar-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(22, 119, 255, 0.08);
+    border: none;
+    color: #17324D;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+  }
+
+  .mobile-sidebar-close:hover {
+    background: rgba(22, 119, 255, 0.16);
+    color: #1677FF;
+  }
+
+  .mobile-sidebar-close:focus-visible {
+    outline: 2px solid #1677FF;
+  }
+
+  /* Backdrop Overlay */
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 25, 48, 0.60);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 9998;
+    cursor: pointer;
+    animation: fadeInOverlay 0.2s ease-out;
+  }
+
+  @keyframes fadeInOverlay {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .dashboard-sidebar,
+  .patient-portal-theme .dashboard-sidebar,
+  .doctor-portal-theme .dashboard-sidebar,
+  .admin-portal-theme .dashboard-sidebar {
     transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
   }
-  .dashboard-main {
-    margin-left: 0;
+
+  /* Accessible Open Mobile Drawer */
+  .dashboard-sidebar.mobile-open,
+  .patient-portal-theme .dashboard-sidebar.mobile-open,
+  .doctor-portal-theme .dashboard-sidebar.mobile-open,
+  .admin-portal-theme .dashboard-sidebar.mobile-open {
+    transform: translateX(0) !important;
+    z-index: 9999 !important;
+    box-shadow: 8px 0 32px rgba(0, 10, 25, 0.35) !important;
+  }
+
+  .dashboard-main,
+  .patient-portal-theme .dashboard-main,
+  .doctor-portal-theme .dashboard-main,
+  .admin-portal-theme .dashboard-main {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .dashboard-header-top {
+    padding: 0 1.25rem !important;
+  }
+  .dashboard-content {
+    padding: 1.5rem 1rem !important;
   }
 }
 
-.patient-portal-theme .page-header-card, .doctor-portal-theme .page-header-card {
-  background: var(--gradient-header) !important;
-  border-left: 4px solid #1677FF !important;
+.patient-portal-theme .page-header-card {
+  background: rgba(255, 255, 255, 0.80) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.70) !important;
+  border-left: 4px solid var(--secondary, #00A6A6) !important;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.06) !important;
+  border-radius: 24px !important;
 }
 
-.patient-portal-theme .card, .doctor-portal-theme .card {
-  box-shadow: 0 8px 24px rgba(22, 119, 255, 0.08) !important;
-  border: 1px solid var(--border-color) !important;
+.doctor-portal-theme .page-header-card {
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.70) !important;
+  border-left: 4px solid var(--primary, #1677FF) !important;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.06) !important;
+  border-radius: 24px !important;
 }
 
-.patient-portal-theme .btn-outline, .doctor-portal-theme .btn-outline {
-  background-color: #FFFFFF !important;
-  border: 1px solid #1677FF !important;
+.admin-portal-theme .page-header-card {
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.70) !important;
+  border-left: 4px solid var(--primary, #1677FF) !important;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.06) !important;
+  border-radius: 24px !important;
+}
+
+.patient-portal-theme .dashboard-content,
+.doctor-portal-theme .dashboard-content,
+.admin-portal-theme .dashboard-content {
+  background: transparent !important;
+}
+
+/* Main cards */
+.patient-portal-theme .card,
+.patient-portal-theme .glass-card,
+.patient-portal-theme .modal-card,
+.patient-portal-theme .table-card,
+.patient-portal-theme .welcome-banner,
+.admin-portal-theme .card,
+.admin-portal-theme .glass-card,
+.admin-portal-theme .modal-card,
+.admin-portal-theme .table-card {
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.07) !important;
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+  border-radius: 20px;
+}
+
+/* Small KPI/statistic cards */
+.kpi-card,
+.admin-portal-theme .kpi-card,
+.doctor-portal-theme .kpi-card,
+.patient-portal-theme .kpi-card {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 1.25rem !important;
+  padding: 1.5rem 1.75rem !important;
+  min-height: 104px !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 6px 24px rgba(10, 25, 48, 0.08) !important;
+  box-sizing: border-box !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.kpi-card:hover,
+.admin-portal-theme .kpi-card:hover,
+.doctor-portal-theme .kpi-card:hover,
+.patient-portal-theme .kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(10, 25, 48, 0.12) !important;
+}
+
+.kpi-icon,
+.admin-portal-theme .kpi-icon,
+.doctor-portal-theme .kpi-icon,
+.patient-portal-theme .kpi-icon {
+  width: 56px !important;
+  height: 56px !important;
+  min-width: 56px !important;
+  min-height: 56px !important;
+  border-radius: 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.kpi-content,
+.admin-portal-theme .kpi-content,
+.doctor-portal-theme .kpi-content,
+.patient-portal-theme .kpi-content {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 0.25rem !important;
+  min-width: 0 !important;
+  flex: 1 !important;
+}
+
+.kpi-value,
+.admin-portal-theme .kpi-value,
+.doctor-portal-theme .kpi-value,
+.patient-portal-theme .kpi-value {
+  font-size: 2rem !important;
+  font-weight: 800 !important;
+  color: #17324D !important;
+  line-height: 1.15 !important;
+  letter-spacing: -0.02em !important;
+}
+
+.kpi-label,
+.admin-portal-theme .kpi-label,
+.doctor-portal-theme .kpi-label,
+.patient-portal-theme .kpi-label {
+  font-size: 0.92rem !important;
+  color: #52677A !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+}
+
+.patient-portal-theme .patient-kpi-grid > div,
+.patient-portal-theme .patient-kpi-grid a > div {
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
+  border-radius: 20px;
+}
+
+/* Tips and chart cards */
+.patient-portal-theme .tips-card,
+.patient-portal-theme .chart-card,
+.patient-portal-theme .health-progression-card {
+  background: rgba(255, 255, 255, 0.78) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+}
+
+.patient-portal-theme .tips-card .tips-item {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(191, 212, 229, 0.6) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+.patient-portal-theme .doctor-card {
+  background: rgba(255, 255, 255, 0.78) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 8px 30px rgba(0, 10, 25, 0.06) !important;
+  overflow: hidden;
+}
+
+.patient-portal-theme .doctor-card-header {
+  background: rgba(255, 255, 255, 0.60) !important;
+  border-bottom: 1px solid rgba(191, 212, 229, 0.5) !important;
+}
+
+.patient-portal-theme .doctor-card-footer {
+  background: rgba(255, 255, 255, 0.60) !important;
+  border-top: 1px solid rgba(191, 212, 229, 0.5) !important;
+}
+
+.patient-portal-theme .doctor-avatar {
+  background: linear-gradient(135deg, #1677FF 0%, #00A6A6 100%) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 15px rgba(0, 210, 255, 0.3) !important;
+}
+
+.patient-portal-theme .filters-card,
+.admin-portal-theme .filters-card {
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.70) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 4px 20px rgba(0, 10, 25, 0.05) !important;
+}
+
+.patient-portal-theme .upload-zone {
+  background: rgba(235, 248, 255, 0.60) !important;
+  border: 2px dashed rgba(22, 119, 255, 0.50) !important;
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.patient-portal-theme .upload-zone:hover {
+  border-color: #1677FF !important;
+  background: rgba(230, 246, 255, 0.80) !important;
+  box-shadow: 0 6px 20px rgba(22, 119, 255, 0.15) !important;
+}
+
+.patient-portal-theme .precautions-card-wrapper {
+  background: rgba(255, 255, 255, 0.78) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06) !important;
+  border-radius: 24px !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+.patient-portal-theme .precautions-card-wrapper::before,
+.patient-portal-theme .precautions-card-wrapper::after,
+.patient-portal-theme .precautions-container::before,
+.patient-portal-theme .precautions-container::after {
+  display: none !important;
+  content: none !important;
+}
+
+.patient-portal-theme .precautions-header-bar {
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+.patient-portal-theme .precautions-header-title,
+.patient-portal-theme .precautions-container .precautions-header-title,
+.patient-portal-theme .precautions-card-wrapper .precautions-header-title,
+.patient-portal-theme .precautions-container h4,
+.patient-portal-theme .precautions-card-wrapper h4 {
+  color: #17324D !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.3px !important;
+  line-height: 1.25 !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+.patient-portal-theme .precautions-header-subtitle,
+.patient-portal-theme .precautions-container .precautions-header-subtitle,
+.patient-portal-theme .precautions-card-wrapper .precautions-header-subtitle {
+  color: #40566F !important;
+  font-weight: 600 !important;
+  opacity: 1 !important;
+  filter: none !important;
+  text-shadow: none !important;
+}
+
+.patient-portal-theme .precautions-header-icon,
+.patient-portal-theme .precautions-container .precautions-header-icon,
+.patient-portal-theme .precautions-card-wrapper .precautions-header-icon {
+  background: rgba(0, 166, 166, 0.12) !important;
+  color: #00A6A6 !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+.patient-portal-theme .precautions-header-icon svg,
+.patient-portal-theme .precautions-container .precautions-header-icon svg,
+.patient-portal-theme .precautions-card-wrapper .precautions-header-icon svg {
+  color: #00A6A6 !important;
+  stroke: #00A6A6 !important;
+}
+
+.patient-portal-theme .precautions-header-icon.is-unsupported,
+.patient-portal-theme .precautions-container .precautions-header-icon.is-unsupported {
+  background: rgba(245, 158, 11, 0.12) !important;
+  color: #D97706 !important;
+}
+
+.patient-portal-theme .precautions-header-icon.is-unsupported svg,
+.patient-portal-theme .precautions-container .precautions-header-icon.is-unsupported svg {
+  color: #D97706 !important;
+  stroke: #D97706 !important;
+}
+
+.patient-portal-theme .precautions-card-wrapper [style*="background: #FFFFFF"],
+.patient-portal-theme .precautions-card-wrapper [style*="background: #ffffff"],
+.patient-portal-theme .precautions-card-wrapper [style*="background: rgb(255, 255, 255)"],
+.patient-portal-theme .precautions-card-wrapper [style*="background:#FFFFFF"],
+.patient-portal-theme .precautions-container > div[style*="background: #FFFFFF"],
+.patient-portal-theme .precautions-container > div[style*="background: #ffffff"],
+.patient-portal-theme .precautions-subcard {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(191, 212, 229, 0.6) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+.patient-portal-theme .precautions-card-wrapper [style*="background: #F8FAFC"],
+.patient-portal-theme .precautions-card-wrapper [style*="background: #f8fafc"],
+.patient-portal-theme .precautions-container [style*="background: #F8FAFC"],
+.patient-portal-theme .precautions-container [style*="background: #f8fafc"],
+.patient-portal-theme .precautions-grid-item {
+  background: rgba(248, 250, 252, 0.85) !important;
+  border: 1px solid rgba(191, 212, 229, 0.5) !important;
+}
+
+.patient-portal-theme .card [style*="background: var(--bg-primary, #F8FAFC)"],
+.patient-portal-theme .card [style*="background: #F8FAFC"],
+.patient-portal-theme .card [style*="background: #f8fafc"],
+.patient-portal-theme [style*="background: var(--bg-primary, #F8FAFC)"],
+.patient-portal-theme [style*="background: #F8FAFC"],
+.patient-portal-theme [style*="background: #f8fafc"] {
+  background: rgba(248, 250, 252, 0.85) !important;
+  border: 1px solid rgba(191, 212, 229, 0.5) !important;
+}
+
+.patient-portal-theme #ai-report-container {
+  background: rgba(255, 255, 255, 0.88) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.70) !important;
+}
+
+.patient-portal-theme .screening-history-item,
+.patient-portal-theme .list-item,
+.patient-portal-theme .queue-item {
+  background: rgba(255, 255, 255, 0.80) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+}
+
+/* Headings and Typography inside patient portal */
+.patient-portal-theme .card h1,
+.patient-portal-theme .card h2,
+.patient-portal-theme .card h3,
+.patient-portal-theme .card h4,
+.patient-portal-theme .card h5,
+.patient-portal-theme .page-header-card h1,
+.patient-portal-theme .page-header-card h2,
+.patient-portal-theme .page-header-card h3,
+.patient-portal-theme .page-header-card h4,
+.patient-portal-theme .page-header-card h5,
+.patient-portal-theme .welcome-banner h1,
+.patient-portal-theme .welcome-banner h2,
+.patient-portal-theme .welcome-banner h3,
+.patient-portal-theme .dashboard-view > h1,
+.patient-portal-theme .dashboard-view > h2,
+.patient-portal-theme .dashboard-view > h3,
+.patient-portal-theme .dashboard-view > h4 {
+  color: #17324D !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.3px;
+  text-shadow: none !important;
+}
+
+.patient-portal-theme .card p,
+.patient-portal-theme .page-header-card p,
+.patient-portal-theme .welcome-banner p,
+.patient-portal-theme .dashboard-view > p {
+  color: #334155 !important;
+  font-weight: 500;
+}
+
+.patient-portal-theme .patient-kpi-grid span {
   color: #17324D !important;
 }
-.patient-portal-theme .btn-outline:hover, .doctor-portal-theme .btn-outline:hover {
-  background: #E8F1F8 !important;
+
+.patient-portal-theme .text-muted {
+  color: #475569 !important;
+}
+
+.patient-portal-theme .text-secondary {
+  color: #334155 !important;
+}
+
+/* Doctor Portal Glass Cards & Panels */
+.doctor-portal-theme .card,
+.doctor-portal-theme .glass-card,
+.doctor-portal-theme .modal-card,
+.doctor-portal-theme .table-card,
+.doctor-portal-theme .review-workspace-card {
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.07) !important;
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+  border-radius: 20px;
+}
+
+/* Doctor Diagnostic Workspace Specific Solid Cards & High-Contrast Typography */
+.doctor-portal-theme .ai-result-box,
+.doctor-portal-theme .card.ai-result-box,
+.doctor-portal-theme .patient-complaint-card,
+.doctor-portal-theme .patient-meta-box,
+.doctor-portal-theme .verification-form {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-radius: 16px !important;
+}
+
+.doctor-portal-theme .ai-result-box {
+  color: #0f172a !important;
+}
+
+.doctor-portal-theme .ai-result-box .result-header,
+.doctor-portal-theme .ai-result-box .result-header span {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+.doctor-portal-theme .ai-result-box .pathology-section,
+.doctor-portal-theme .ai-result-box .confidence-section,
+.doctor-portal-theme .ai-result-box .suggestions-section {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+}
+
+.doctor-portal-theme .ai-result-box .recommendation-section {
+  background: #f0f9ff !important;
+  border: 1px solid #bae6fd !important;
+  border-radius: 12px !important;
+}
+
+.doctor-portal-theme .ai-result-box .section-label,
+.doctor-portal-theme .ai-result-box .confidence-label {
+  color: #475569 !important;
+  font-weight: 700 !important;
+}
+
+.doctor-portal-theme .ai-result-box .section-value,
+.doctor-portal-theme .ai-result-box .disease-name {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+.doctor-portal-theme .ai-result-box .recommendation-title {
+  color: #0369a1 !important;
+  font-weight: 800 !important;
+}
+
+.doctor-portal-theme .ai-result-box .recommendation-text {
+  color: #334155 !important;
+  font-weight: 500 !important;
+}
+
+.doctor-portal-theme .ai-result-box .suggestions-title {
+  color: #0f766e !important;
+  font-weight: 800 !important;
+}
+
+.doctor-portal-theme .ai-result-box .suggestions-list,
+.doctor-portal-theme .ai-result-box .suggestions-list li {
+  color: #334155 !important;
+  font-weight: 500 !important;
+}
+
+.doctor-portal-theme .ai-result-box span,
+.doctor-portal-theme .ai-result-box p,
+.doctor-portal-theme .ai-result-box li,
+.doctor-portal-theme .ai-result-box div {
+  text-shadow: none !important;
+}
+
+.doctor-portal-theme .kpi-card {
+  display: flex !important;
+  align-items: center !important;
+  gap: 1.25rem !important;
+  padding: 1.5rem !important;
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
+  border-radius: 20px;
+}
+
+.doctor-portal-theme .kpi-icon {
+  width: 52px !important;
+  height: 52px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.doctor-portal-theme .kpi-content {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.25rem !important;
+}
+
+.doctor-portal-theme .kpi-value {
+  font-size: 1.85rem !important;
+  font-weight: 800 !important;
+  color: #17324D !important;
+  line-height: 1.2 !important;
+}
+
+.doctor-portal-theme .kpi-label {
+  font-size: 0.9rem !important;
+  color: #475569 !important;
+  font-weight: 600 !important;
+}
+
+.doctor-portal-theme .list-item,
+.doctor-portal-theme .queue-item {
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+  border-radius: 16px;
+}
+
+/* Doctor Portal Glass Header Cards */
+.doctor-portal-theme .dashboard-header {
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.70) !important;
+  border-left: 4px solid var(--primary, #1677FF) !important;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.06) !important;
+  border-radius: 24px !important;
+  padding: 24px 32px !important;
+  margin-bottom: 1.5rem !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.doctor-portal-theme .dashboard-header h2 {
+  color: #17324D !important;
+  font-weight: 800 !important;
+  font-size: 2rem !important;
+  letter-spacing: -0.5px !important;
+  margin: 0 0 6px 0 !important;
+  line-height: 1.2 !important;
+}
+
+.doctor-portal-theme .dashboard-header p {
+  color: #334155 !important;
+  font-weight: 500 !important;
+  font-size: 1.05rem !important;
+  margin: 0 !important;
+}
+
+/* Headings and Typography inside doctor portal */
+.doctor-portal-theme .card h1,
+.doctor-portal-theme .card h2,
+.doctor-portal-theme .card h3,
+.doctor-portal-theme .card h4,
+.doctor-portal-theme .card h5,
+.doctor-portal-theme .page-header-card h1,
+.doctor-portal-theme .page-header-card h2,
+.doctor-portal-theme .page-header-card h3,
+.doctor-portal-theme .page-header-card h4,
+.doctor-portal-theme .page-header-card h5,
+.doctor-portal-theme .dashboard-view > h1,
+.doctor-portal-theme .dashboard-view > h2,
+.doctor-portal-theme .dashboard-view > h3,
+.doctor-portal-theme .dashboard-view > h4 {
+  color: #17324D !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.3px;
+  text-shadow: none !important;
+}
+
+.doctor-portal-theme .card p,
+.doctor-portal-theme .page-header-card p,
+.doctor-portal-theme .dashboard-view > p {
+  color: #334155 !important;
+  font-weight: 500;
+}
+
+.doctor-portal-theme .text-primary {
+  color: #17324D !important;
+}
+
+.doctor-portal-theme .text-muted {
+  color: #475569 !important;
+}
+
+.doctor-portal-theme .text-secondary {
+  color: #334155 !important;
+}
+
+.doctor-portal-theme label,
+.doctor-portal-theme .form-label {
+  color: #17324D !important;
+  font-weight: 700 !important;
+}
+
+.doctor-portal-theme label svg,
+.doctor-portal-theme .form-label svg {
+  color: #008DFF !important;
+  stroke: #008DFF !important;
+}
+
+.patient-portal-theme .btn-outline,
+.doctor-portal-theme .btn-outline,
+.admin-portal-theme .btn-outline {
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(22, 119, 255, 0.5) !important;
+  color: #17324D !important;
+}
+.patient-portal-theme .btn-outline:hover,
+.doctor-portal-theme .btn-outline:hover,
+.admin-portal-theme .btn-outline:hover {
+  background: rgba(232, 241, 248, 0.95) !important;
   border-color: #1677FF !important;
   color: #17324D !important;
 }
 
-.patient-portal-theme .form-control, .doctor-portal-theme .form-control {
-  background-color: #F8FAFC !important;
-  border: 1px solid #BFD4E5 !important;
+.patient-portal-theme .form-control,
+.patient-portal-theme .form-input,
+.patient-portal-theme input[type="text"],
+.patient-portal-theme input[type="search"],
+.patient-portal-theme select,
+.patient-portal-theme textarea,
+.doctor-portal-theme .form-control,
+.doctor-portal-theme .form-input,
+.doctor-portal-theme input[type="text"],
+.doctor-portal-theme input[type="search"],
+.doctor-portal-theme input[type="date"],
+.doctor-portal-theme input[type="number"],
+.doctor-portal-theme select,
+.doctor-portal-theme textarea,
+.admin-portal-theme .form-control,
+.admin-portal-theme .form-input,
+.admin-portal-theme input[type="text"],
+.admin-portal-theme input[type="search"],
+.admin-portal-theme input[type="email"],
+.admin-portal-theme select,
+.admin-portal-theme textarea {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(191, 212, 229, 0.7) !important;
   color: #17324D !important;
 }
 
-.patient-portal-theme .form-control:focus, .doctor-portal-theme .form-control:focus {
+.patient-portal-theme .form-control:focus,
+.patient-portal-theme .form-input:focus,
+.patient-portal-theme input:focus,
+.patient-portal-theme select:focus,
+.patient-portal-theme textarea:focus,
+.doctor-portal-theme .form-control:focus,
+.doctor-portal-theme .form-input:focus,
+.doctor-portal-theme input:focus,
+.doctor-portal-theme select:focus,
+.doctor-portal-theme textarea:focus,
+.admin-portal-theme .form-control:focus,
+.admin-portal-theme .form-input:focus,
+.admin-portal-theme input:focus,
+.admin-portal-theme select:focus,
+.admin-portal-theme textarea:focus {
+  background-color: rgba(255, 255, 255, 0.98) !important;
   border-color: #1677FF !important;
   outline: none !important;
-  box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.1) !important;
+  box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.15) !important;
 }
 
-.patient-portal-theme .btn-primary, .doctor-portal-theme .btn-primary {
+.patient-portal-theme .btn-primary, .doctor-portal-theme .btn-primary, .admin-portal-theme .btn-primary {
   background: var(--gradient-primary) !important;
   color: #FFFFFF !important;
   border: none !important;
 }
+
+.doctor-portal-theme .modern-table th,
+.patient-portal-theme .modern-table th,
+.admin-portal-theme .modern-table th {
+  color: #17324D !important;
+  font-weight: 700 !important;
+  border-bottom: 2px solid rgba(191, 212, 229, 0.6) !important;
+}
+
+.doctor-portal-theme .modern-table td,
+.patient-portal-theme .modern-table td,
+.admin-portal-theme .modern-table td {
+  color: #1E293B;
+  border-bottom: 1px solid rgba(191, 212, 229, 0.35) !important;
+}
+
+.doctor-portal-theme .modern-table tr:hover td,
+.patient-portal-theme .modern-table tr:hover td,
+.admin-portal-theme .modern-table tr:hover td {
+  background-color: rgba(22, 119, 255, 0.04) !important;
+}
+
+/* Doctor & Admin Portal Badges, Charts & Highlights */
+.doctor-portal-theme .badge-primary,
+.admin-portal-theme .badge-primary {
+  background-color: rgba(22, 119, 255, 0.12) !important;
+  color: #1677FF !important;
+  border: 1px solid rgba(22, 119, 255, 0.3) !important;
+}
+
+.doctor-portal-theme .badge-warning,
+.admin-portal-theme .badge-warning {
+  background-color: rgba(245, 158, 11, 0.12) !important;
+  color: #D97706 !important;
+  border: 1px solid rgba(245, 158, 11, 0.3) !important;
+}
+
+.doctor-portal-theme .badge-success,
+.admin-portal-theme .badge-success {
+  background-color: rgba(22, 163, 74, 0.12) !important;
+  color: #16A34A !important;
+  border: 1px solid rgba(22, 163, 74, 0.3) !important;
+}
+
+.doctor-portal-theme .confidence-pill,
+.admin-portal-theme .confidence-pill {
+  background: rgba(0, 166, 166, 0.12) !important;
+  color: #008DFF !important;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 141, 255, 0.25);
+}
+
+.doctor-portal-theme .card.bg-success-light {
+  background: rgba(236, 253, 245, 0.85) !important;
+  border: 1px solid rgba(16, 185, 129, 0.35) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+.doctor-portal-theme .recharts-cartesian-axis-tick text,
+.admin-portal-theme .recharts-cartesian-axis-tick text {
+  fill: #334155 !important;
+  font-weight: 500;
+}
+
+.doctor-portal-theme .recharts-legend-item-text,
+.admin-portal-theme .recharts-legend-item-text {
+  color: #17324D !important;
+  font-weight: 600;
+}
+
+.doctor-portal-theme .recharts-default-tooltip,
+.admin-portal-theme .recharts-default-tooltip {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid rgba(191, 212, 229, 0.7) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+  color: #17324D !important;
+}
+
+.doctor-portal-theme .recharts-tooltip-label,
+.doctor-portal-theme .recharts-tooltip-item,
+.admin-portal-theme .recharts-tooltip-label,
+.admin-portal-theme .recharts-tooltip-item {
+  color: #17324D !important;
+}
+
+/* Headings and Typography inside admin portal */
+.admin-portal-theme .card h1,
+.admin-portal-theme .card h2,
+.admin-portal-theme .card h3,
+.admin-portal-theme .card h4,
+.admin-portal-theme .card h5,
+.admin-portal-theme .page-header-card h1,
+.admin-portal-theme .page-header-card h2,
+.admin-portal-theme .page-header-card h3,
+.admin-portal-theme .page-header-card h4,
+.admin-portal-theme .page-header-card h5,
+.admin-portal-theme .dashboard-view > h1,
+.admin-portal-theme .dashboard-view > h2,
+.admin-portal-theme .dashboard-view > h3,
+.admin-portal-theme .dashboard-view > h4 {
+  color: #17324D !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.3px;
+  text-shadow: none !important;
+}
+
+.admin-portal-theme .card p,
+.admin-portal-theme .page-header-card p,
+.admin-portal-theme .dashboard-view > p {
+  color: #334155 !important;
+  font-weight: 500;
+}
+
+.admin-portal-theme .text-primary {
+  color: #17324D !important;
+}
+
+.admin-portal-theme .text-muted {
+  color: #475569 !important;
+}
+
+.admin-portal-theme .text-secondary {
+  color: #334155 !important;
+}
+
+.admin-portal-theme label,
+.admin-portal-theme .form-label {
+  color: #17324D !important;
+  font-weight: 700 !important;
+}
+
+.admin-portal-theme label svg,
+.admin-portal-theme .form-label svg {
+  color: #008DFF !important;
+  stroke: #008DFF !important;
+}
+
+/* Admin sub-cards, table wrappers, and inner panels with inline styles */
+.admin-portal-theme .card [style*="background: var(--bg-main)"],
+.admin-portal-theme .card [style*="background: #F8FAFC"],
+.admin-portal-theme .card [style*="background: #f8fafc"],
+.admin-portal-theme [style*="background: var(--bg-main)"] {
+  background: rgba(248, 250, 252, 0.80) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(191, 212, 229, 0.50) !important;
+}
+
+.admin-portal-theme thead tr,
+.admin-portal-theme thead tr[style*="background: #F8FAFC"],
+.admin-portal-theme thead tr[style*="background: #f8fafc"] {
+  background: rgba(240, 246, 252, 0.85) !important;
+}
+
+.admin-portal-theme .table-responsive {
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* ==========================================================================
+   ADMIN PORTAL GLASSMORPHISM & REFINED POLISHED STYLES
+   ========================================================================== */
+
+/* Admin Portal Glass Header Banner */
+.admin-portal-theme .dashboard-header {
+  background: rgba(255, 255, 255, 0.78) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+  border-left: 4px solid #1677FF !important;
+  box-shadow: 0 6px 24px rgba(10, 25, 48, 0.08) !important;
+  border-radius: 20px !important;
+  padding: 22px 28px !important;
+  margin-bottom: 1.5rem !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.admin-portal-theme .dashboard-header h2 {
+  color: #17324D !important;
+  font-size: 1.85rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
+  margin: 0 0 6px 0 !important;
+  line-height: 1.2 !important;
+}
+
+.admin-portal-theme .dashboard-header p {
+  color: #475569 !important;
+  font-size: 0.95rem !important;
+  font-weight: 500 !important;
+  margin: 0 !important;
+}
+
+/* Admin KPI Grid & Statistic Cards */
+.admin-portal-theme .kpi-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 1.25rem !important;
+  margin-bottom: 1.5rem !important;
+}
+
+@media (max-width: 1200px) {
+  .admin-portal-theme .kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1.25rem !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-portal-theme .kpi-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+}
+
+.admin-portal-theme .kpi-card {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 1rem !important;
+  padding: 1.25rem 1.5rem !important;
+  min-height: 104px !important;
+  height: 100% !important;
+  box-sizing: border-box !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.65) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.65) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.65) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 6px 24px rgba(10, 25, 48, 0.08) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.admin-portal-theme .kpi-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 10px 28px rgba(10, 25, 48, 0.12) !important;
+}
+
+.admin-portal-theme .kpi-card:nth-child(1) {
+  border-left: 4px solid #00D2FF !important;
+}
+.admin-portal-theme .kpi-card:nth-child(2) {
+  border-left: 4px solid #1677FF !important;
+}
+.admin-portal-theme .kpi-card:nth-child(3) {
+  border-left: 4px solid #F59E0B !important;
+}
+.admin-portal-theme .kpi-card:nth-child(4) {
+  border-left: 4px solid #10B981 !important;
+}
+
+.admin-portal-theme .kpi-icon {
+  width: 52px !important;
+  height: 52px !important;
+  min-width: 52px !important;
+  min-height: 52px !important;
+  border-radius: 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+}
+
+.admin-portal-theme .kpi-content {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 0.25rem !important;
+  min-width: 0 !important;
+  flex: 1 !important;
+}
+
+.admin-portal-theme .kpi-value {
+  font-size: 1.85rem !important;
+  font-weight: 800 !important;
+  color: #17324D !important;
+  line-height: 1.15 !important;
+  letter-spacing: -0.02em !important;
+}
+
+.admin-portal-theme .kpi-label {
+  font-size: 0.88rem !important;
+  color: #536579 !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+}
+
+/* Two-column Dashboard Grid */
+.admin-portal-theme .dashboard-grid {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) !important;
+  gap: 1.5rem !important;
+  align-items: start !important;
+  margin-top: 0 !important;
+}
+
+@media (max-width: 1024px) {
+  .admin-portal-theme .dashboard-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 1.5rem !important;
+  }
+}
+
+.admin-portal-theme .dashboard-left-col,
+.admin-portal-theme .dashboard-right-col {
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1.5rem !important;
+}
+
+/* General Admin Cards */
+.admin-portal-theme .card {
+  background: rgba(255, 255, 255, 0.78) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 6px 24px rgba(10, 25, 48, 0.08) !important;
+}
+
+/* System overview grid & items */
+.admin-portal-theme .overview-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 1rem !important;
+}
+
+@media (max-width: 640px) {
+  .admin-portal-theme .overview-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.admin-portal-theme .overview-item {
+  background: rgba(255, 255, 255, 0.72) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+  border-radius: 16px !important;
+  padding: 1.25rem 1.5rem !important;
+  box-shadow: 0 4px 16px rgba(10, 25, 48, 0.04) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  min-width: 0 !important;
+}
+
+.admin-portal-theme .overview-item span,
+.admin-portal-theme .overview-item .overview-label {
+  color: #536579 !important;
+  font-size: 0.88rem !important;
+  font-weight: 600 !important;
+  display: block !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.admin-portal-theme .overview-item h4,
+.admin-portal-theme .overview-item .overview-value {
+  font-size: 1.75rem !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+}
+
+.admin-portal-theme .overview-item h4.text-warning,
+.admin-portal-theme .overview-item h4[style*="#d97706"] {
+  color: #D97706 !important;
+}
+
+.admin-portal-theme .overview-item h4.text-secondary {
+  color: #008DFF !important;
+}
+
+.admin-portal-theme .overview-item h4.text-primary {
+  color: #1677FF !important;
+}
+
+.admin-portal-theme .overview-item h4.text-success,
+.admin-portal-theme .overview-item h4[style*="#059669"] {
+  color: #059669 !important;
+  font-size: 1.35rem !important;
+}
+
+/* User Management Table */
+.admin-portal-theme .table-responsive {
+  width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
+}
+
+.admin-portal-theme .modern-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+}
+
+.admin-portal-theme .modern-table th {
+  color: #17324D !important;
+  font-weight: 700 !important;
+  font-size: 0.82rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  padding: 0.85rem 1rem !important;
+  border-bottom: 2px solid rgba(191, 212, 229, 0.6) !important;
+  white-space: nowrap !important;
+}
+
+.admin-portal-theme .modern-table td {
+  color: #1E293B !important;
+  padding: 0.85rem 1rem !important;
+  border-bottom: 1px solid rgba(191, 212, 229, 0.35) !important;
+  vertical-align: middle !important;
+}
+
+.admin-portal-theme .modern-table td .text-primary {
+  color: #17324D !important;
+  font-weight: 700 !important;
+}
+
+.admin-portal-theme .modern-table td .text-muted {
+  color: #536579 !important;
+  font-size: 0.85rem !important;
+}
+
+.admin-portal-theme .icon-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 8px !important;
+  background: rgba(0, 141, 255, 0.08) !important;
+  color: #1677FF !important;
+  border: 1px solid rgba(0, 141, 255, 0.22) !important;
+  transition: all 0.2s ease !important;
+}
+
+.admin-portal-theme .icon-btn:hover {
+  background: #1677FF !important;
+  color: #FFFFFF !important;
+  transform: translateX(2px) !important;
+}
+
+.admin-portal-theme .btn-outline {
+  background: rgba(255, 255, 255, 0.70) !important;
+  color: #1677FF !important;
+  border: 1.5px solid #1677FF !important;
+  font-weight: 700 !important;
+  backdrop-filter: blur(8px) !important;
+  transition: all 0.2s ease !important;
+}
+
+.admin-portal-theme .btn-outline:hover {
+  background: #1677FF !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 14px rgba(22, 119, 255, 0.25) !important;
+}
+
+/* AI Model Performance & Model Details in Admin Portal */
+.admin-portal-theme .model-details {
+  background: rgba(240, 246, 252, 0.75) !important;
+  border: 1px solid rgba(191, 212, 229, 0.60) !important;
+  border-radius: 14px !important;
+  padding: 1.5rem !important;
+}
+
+.admin-portal-theme .model-detail-row {
+  border-bottom: 1px solid rgba(191, 212, 229, 0.40) !important;
+  padding: 0.75rem 0 !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+.admin-portal-theme .model-detail-row:last-child {
+  border-bottom: none !important;
+}
+
+.admin-portal-theme .model-detail-label,
+.admin-portal-theme .model-detail-row > span:first-child {
+  color: #536579 !important;
+  font-weight: 600 !important;
+  font-size: 0.92rem !important;
+}
+
+.admin-portal-theme .model-detail-value,
+.admin-portal-theme .model-detail-row > span:last-child:not(.badge),
+.admin-portal-theme .model-detail-row > span.font-bold,
+.admin-portal-theme .model-detail-row > span.text-white {
+  color: #102A43 !important;
+  font-weight: 700 !important;
+  font-size: 0.92rem !important;
+}
+
+.admin-portal-theme .accuracy-section {
+  background: rgba(240, 246, 252, 0.75) !important;
+  padding: 1.25rem !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(191, 212, 229, 0.60) !important;
+}
+
+.admin-portal-theme .condition-badge {
+  background: rgba(22, 119, 255, 0.08) !important;
+  color: #1677FF !important;
+  border: 1px solid rgba(22, 119, 255, 0.25) !important;
+  font-weight: 600 !important;
+  padding: 0.4rem 0.85rem !important;
+  border-radius: 8px !important;
+  font-size: 0.82rem !important;
+}
+
+/* Form Inputs, Selects, and Search Bars across Admin Portal */
+.admin-portal-theme input,
+.admin-portal-theme select,
+.admin-portal-theme textarea,
+.admin-portal-theme .form-control {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border: 1px solid rgba(191, 212, 229, 0.80) !important;
+  color: #17324D !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+}
+
+.admin-portal-theme input:focus,
+.admin-portal-theme select:focus,
+.admin-portal-theme textarea:focus,
+.admin-portal-theme .form-control:focus {
+  border-color: #1677FF !important;
+  box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.15) !important;
+  outline: none !important;
+}
+
+.admin-portal-theme .search-bar {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(191, 212, 229, 0.70) !important;
+  border-radius: 10px !important;
+}
+
+.admin-portal-theme .search-bar input {
+  background: transparent !important;
+  border: none !important;
+  color: #17324D !important;
+  box-shadow: none !important;
+}
+
+.admin-portal-theme .search-bar input::placeholder {
+  color: #536579 !important;
+  opacity: 0.8;
+}
+
+.admin-portal-theme .search-bar svg {
+  color: #536579 !important;
+}
+
+/* Status Badges */
+.admin-portal-theme .badge-success,
+.admin-portal-theme .badge[style*="#10b981"],
+.admin-portal-theme .badge[style*="#059669"] {
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: #059669 !important;
+  border: 1px solid rgba(16, 185, 129, 0.35) !important;
+  font-weight: 700 !important;
+}
+
+.admin-portal-theme .badge-warning,
+.admin-portal-theme .badge[style*="#f59e0b"],
+.admin-portal-theme .badge[style*="#d97706"] {
+  background: rgba(245, 158, 11, 0.12) !important;
+  color: #D97706 !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+  font-weight: 700 !important;
+}
+
+.admin-portal-theme .badge-danger,
+.admin-portal-theme .badge[style*="#ef4444"],
+.admin-portal-theme .badge[style*="#dc2626"] {
+  background: rgba(220, 38, 38, 0.12) !important;
+  color: #DC2626 !important;
+  border: 1px solid rgba(220, 38, 38, 0.35) !important;
+  font-weight: 700 !important;
+}
+
+.admin-portal-theme .badge-primary,
+.admin-portal-theme .badge[style*="#1677ff"] {
+  background: rgba(22, 119, 255, 0.12) !important;
+  color: #1677FF !important;
+  border: 1px solid rgba(22, 119, 255, 0.35) !important;
+  font-weight: 700 !important;
+}
+
+/* Typography Consistency for Admin Portal */
+.admin-portal-theme .text-muted {
+  color: #536579 !important;
+}
+
+.admin-portal-theme .text-secondary {
+  color: #008DFF !important;
+}
+
+.admin-portal-theme label,
+.admin-portal-theme .form-label {
+  color: #17324D !important;
+  font-weight: 700 !important;
+}
+
+/* Recent System Activity List Items */
+.admin-portal-theme .list-item {
+  background: rgba(255, 255, 255, 0.68) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.55) !important;
+  border-radius: 14px !important;
+  padding: 1rem 1.25rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 1rem !important;
+}
+
+.admin-portal-theme .list-item h4 {
+  color: #17324D !important;
+  font-weight: 700 !important;
+  font-size: 0.95rem !important;
+  margin: 0 0 4px 0 !important;
+}
+
+.admin-portal-theme .list-item p {
+  color: #536579 !important;
+  font-size: 0.85rem !important;
+  margin: 0 !important;
+}
+
+.admin-portal-theme .list-item span.text-muted {
+  color: #536579 !important;
+  font-weight: 600 !important;
+  font-size: 0.82rem !important;
+  white-space: nowrap !important;
+}
+
+

@@ -8,7 +8,23 @@ const DoctorProfile = () => {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const predictionResult = location.state?.predictionResult;
+
+  // Preserve active scan across page refreshes
+  const [activeScan] = useState(() => {
+    if (location.state?.predictionResult) {
+      sessionStorage.setItem('dentaai_active_scan', JSON.stringify(location.state.predictionResult));
+      return location.state.predictionResult;
+    }
+    const saved = sessionStorage.getItem('dentaai_active_scan');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to parse saved active scan', e);
+      }
+    }
+    return null;
+  });
   
   const [doc, setDoc] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,12 +68,9 @@ const DoctorProfile = () => {
   }
 
   const handleConsultationRequest = () => {
-    navigate(`/dashboard/patient/consult-request/${doc._id || doc.id}`, { state: { predictionResult } });
+    navigate(`/dashboard/patient/consult-request/${doc._id || doc.id}`, { state: { predictionResult: activeScan } });
   };
-  
-  const handleMessageDoctor = () => {
-    navigate('/dashboard/patient/messages', { state: { doctorId: doc._id || doc.id } });
-  };
+
 
   return (
     <div className="dashboard-view" style={{ minHeight: '100vh', width: '100%' }}>
@@ -172,9 +185,6 @@ const DoctorProfile = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <button onClick={handleConsultationRequest} style={{ background: 'var(--gradient-primary)', color: '#ffffff', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: 800, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', width: '100%', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0, 166, 166, 0.2)' }}>
                       <Calendar size={18} /> Book Consultation
-                    </button>
-                    <button onClick={handleMessageDoctor} style={{ background: '#ffffff', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '14px', borderRadius: '12px', fontWeight: 800, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', width: '100%', cursor: 'pointer' }}>
-                      <MessageSquare size={18} /> Send Message
                     </button>
                   </div>
                 </div>

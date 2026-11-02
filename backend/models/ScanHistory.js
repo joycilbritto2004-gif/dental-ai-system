@@ -24,6 +24,11 @@ const scanHistorySchema = new mongoose.Schema({
   scanId: {
     type: String,
     required: true,
+  },
+  prescriptionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Prescription',
+    default: null
   }
 }, { timestamps: true });
 

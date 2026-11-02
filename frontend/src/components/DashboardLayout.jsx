@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
-import { Activity, UserCircle, LogOut, LayoutDashboard, HeartPulse, Stethoscope, BriefcaseMedical, Users, CheckCircle2, BrainCircuit, Settings, FileText, MessageSquare, CreditCard, History, Video, Bell, Sun, Moon } from 'lucide-react';
+import { Activity, UserCircle, LogOut, LayoutDashboard, HeartPulse, Stethoscope, BriefcaseMedical, Users, CheckCircle2, BrainCircuit, Settings, FileText, MessageSquare, CreditCard, History, Video, Bell, Menu, X } from 'lucide-react';
+import { getSocket, registerUserSocket } from '../utils/socket';
 import './DashboardLayout.css';
 
 const DashboardLayout = () => {
@@ -15,8 +16,26 @@ const DashboardLayout = () => {
   const [userId, setUserId] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [acceptedToast, setAcceptedToast] = useState(null);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
+
+  // Close mobile navigation drawer on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [currentPath]);
+
+  // Accessible keyboard listener: close mobile drawer on Escape
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && mobileMenuOpen) {
+        setMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mobileMenuOpen]);
 
   useEffect(() => {
     const userStr = localStorage.getItem('dentaai_user');
@@ -54,6 +73,30 @@ const DashboardLayout = () => {
     }
   }, [userId]);
 
+  // Real-time socket event listener for accepted consultations
+  useEffect(() => {
+    if (!userId) return;
+    registerUserSocket(userId);
+    const socket = getSocket();
+
+    const handleConsultationAccepted = (payload) => {
+      fetchNotifications();
+      if (role === 'patient') {
+        setAcceptedToast(payload);
+      }
+    };
+
+    if (socket) {
+      socket.on('consultation-accepted', handleConsultationAccepted);
+    }
+
+    return () => {
+      if (socket) {
+        socket.off('consultation-accepted', handleConsultationAccepted);
+      }
+    };
+  }, [userId, role, fetchNotifications]);
+
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 5000); // Poll every 5s
@@ -81,7 +124,9 @@ const DashboardLayout = () => {
         if (role === 'doctor') {
           navigate(`/dashboard/doctor/consultation/${notif.consultationId}`);
         } else {
-          navigate(`/dashboard/patient/consultations`);
+          navigate(`/dashboard/patient/consultation/${notif.consultationId}/messages`, {
+            state: { consultationId: notif.consultationId }
+          });
         }
       }
     } catch (err) {
@@ -92,12 +137,32 @@ const DashboardLayout = () => {
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
-    <div className={`dashboard-layout ${role === 'patient' ? 'patient-portal-theme' : ''} ${role === 'doctor' ? 'doctor-portal-theme' : ''}`}>
+    <div className={`dashboard-layout ${role === 'patient' ? 'patient-portal-theme' : ''} ${role === 'doctor' ? 'doctor-portal-theme' : ''} ${role === 'admin' ? 'admin-portal-theme' : ''}`}>
+      {/* Mobile Backdrop Overlay */}
+      {mobileMenuOpen && (
+        <div 
+          className="sidebar-backdrop" 
+          onClick={() => setMobileMenuOpen(false)} 
+          aria-hidden="true" 
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="dashboard-sidebar">
+      <aside 
+        className={`dashboard-sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}
+        aria-label={`${role} portal navigation`}
+      >
         <div className="sidebar-brand">
-          <BriefcaseMedical className="brand-icon" size={28} />
-          <span className="brand-text" style={(role === 'patient' || role === 'doctor') ? { color: '#17324D' } : {}}>DentaAI</span>
+          <BriefcaseMedical className="brand-icon" size={28} style={{ color: '#17324D' }} />
+          <span className="brand-text" style={{ color: '#17324D' }}>DentaAI</span>
+          <button
+            type="button"
+            className="mobile-sidebar-close"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-label="Close navigation sidebar"
+          >
+            <X size={20} />
+          </button>
         </div>
 
         <nav className="sidebar-nav">
@@ -108,26 +173,25 @@ const DashboardLayout = () => {
           
           {role === 'patient' && (
             <>
-
-              <Link to="/dashboard/patient/predictions" className={`sidebar-link ${currentPath === '/dashboard/patient/predictions' ? 'active' : ''}`}>
-                <Activity size={20} />
-                <span>My Predictions</span>
+              <Link to="/dashboard/patient/screening-history" className={`sidebar-link ${currentPath === '/dashboard/patient/screening-history' || currentPath === '/dashboard/patient/history' ? 'active' : ''}`}>
+                <History size={20} />
+                <span>Screening History</span>
               </Link>
               <Link to="/dashboard/patient/reports" className={`sidebar-link ${currentPath === '/dashboard/patient/reports' ? 'active' : ''}`}>
                 <FileText size={20} />
                 <span>My Reports</span>
               </Link>
+              <Link to="/dashboard/patient/predictions" className={`sidebar-link ${currentPath === '/dashboard/patient/predictions' ? 'active' : ''}`}>
+                <Activity size={20} />
+                <span>My Predictions</span>
+              </Link>
               <Link to="/dashboard/patient/recommended-doctors" className={`sidebar-link ${currentPath === '/dashboard/patient/recommended-doctors' ? 'active' : ''}`}>
                 <Stethoscope size={20} />
-                <span>Recommended Doctors</span>
+                <span>Find a Dentist</span>
               </Link>
               <Link to="/dashboard/patient/consultations" className={`sidebar-link ${currentPath === '/dashboard/patient/consultations' ? 'active' : ''}`}>
                 <Video size={20} />
-                <span>My Consultations</span>
-              </Link>
-              <Link to="/dashboard/patient/messages" className={`sidebar-link ${currentPath === '/dashboard/patient/messages' ? 'active' : ''}`}>
-                <MessageSquare size={20} />
-                <span>Messages</span>
+                <span>My Appointments</span>
               </Link>
               <Link to="/dashboard/patient/payments" className={`sidebar-link ${currentPath === '/dashboard/patient/payments' ? 'active' : ''}`}>
                 <CreditCard size={20} />
@@ -153,10 +217,6 @@ const DashboardLayout = () => {
               <Link to="/dashboard/doctor/consultations" className={`sidebar-link ${currentPath === '/dashboard/doctor/consultations' ? 'active' : ''}`}>
                 <Video size={20} />
                 <span>Consultation Requests</span>
-              </Link>
-              <Link to="/dashboard/doctor/messages" className={`sidebar-link ${currentPath === '/dashboard/doctor/messages' ? 'active' : ''}`}>
-                <MessageSquare size={20} />
-                <span>Messages</span>
               </Link>
               <Link to="/dashboard/doctor/payments" className={`sidebar-link ${currentPath === '/dashboard/doctor/payments' ? 'active' : ''}`}>
                 <CreditCard size={20} />
@@ -233,10 +293,21 @@ const DashboardLayout = () => {
       </aside>
 
       {/* Main Content */}
-      <main className={`dashboard-main ${(role === 'patient' || role === 'doctor') ? 'patient-dashboard-main' : ''}`}>
+      <main className={`dashboard-main ${(role === 'patient' || role === 'doctor' || role === 'admin') ? 'patient-dashboard-main' : ''}`}>
         <header className="dashboard-header-top">
-          <div className="header-title">
-            <h3>{role.charAt(0).toUpperCase() + role.slice(1)} Portal</h3>
+          <div className="header-left-group" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button
+              type="button"
+              className="mobile-hamburger-btn"
+              onClick={() => setMobileMenuOpen(prev => !prev)}
+              aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+              aria-expanded={mobileMenuOpen}
+            >
+              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+            <div className="header-title">
+              <h3>{role.charAt(0).toUpperCase() + role.slice(1)} Portal</h3>
+            </div>
           </div>
           <div className="header-user">
             
@@ -298,6 +369,61 @@ const DashboardLayout = () => {
             </div>
           </div>
         </header>
+
+        {/* Real-time In-App Notification Toast for Consultation Acceptance */}
+        {acceptedToast && (
+          <div 
+            className="in-app-acceptance-toast"
+            style={{
+              position: 'fixed',
+              top: '84px',
+              right: '24px',
+              zIndex: 9999,
+              background: '#ffffff',
+              border: '1px solid #10b981',
+              borderLeft: '6px solid #10b981',
+              borderRadius: '16px',
+              boxShadow: '0 12px 36px rgba(15, 23, 42, 0.16)',
+              padding: '16px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
+              maxWidth: '480px'
+            }}
+          >
+            <div style={{ background: 'rgba(16, 185, 129, 0.14)', color: '#059669', width: '42px', height: '42px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <CheckCircle2 size={24} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h4 style={{ margin: '0 0 2px 0', fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
+                Consultation Request Accepted!
+              </h4>
+              <p style={{ margin: 0, fontSize: '0.86rem', color: '#475569', lineHeight: 1.35 }}>
+                Dr. {acceptedToast.doctorName || 'Your doctor'} has accepted your consultation. Messaging is now active.
+              </p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+              <button
+                onClick={() => {
+                  const cId = acceptedToast.consultationId || acceptedToast.id;
+                  navigate(`/dashboard/patient/consultation/${cId}/messages`, { state: { consultationId: cId } });
+                  setAcceptedToast(null);
+                }}
+                className="btn btn-primary btn-sm"
+                style={{ padding: '8px 16px', borderRadius: '10px', fontWeight: 800, fontSize: '0.84rem', whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(22, 119, 255, 0.25)' }}
+              >
+                Open Chat
+              </button>
+              <button
+                onClick={() => setAcceptedToast(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '4px', display: 'flex', alignItems: 'center' }}
+                aria-label="Close notification"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="dashboard-content">
           <Outlet />

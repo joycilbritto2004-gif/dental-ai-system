@@ -31,6 +31,7 @@ import PatientConsultations from './pages/patient/PatientConsultations';
 import PatientHealthTips from './pages/patient/PatientHealthTips';
 import PatientReports from './pages/patient/PatientReports';
 import PatientReportDetails from './pages/patient/PatientReportDetails';
+import PatientScreeningHistory from './pages/patient/PatientScreeningHistory';
 import PatientProfile from './pages/patient/PatientProfile';
 
 // Shared
@@ -75,6 +76,8 @@ function App() {
           {/* Patient Routes */}
           <Route element={<ProtectedRoute allowedRoles={['patient']} />}>
             <Route path="/dashboard/patient" element={<PatientDashboard />} />
+            <Route path="/dashboard/patient/screening-history" element={<PatientScreeningHistory />} />
+            <Route path="/dashboard/patient/history" element={<PatientScreeningHistory />} />
             <Route path="/dashboard/patient/recommended-doctors" element={<RecommendedDoctors />} />
             <Route path="/dashboard/patient/reports" element={<PatientReports />} />
             <Route path="/dashboard/patient/reports/:id" element={<PatientReportDetails />} />
@@ -83,6 +86,9 @@ function App() {
             <Route path="/dashboard/patient/doctor/:id" element={<DoctorProfile />} />
             <Route path="/dashboard/patient/consult-request/:id" element={<ConsultationRequest />} />
             <Route path="/dashboard/patient/consultations" element={<PatientConsultations />} />
+            <Route path="/dashboard/patient/consultation/:id" element={<MessagesUI role="patient" />} />
+            <Route path="/dashboard/patient/consultation/:id/messages" element={<MessagesUI role="patient" />} />
+            <Route path="/dashboard/patient/consultations/:id/messages" element={<MessagesUI role="patient" />} />
             <Route path="/dashboard/patient/messages" element={<MessagesUI role="patient" />} />
             <Route path="/dashboard/patient/payments" element={<PatientPayments />} />
             <Route path="/dashboard/patient/payment/checkout" element={<PatientPaymentCheckout />} />
@@ -97,6 +103,8 @@ function App() {
             <Route path="/dashboard/doctor/verified" element={<DoctorVerifiedCases />} />
             <Route path="/dashboard/doctor/consultations" element={<DoctorConsultations />} />
             <Route path="/dashboard/doctor/consultation/:id" element={<DoctorConsultationWorkspace />} />
+            <Route path="/dashboard/doctor/consultation/:id/messages" element={<MessagesUI role="doctor" />} />
+            <Route path="/dashboard/doctor/consultations/:id/messages" element={<MessagesUI role="doctor" />} />
             <Route path="/dashboard/doctor/messages" element={<MessagesUI role="doctor" />} />
             <Route path="/dashboard/doctor/payments" element={<DoctorPayments />} />
             <Route path="/dashboard/doctor/history" element={<DoctorConsultationHistory />} />

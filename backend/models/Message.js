@@ -22,6 +22,13 @@ messageSchema.set('toJSON', {
     ret.id = ret._id;
   }
 });
+messageSchema.set('toObject', {
+  virtuals: true,
+  versionKey: false,
+  transform: function (doc, ret) {
+    ret.id = ret._id;
+  }
+});
 
 const Message = mongoose.model('Message', messageSchema);
 module.exports = Message;

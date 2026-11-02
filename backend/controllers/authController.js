@@ -1,13 +1,17 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const sendEmail = require('../utils/emailService');
+const { sendSMS } = require('../utils/smsService');
 const Notification = require('../models/Notification');
 
 // Generate JWT token
 const generateToken = (id) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('Fatal: JWT_SECRET environment variable is not configured.');
+  }
   return jwt.sign(
     { id },
-    process.env.JWT_SECRET || 'secret_fallback',
+    process.env.JWT_SECRET,
     { expiresIn: '30d' }
   );
 };
@@ -100,7 +104,19 @@ const registerUser = async (req, res) => {
           subject: 'Welcome to DentaAI - Registration Successful',
           message: welcomeMessage,
           html: welcomeHtml,
+          deduplicationKey: `reg_${user._id}_email`,
+          event: 'registration',
         });
+
+        // Dispatch registration SMS if phone provided
+        if (user.phone) {
+          sendSMS({
+            to: user.phone,
+            templateName: 'REGISTRATION',
+            templateData: { name: user.name, role },
+            deduplicationKey: `reg_${user._id}_sms`,
+          }).catch((smsErr) => console.error('Registration SMS error:', smsErr.message));
+        }
 
         // Also notify the admin
         if (process.env.ADMIN_EMAIL) {
@@ -264,11 +280,36 @@ const updateUserProfile = async (req, res) => {
     const user = await User.findById(req.user._id);
 
     if (user) {
-      user.name = req.body.name || user.name;
-      user.phone = req.body.phone !== undefined ? req.body.phone : user.phone;
+      // Disallow modifying security sensitive attributes
+      if (req.body.role && req.body.role !== user.role) {
+        return res.status(403).json({ message: 'Modifying account role is not permitted' });
+      }
+      if (req.body.verificationStatus && req.body.verificationStatus !== user.verificationStatus) {
+        return res.status(403).json({ message: 'Modifying verification status is not permitted' });
+      }
+      if (req.body.accountStatus && req.body.accountStatus !== user.accountStatus) {
+        return res.status(403).json({ message: 'Modifying account status is not permitted' });
+      }
+
+      if (req.body.name) user.name = req.body.name.trim();
+      if (req.body.phone !== undefined) user.phone = req.body.phone.trim();
       
       if (req.body.password) {
         user.password = req.body.password;
+      }
+
+      // Doctor-specific profile fields
+      if (user.role === 'doctor') {
+        if (req.body.specialization !== undefined) user.specialization = String(req.body.specialization).trim();
+        if (req.body.clinic !== undefined) user.clinic = String(req.body.clinic).trim();
+        if (req.body.location !== undefined) user.location = String(req.body.location).trim();
+        if (req.body.fee !== undefined) {
+          const numFee = Number(req.body.fee);
+          if (isNaN(numFee) || numFee < 0) {
+            return res.status(400).json({ message: 'Consultation fee must be a valid non-negative number' });
+          }
+          user.fee = numFee;
+        }
       }
 
       const updatedUser = await user.save();
@@ -279,6 +320,12 @@ const updateUserProfile = async (req, res) => {
         email: updatedUser.email,
         phone: updatedUser.phone,
         role: updatedUser.role,
+        verificationStatus: updatedUser.verificationStatus,
+        accountStatus: updatedUser.accountStatus,
+        specialization: updatedUser.specialization,
+        clinic: updatedUser.clinic,
+        location: updatedUser.location,
+        fee: updatedUser.fee,
         token: generateToken(updatedUser._id),
       });
     } else {

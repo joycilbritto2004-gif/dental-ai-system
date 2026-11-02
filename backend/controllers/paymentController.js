@@ -1,6 +1,7 @@
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const sendEmail = require('../utils/emailService');
+const { sendSMS } = require('../utils/smsService');
 
 const sendNotificationEmail = async (options) => {
   try {
@@ -74,6 +75,8 @@ const verifyPayment = async (req, res) => {
           email: req.user.email,
           subject: 'Payment Verification Successful - DentaAI',
           message: `Hello ${req.user.name},\n\nYour payment has been successfully verified.\n\nAmount: INR ${amount}\nPayment ID: ${razorpay_payment_id}\nOrder ID: ${razorpay_order_id}\n\nRegards,\nDentaAI Team`,
+          deduplicationKey: `pay_verify_${razorpay_payment_id}_email`,
+          event: 'payment_verified',
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 24px; color: #333;">
               <h2 style="color: #2563eb;">Payment Successfully Verified</h2>
@@ -89,8 +92,22 @@ const verifyPayment = async (req, res) => {
             </div>
           `,
         });
+
+        // Dispatch Payment Verified SMS to user if phone is on profile
+        if (req.user && req.user.phone) {
+          sendSMS({
+            to: req.user.phone,
+            templateName: 'PAYMENT_VERIFIED',
+            templateData: {
+              amount,
+              doctorName: 'Specialist',
+              transactionId: razorpay_payment_id,
+            },
+            deduplicationKey: `pay_verify_${razorpay_payment_id}_sms`,
+          }).catch((smsErr) => console.error('Payment verified SMS error:', smsErr.message));
+        }
       } catch (fetchErr) {
-        console.error("Failed to fetch Razorpay payment details:", fetchErr.message);
+        console.error("Failed to fetch Razorpay payment details or dispatch notifications:", fetchErr.message);
       }
 
       return res.status(200).json({ message: "Payment verified successfully", verified: true });

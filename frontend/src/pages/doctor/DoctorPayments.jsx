@@ -15,10 +15,11 @@ const DoctorPayments = () => {
         let DOCTOR_ID = null;
         if (userStr) {
           const user = JSON.parse(userStr);
-          DOCTOR_ID = user._id || user.id ;
+          DOCTOR_ID = user._id || user.id;
         }
-        
-        const res = await fetch(`http://localhost:5000/api/consultations?doctorId=${DOCTOR_ID}`);
+        const token = localStorage.getItem('dentaai_token') || localStorage.getItem('token');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        const res = await fetch(`http://localhost:5000/api/consultations?doctorId=${DOCTOR_ID}`, { headers });
         if (!res.ok) throw new Error('Failed to fetch from backend');
         const stored = await res.json();
         

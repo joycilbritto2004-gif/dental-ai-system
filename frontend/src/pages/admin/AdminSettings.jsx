@@ -20,50 +20,49 @@ const AdminSettings = () => {
 
       <div className="dashboard-grid mt-6">
         <motion.div variants={item} className="card glass-card" style={{ padding: '2rem' }}>
-          <h3 className="font-bold text-primary mb-6" style={{ fontSize: '1.25rem' }}>General Preferences</h3>
+          <h3 className="font-bold mb-6" style={{ color: '#17324D', fontSize: '1.25rem' }}>General Preferences</h3>
           
           <div className="form-group mb-4">
-            <label className="text-sm text-muted mb-2 block">Platform Name</label>
-            <input type="text" className="form-control w-full" defaultValue="DentaAI System" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', padding: '0.75rem', borderRadius: '8px' }} />
+            <label className="text-sm mb-2 block" style={{ color: '#17324D', fontWeight: 600 }}>Platform Name</label>
+            <input type="text" className="form-control w-full" defaultValue="DentaAI System" style={{ background: 'rgba(255, 255, 255, 0.92)', border: '1px solid rgba(191, 212, 229, 0.80)', color: '#17324D', padding: '0.75rem', borderRadius: '8px', fontWeight: 500 }} />
           </div>
           
           <div className="form-group mb-6">
-            <label className="text-sm text-muted mb-2 block">Support Contact Email</label>
-            <input type="email" className="form-control w-full" defaultValue="support@dentaai.com" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', padding: '0.75rem', borderRadius: '8px' }} />
+            <label className="text-sm mb-2 block" style={{ color: '#17324D', fontWeight: 600 }}>Support Contact Email</label>
+            <input type="email" className="form-control w-full" defaultValue="support@dentaai.com" style={{ background: 'rgba(255, 255, 255, 0.92)', border: '1px solid rgba(191, 212, 229, 0.80)', color: '#17324D', padding: '0.75rem', borderRadius: '8px', fontWeight: 500 }} />
           </div>
 
-          <button className="btn btn-primary flex-align-center gap-2"><Save size={18} /> Save Changes</button>
+          <button className="btn btn-primary flex-align-center gap-2" style={{ background: '#1677FF' }}><Save size={18} /> Save Changes</button>
         </motion.div>
 
         <motion.div variants={item} className="card glass-card" style={{ padding: '2rem' }}>
-          <h3 className="font-bold text-primary mb-6" style={{ fontSize: '1.25rem' }}>Security & Features</h3>
+          <h3 className="font-bold mb-6" style={{ color: '#17324D', fontSize: '1.25rem' }}>Security & Features</h3>
           
-          <div className="flex-between mb-4 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+          <div className="flex-between mb-4 pb-4" style={{ borderBottom: '1px solid rgba(191, 212, 229, 0.40)' }}>
             <div className="flex-align-center gap-3">
-              <ShieldAlert className="text-warning" size={20} />
+              <ShieldAlert color="#D97706" size={20} />
               <div>
-                <h4 className="font-bold">Require Doctor Verification</h4>
-                <p className="text-xs text-muted">Force human override on AI results before report sharing.</p>
+                <h4 className="font-bold" style={{ color: '#17324D' }}>Require Doctor Verification</h4>
+                <p className="text-xs" style={{ color: '#536579' }}>Force human override on AI results before report sharing.</p>
               </div>
             </div>
             <div className="toggle-switch">
-              {/* Mock switch */}
-              <div style={{ width: '40px', height: '24px', background: 'var(--primary)', borderRadius: '12px', position: 'relative' }}>
+              <div style={{ width: '40px', height: '24px', background: '#1677FF', borderRadius: '12px', position: 'relative' }}>
                 <div style={{ width: '18px', height: '18px', background: 'white', borderRadius: '50%', position: 'absolute', right: '3px', top: '3px' }}></div>
               </div>
             </div>
           </div>
 
-          <div className="flex-between mb-4 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+          <div className="flex-between mb-4 pb-4" style={{ borderBottom: '1px solid rgba(191, 212, 229, 0.40)' }}>
             <div className="flex-align-center gap-3">
-              <Bell className="text-secondary" size={20} />
+              <Bell color="#008DFF" size={20} />
               <div>
-                <h4 className="font-bold">Email Notifications</h4>
-                <p className="text-xs text-muted">Send automated alerts for new consultation bookings.</p>
+                <h4 className="font-bold" style={{ color: '#17324D' }}>Email Notifications</h4>
+                <p className="text-xs" style={{ color: '#536579' }}>Send automated alerts for new consultation bookings.</p>
               </div>
             </div>
             <div className="toggle-switch">
-              <div style={{ width: '40px', height: '24px', background: 'var(--primary)', borderRadius: '12px', position: 'relative' }}>
+              <div style={{ width: '40px', height: '24px', background: '#1677FF', borderRadius: '12px', position: 'relative' }}>
                 <div style={{ width: '18px', height: '18px', background: 'white', borderRadius: '50%', position: 'absolute', right: '3px', top: '3px' }}></div>
               </div>
             </div>
@@ -71,14 +70,14 @@ const AdminSettings = () => {
 
           <div className="flex-between">
             <div className="flex-align-center gap-3">
-              <Database className="text-primary" size={20} />
+              <Database color="#1677FF" size={20} />
               <div>
-                <h4 className="font-bold">Auto-Purge Scans</h4>
-                <p className="text-xs text-muted">Delete unverified AI scans older than 90 days.</p>
+                <h4 className="font-bold" style={{ color: '#17324D' }}>Auto-Purge Scans</h4>
+                <p className="text-xs" style={{ color: '#536579' }}>Delete unverified AI scans older than 90 days.</p>
               </div>
             </div>
             <div className="toggle-switch">
-              <div style={{ width: '40px', height: '24px', background: 'rgba(255,255,255,0.2)', borderRadius: '12px', position: 'relative' }}>
+              <div style={{ width: '40px', height: '24px', background: 'rgba(191, 212, 229, 0.60)', borderRadius: '12px', position: 'relative' }}>
                 <div style={{ width: '18px', height: '18px', background: 'white', borderRadius: '50%', position: 'absolute', left: '3px', top: '3px' }}></div>
               </div>
             </div>

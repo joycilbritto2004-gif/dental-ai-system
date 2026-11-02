@@ -107,7 +107,7 @@ const PatientProfile = () => {
     <motion.div className="dashboard-view" initial="hidden" animate="show" variants={stagger}>
       <motion.div 
         variants={item} 
-        className="mb-8" 
+        className="mb-8 page-header-card" 
         style={{ 
           background: 'var(--bg-card)', 
           padding: '32px 40px', 
@@ -122,8 +122,8 @@ const PatientProfile = () => {
         <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'var(--secondary)' }}></div>
         <div style={{ position: 'relative', zIndex: 10 }}>
           <div>
-            <h2 className="font-extrabold mb-2" style={{ color: 'var(--text-main)', letterSpacing: '-0.5px', fontSize: '2.5rem', lineHeight: '1.2', margin: 0 }}>My Profile</h2>
-            <p className="font-medium m-0" style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>Manage your personal information and security settings.</p>
+            <h2 className="font-extrabold mb-2" style={{ color: 'var(--text-primary, #17324D)', letterSpacing: '-0.5px', fontSize: '2.5rem', lineHeight: '1.2', margin: 0 }}>My Profile</h2>
+            <p className="font-medium m-0" style={{ color: 'var(--text-secondary, #52677A)', fontSize: '1.1rem' }}>Manage your personal information and security settings.</p>
           </div>
         </div>
       </motion.div>

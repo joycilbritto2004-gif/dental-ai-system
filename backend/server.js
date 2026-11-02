@@ -1,8 +1,18 @@
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
 const path = require('path');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
+const { initSocket } = require('./socket');
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+});
 
 dotenv.config();
 
@@ -10,6 +20,10 @@ dotenv.config();
 connectDB();
 
 const app = express();
+const server = http.createServer(app);
+
+// Initialize Socket.IO
+initSocket(server);
 
 // Middleware
 app.use(cors());
@@ -29,6 +43,7 @@ app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/doctors', require('./routes/doctorRoutes'));
 app.use('/api/ai', require('./routes/aiRoutes'));
 app.use('/api/payment', require('./routes/paymentRoutes'));
+app.use('/api/prescriptions', require('./routes/prescriptionRoutes'));
 
 // Basic route
 app.get('/', (req, res) => {
@@ -45,6 +60,6 @@ app.get('/api/health', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

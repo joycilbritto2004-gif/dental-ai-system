@@ -63,7 +63,7 @@ const PatientPredictions = () => {
     >
       <motion.div 
         variants={item} 
-        className="mb-8" 
+        className="mb-8 page-header-card" 
         style={{ 
           background: 'var(--bg-card)', 
           padding: '32px 40px', 
@@ -77,8 +77,8 @@ const PatientPredictions = () => {
         <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '50%', background: 'radial-gradient(circle at top right, rgba(0, 210, 255, 0.12), transparent 70%)', pointerEvents: 'none' }}></div>
         <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'var(--secondary)' }}></div>
         <div style={{ position: 'relative', zIndex: 10 }}>
-          <h2 className="font-extrabold mb-2" style={{ color: '#172033', letterSpacing: '-0.5px', fontSize: '2.5rem', lineHeight: '1.2' }}>My Predictions</h2>
-          <p className="font-medium m-0" style={{ color: '#64748B', fontSize: '1.1rem' }}>Complete history of your AI dental scans</p>
+          <h2 className="font-extrabold mb-2" style={{ color: 'var(--text-primary, #17324D)', letterSpacing: '-0.5px', fontSize: '2.5rem', lineHeight: '1.2' }}>My Predictions</h2>
+          <p className="font-medium m-0" style={{ color: 'var(--text-secondary, #52677A)', fontSize: '1.1rem' }}>Complete history of your AI dental scans</p>
         </div>
       </motion.div>
 
@@ -118,17 +118,17 @@ const PatientPredictions = () => {
                   </div>
                   
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                    <h4 style={{ color: '#172033', fontSize: '1.4rem', fontWeight: 800, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                    <h4 style={{ color: 'var(--text-primary, #17324D)', fontSize: '1.4rem', fontWeight: 800, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                       <span style={{ textTransform: 'capitalize' }}>{scan.condition.replace('_', ' ')}</span>
                       <span style={{ color: 'var(--secondary)', fontSize: '0.9rem', background: 'rgba(0, 210, 255, 0.1)', padding: '6px 14px', borderRadius: '999px', fontWeight: 800 }}>{scan.confidence}% Confidence</span>
                     </h4>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', color: '#64748B', fontSize: '0.95rem', fontWeight: 500 }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', color: 'var(--text-secondary, #52677A)', fontSize: '0.95rem', fontWeight: 500 }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Calendar size={16} />
                         {dateObj.toLocaleDateString()} at {dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        Scan ID: <strong style={{ color: '#172033' }}>{scan.scanId}</strong>
+                        Scan ID: <strong style={{ color: 'var(--text-primary, #17324D)' }}>{scan.scanId}</strong>
                       </span>
                     </div>
                   </div>

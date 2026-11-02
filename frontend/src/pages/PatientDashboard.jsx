@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, Image as ImageIcon, HeartPulse, CheckCircle2, Clock, Info, X, ShieldCheck, Search, Calendar, Zap, FileText, Download, Check, FileStack, ArrowRight } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Upload, Image as ImageIcon, HeartPulse, CheckCircle2, Clock, Info, X, ShieldCheck, Zap, FileText, Download, Check, FileStack, Activity } from 'lucide-react';
 import { getCareSuggestions } from '../utils/careSuggestions';
 import { generatePDF } from '../utils/pdfGenerator';
+import { getSocket } from '../utils/socket';
+import PersonalPrescriptionSection from '../components/PersonalPrescriptionSection';
 import './Dashboard.css';
 
 const PatientDashboard = () => {
@@ -17,6 +18,8 @@ const PatientDashboard = () => {
   const [consultations, setConsultations] = useState([]);
   const [showReport, setShowReport] = useState(false);
   const fileInputRef = useRef(null);
+  const isFetchingConsultationsRef = useRef(false);
+  const isMountedRef = useRef(true);
 
   const [userName, setUserName] = useState('');
   
@@ -25,34 +28,69 @@ const PatientDashboard = () => {
       const userStr = localStorage.getItem('dentaai_user');
       if (!userStr) return;
       const user = JSON.parse(userStr);
-      const res = await fetch(`http://localhost:5000/api/scans/${user._id || user.id}`);
+      const token = localStorage.getItem('dentaai_token');
+      const res = await fetch(`http://localhost:5000/api/scans/${user._id || user.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (res.ok) {
         const data = await res.json();
-        setScanHistory(data);
+        if (isMountedRef.current) {
+          setScanHistory(data);
+        }
       }
     } catch (err) {
-      console.error('Error fetching history:', err);
+      if (isMountedRef.current) {
+        console.error('Error fetching history:', err);
+      }
     }
   };
 
-  const fetchConsultations = async () => {
+  const fetchConsultations = useCallback(async () => {
+    if (isFetchingConsultationsRef.current) return;
+    isFetchingConsultationsRef.current = true;
     try {
       const userStr = localStorage.getItem('dentaai_user');
       if (!userStr) return;
       const user = JSON.parse(userStr);
-      const res = await fetch(`http://localhost:5000/api/consultations?patientId=${user._id || user.id}`);
+      const token = localStorage.getItem('dentaai_token');
+      const res = await fetch(`http://localhost:5000/api/consultations?patientId=${user._id || user.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (res.ok) {
         const data = await res.json();
-        setConsultations(data);
+        if (isMountedRef.current) {
+          setConsultations(Array.isArray(data) ? data : []);
+        }
       }
     } catch (err) {
-      console.error('Error fetching consultations:', err);
+      if (isMountedRef.current) {
+        console.error('Error fetching consultations:', err);
+      }
+    } finally {
+      isFetchingConsultationsRef.current = false;
     }
-  };
+  }, []);
 
   useEffect(() => {
+    isMountedRef.current = true;
     fetchScanHistory();
     fetchConsultations();
+
+    // Socket.IO real-time acceptance event listener
+    const socket = getSocket();
+    const handleAccepted = () => {
+      fetchConsultations();
+    };
+
+    if (socket) {
+      socket.on('consultation-accepted', handleAccepted);
+    }
+    
+    // Polling every 5 seconds for automatic consultation updates as fallback
+    const intervalId = setInterval(() => {
+      fetchConsultations();
+    }, 5000);
+
     const userStr = localStorage.getItem('dentaai_user');
     if (userStr) {
       try {
@@ -62,7 +100,15 @@ const PatientDashboard = () => {
         console.error('Error parsing user data:', e);
       }
     }
-  }, []);
+
+    return () => {
+      isMountedRef.current = false;
+      clearInterval(intervalId);
+      if (socket) {
+        socket.off('consultation-accepted', handleAccepted);
+      }
+    };
+  }, [fetchConsultations]);
 
   const stagger = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.1 } } };
   const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
@@ -71,16 +117,6 @@ const PatientDashboard = () => {
   const verifiedScans = scanHistory.filter(s => s.confidence > 90).length;
   const pendingScans = scanHistory.filter(s => s.confidence > 70 && s.confidence <= 90).length;
   const healthStatus = totalScans === 0 ? "N/A" : (scanHistory[0].confidence > 90 ? "Good" : scanHistory[0].confidence > 70 ? "Attention" : "Critical");
-
-  // Chart data (sorted oldest to newest)
-  const chartData = [...scanHistory].reverse().map(scan => {
-    const d = new Date(scan.createdAt);
-    return {
-      name: `${d.getDate()}/${d.getMonth()+1}`,
-      confidence: scan.confidence,
-      condition: scan.condition.replace('_', ' ')
-    };
-  });
 
   const upcomingFollowUp = consultations.find(c => c.followUpDate);
 
@@ -123,8 +159,12 @@ const PatientDashboard = () => {
     formData.append('image', imageFile);
 
     try {
+      const userToken = localStorage.getItem('dentaai_token');
       const response = await fetch('http://localhost:5000/api/ai/predict', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${userToken}`
+        },
         body: formData,
       }).catch(() => {
         throw new Error("Failed to connect to the AI neural network. Please ensure the AI server is active.");
@@ -163,7 +203,10 @@ const PatientDashboard = () => {
 
             const saveRes = await fetch('http://localhost:5000/api/scans', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userToken}`
+              },
               body: JSON.stringify(payload)
             });
 
@@ -177,6 +220,7 @@ const PatientDashboard = () => {
           console.error("Failed to save scan history", saveErr);
         }
         
+        sessionStorage.setItem('dentaai_active_scan', JSON.stringify(finalData));
         setPredictionResult(finalData);
       }, 1500);
 
@@ -245,16 +289,10 @@ const PatientDashboard = () => {
                     <button onClick={handleRemoveImage} style={{ position: 'absolute', top: '12px', right: '12px', background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-muted)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
                       <X size={16} />
                     </button>
-                    {isLoading && (
-                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ position: 'absolute', inset: 0, background: 'rgba(255, 255, 255, 0.9)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: '16px' }}>
-                        <div style={{ width: '60px', height: '60px', border: '4px solid rgba(0, 210, 255, 0.2)', borderTopColor: 'var(--secondary)', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: '16px' }}></div>
-                        <div style={{ color: 'var(--secondary)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>Analyzing Image...</div>
-                      </motion.div>
-                    )}
                   </motion.div>
                 ) : (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                    <div style={{ background: '#E0EEFF', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                    <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 4px 15px rgba(22, 119, 255, 0.15)' }}>
                       <Upload size={28} color="#1677FF" />
                     </div>
                     <h4 style={{ color: 'var(--text-primary)', fontWeight: 800, margin: '0 0 8px 0', fontSize: '1.1rem' }}>Drop intraoral image here</h4>
@@ -271,6 +309,14 @@ const PatientDashboard = () => {
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ marginTop: '24px' }}>
                 <button className="btn btn-primary" style={{ width: '100%', padding: '14px', borderRadius: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '1rem', boxShadow: '0 4px 15px rgba(0, 210, 255, 0.3)', background: 'var(--gradient-primary)', color: '#FFFFFF', border: 'none' }} onClick={handleRunAnalysis}>
                   <Zap size={18} /> Analyze with DentaAI
+                </button>
+              </motion.div>
+            )}
+
+            {selectedImage && !predictionResult && isLoading && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ marginTop: '24px' }}>
+                <button className="btn btn-primary" disabled style={{ width: '100%', padding: '14px', borderRadius: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '1rem', background: 'var(--gradient-primary)', color: '#FFFFFF', opacity: 0.85, cursor: 'wait', border: 'none' }}>
+                  <Activity className="spin-anim" size={18} /> Analyzing Image...
                 </button>
               </motion.div>
             )}
@@ -309,14 +355,40 @@ const PatientDashboard = () => {
                   <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: 1.5, fontWeight: 500 }}>{predictionResult.recommendation}</p>
                 </div>
 
-                <div style={{ display: 'flex', gap: '16px' }}>
-                  <button onClick={() => setShowReport(!showReport)} style={{ flex: 1, background: 'var(--card-bg)', border: '1px solid var(--border-color)', padding: '14px', borderRadius: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer', color: 'var(--text-primary)', transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+                <div>
+                  <button 
+                    onClick={() => setShowReport(!showReport)} 
+                    style={{ 
+                      width: '100%', 
+                      background: 'var(--card-bg)', 
+                      border: '1px solid var(--border-color)', 
+                      padding: '14px', 
+                      borderRadius: '12px', 
+                      fontWeight: 700, 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      gap: '8px', 
+                      cursor: 'pointer', 
+                      color: 'var(--text-primary)', 
+                      transition: 'all 0.2s', 
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.02)' 
+                    }}
+                  >
                     <FileText size={18} /> {showReport ? 'Hide Full Report' : 'View Full Report'}
                   </button>
-                  <Link to={`/dashboard/patient/recommended-doctors`} state={{ predictionResult }} style={{ flex: 1, background: 'var(--secondary)', color: '#FFFFFF', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', textDecoration: 'none', transition: 'all 0.2s', boxShadow: '0 4px 15px rgba(0, 210, 255, 0.3)' }}>
-                    <Search size={18} /> Professional Verification
-                  </Link>
                 </div>
+              </motion.div>
+            )}
+
+            {/* PERSONAL PRESCRIPTION SECTION (Directly below AI Analysis Complete card) */}
+            {predictionResult && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                <PersonalPrescriptionSection
+                  condition={predictionResult.condition}
+                  confidence={predictionResult.confidence}
+                  scanId={predictionResult._id || predictionResult.id}
+                />
               </motion.div>
             )}
 
@@ -375,71 +447,11 @@ const PatientDashboard = () => {
             )}
           </motion.div>
 
-          {/* DENTAL HEALTH PROGRESS */}
-          <motion.div variants={item} className="card" style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '24px', padding: '32px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
-            <h3 style={{ fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 8px 0', fontSize: '1.25rem' }}>AI Health Progression</h3>
-            <p style={{ color: 'var(--text-secondary)', margin: '0 0 24px 0', fontWeight: 500, fontSize: '0.9rem' }}>Track confidence trends across your recent scan history.</p>
-            
-            {chartData.length > 0 ? (
-              <div style={{ width: '100%', height: 260 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                    <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} dy={10} />
-                    <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} domain={[0, 100]} dx={-10} />
-                    <Tooltip 
-                      contentStyle={{ background: '#FFFFFF', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', fontWeight: 700 }} 
-                      itemStyle={{ color: 'var(--secondary)', fontWeight: 800 }} 
-                      labelStyle={{ color: '#CBD5E1', marginBottom: '4px' }}
-                    />
-                    <Line type="monotone" dataKey="confidence" stroke="var(--secondary)" strokeWidth={3} dot={{ fill: '#FFFFFF', stroke: 'var(--secondary)', strokeWidth: 2, r: 4 }} activeDot={{ r: 6, fill: 'var(--secondary)', stroke: '#FFFFFF', strokeWidth: 2 }} name="Confidence %" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <div style={{ padding: '40px 20px', textAlign: 'center', background: 'var(--card-bg-dark)', borderRadius: '16px', border: '1px dashed var(--border-color)' }}>
-                <div style={{ background: 'var(--card-bg)', width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                  <HeartPulse size={24} color="var(--text-muted)" />
-                </div>
-                <h4 style={{ margin: '0 0 8px 0', color: 'var(--text-primary)', fontWeight: 800 }}>No Progression Data</h4>
-                <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 500 }}>Your health chart will generate after you complete your first AI scan.</p>
-              </div>
-            )}
-          </motion.div>
-
         </div>
 
         {/* RIGHT COLUMN */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
-          {/* CONSULTATION CTA */}
-          <motion.div variants={item} style={{ background: 'var(--gradient-primary)', borderRadius: '24px', padding: '32px', color: '#FFFFFF', boxShadow: '0 10px 30px rgba(22, 119, 255, 0.25)', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '150px', height: '150px', background: 'var(--secondary)', opacity: 0.15, borderRadius: '50%', filter: 'blur(30px)' }}></div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-              <div style={{ background: 'rgba(0, 210, 255, 0.2)', padding: '10px', borderRadius: '12px', color: 'var(--secondary)' }}><ShieldCheck size={24} /></div>
-              <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800 }}>Need Professional Verification?</h3>
-            </div>
-            <p style={{ margin: '0 0 24px 0', fontSize: '1rem', opacity: 0.9, lineHeight: 1.5, fontWeight: 500 }}>Connect with verified dental specialists to review your AI scan results and get a personalized care plan.</p>
-            <Link to="/dashboard/patient/recommended-doctors" state={{ predictionResult }} style={{ background: 'var(--secondary)', color: '#FFFFFF', padding: '14px 24px', borderRadius: '12px', fontWeight: 800, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s', boxShadow: '0 4px 15px rgba(0, 210, 255, 0.25)' }}>
-              Get Verified by a Dentist <ArrowRight size={18} />
-            </Link>
-          </motion.div>
-
-          {/* UPCOMING FOLLOW-UP (If exists) */}
-          {upcomingFollowUp && (
-            <motion.div variants={item} className="card" style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '24px', padding: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                <div style={{ background: 'rgba(0, 210, 255, 0.1)', padding: '8px', borderRadius: '12px', color: 'var(--secondary)' }}><Calendar size={20} /></div>
-                <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.1rem', fontWeight: 800 }}>Upcoming Follow-up</h3>
-              </div>
-              <div style={{ background: 'var(--card-bg-dark)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                <p style={{ margin: '0 0 8px 0', color: 'var(--text-primary)', fontWeight: 800, fontSize: '1rem' }}>{new Date(upcomingFollowUp.followUpDate).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                <p style={{ margin: '0 0 16px 0', color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 500, lineHeight: 1.5 }}>{upcomingFollowUp.followUpNote || 'Follow-up consultation scheduled.'}</p>
-                <Link to={`/dashboard/patient/consultations`} style={{ display: 'block', textAlign: 'center', background: 'var(--card-bg)', border: '1px solid var(--border-color)', padding: '10px', borderRadius: '8px', fontWeight: 700, textDecoration: 'none', color: 'var(--text-primary)', fontSize: '0.9rem' }}>View Consultation</Link>
-              </div>
-            </motion.div>
-          )}
-
           {/* TIPS FOR BEST RESULTS */}
           <motion.div variants={item} className="card" style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '24px', padding: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
             <h3 style={{ fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 16px 0', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -469,7 +481,7 @@ const PatientDashboard = () => {
           <motion.div variants={item} className="card" style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '24px', padding: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h3 style={{ fontWeight: 800, color: 'var(--text-primary)', margin: 0, fontSize: '1.1rem' }}>Screening History</h3>
-              <Link to="/dashboard/patient/reports" style={{ fontSize: '0.85rem', color: 'var(--secondary)', fontWeight: 700, textDecoration: 'none' }}>View All</Link>
+              <Link to="/dashboard/patient/screening-history" style={{ fontSize: '0.85rem', color: 'var(--secondary)', fontWeight: 700, textDecoration: 'none' }}>View All</Link>
             </div>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -515,12 +527,11 @@ const KPICard = ({ icon, value, label, color, bg, borderColor }) => (
     <div style={{ width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: bg, color: color, borderRadius: '16px', flexShrink: 0 }}>
       {icon}
     </div>
-    <div>
-      <span style={{ display: 'block', fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>{value}</span>
-      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</span>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <span style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>{value}</span>
+      <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600, marginTop: '2px' }}>{label}</span>
     </div>
   </motion.div>
 );
 
 export default PatientDashboard;
-
