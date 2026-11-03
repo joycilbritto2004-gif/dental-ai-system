@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client';
+import { API_BASE } from '../config';
 
 let socket = null;
 let registeredUserId = null;
@@ -19,7 +20,7 @@ export const getSocket = () => {
     }
     if (userId) registeredUserId = userId;
 
-    socket = io('http://localhost:5000', {
+    socket = io(API_BASE, {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: 20,

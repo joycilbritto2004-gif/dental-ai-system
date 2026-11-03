@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { getCareSuggestions } from '../utils/careSuggestions';
 import '../pages/Dashboard.css';
+import { API_BASE } from '../config';
 
 /**
  * PersonalPrescriptionSection
@@ -53,14 +54,14 @@ const PersonalPrescriptionSection = ({
 
         let url = null;
         if (consultationId) {
-          url = `http://localhost:5000/api/prescriptions/consultation/${consultationId}`;
+          url = `${API_BASE}/api/prescriptions/consultation/${consultationId}`;
         } else if (scanId) {
-          url = `http://localhost:5000/api/prescriptions/scan/${scanId}`;
+          url = `${API_BASE}/api/prescriptions/scan/${scanId}`;
         } else {
           // Attempt to fetch latest prescription for patient matching condition
           url = condition 
-            ? `http://localhost:5000/api/prescriptions/latest?condition=${encodeURIComponent(condition)}`
-            : `http://localhost:5000/api/prescriptions/latest`;
+            ? `${API_BASE}/api/prescriptions/latest?condition=${encodeURIComponent(condition)}`
+            : `${API_BASE}/api/prescriptions/latest`;
         }
 
         const res = await fetch(url, { headers });

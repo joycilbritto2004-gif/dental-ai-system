@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Activity, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import '../Dashboard.css';
+import { API_BASE } from '../../config';
 
 const AdminUsers = () => {
   const [users, setUsers] = useState([]);
@@ -18,7 +19,7 @@ const AdminUsers = () => {
       const token = localStorage.getItem('dentaai_token');
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
-      const res = await fetch(`http://localhost:5000/api/admin/users?userId=${userId}`, { headers });
+      const res = await fetch(`${API_BASE}/api/admin/users?userId=${userId}`, { headers });
       if (res.ok) {
         const data = await res.json();
         setUsers(data);
@@ -50,7 +51,7 @@ const AdminUsers = () => {
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       };
 
-      const res = await fetch(`http://localhost:5000/api/admin/users/${targetUserId}/account-status?userId=${adminId}`, {
+      const res = await fetch(`${API_BASE}/api/admin/users/${targetUserId}/account-status?userId=${adminId}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify({ status: newStatus })

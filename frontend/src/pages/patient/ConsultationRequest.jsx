@@ -3,6 +3,7 @@ import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { BrainCircuit, ChevronLeft, Video, MessageSquare, ShieldCheck, Info } from 'lucide-react';
 import '../Dashboard.css';
+import { API_BASE } from '../../config';
 
 const ConsultationRequest = () => {
   const { id } = useParams();
@@ -37,7 +38,7 @@ const ConsultationRequest = () => {
   useEffect(() => {
     const fetchDoctor = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/api/doctors/${id}`);
+        const res = await fetch(`${API_BASE}/api/doctors/${id}`);
         if (res.ok) {
           const data = await res.json();
           // Normalize doc.id to the MongoDB _id string for consistency in the frontend

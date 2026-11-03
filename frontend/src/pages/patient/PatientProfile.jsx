@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { UserCircle, Save, Phone, Mail, Lock, User as UserIcon, ShieldCheck } from 'lucide-react';
 import '../Dashboard.css';
+import { API_BASE } from '../../config';
 
 const PatientProfile = () => {
   const [formData, setFormData] = useState({
@@ -23,7 +24,7 @@ const PatientProfile = () => {
   const fetchProfile = async () => {
     try {
       const token = localStorage.getItem('dentaai_token');
-      const res = await fetch('http://localhost:5000/api/auth/profile', {
+      const res = await fetch(`${API_BASE}/api/auth/profile`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -61,7 +62,7 @@ const PatientProfile = () => {
     
     try {
       const token = localStorage.getItem('dentaai_token');
-      const res = await fetch('http://localhost:5000/api/auth/profile', {
+      const res = await fetch(`${API_BASE}/api/auth/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

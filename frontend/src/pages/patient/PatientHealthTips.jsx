@@ -21,6 +21,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import '../Dashboard.css';
+import { API_BASE } from '../../config';
 
 /**
  * Educational Condition-Specific Knowledge Base for all 6 supported classes.
@@ -339,7 +340,7 @@ const PatientHealthTips = () => {
         return;
       }
 
-      const response = await fetch(`http://localhost:5000/api/scans/${patientId}`, {
+      const response = await fetch(`${API_BASE}/api/scans/${patientId}`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
 

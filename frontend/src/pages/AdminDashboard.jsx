@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Users, Stethoscope, Activity, CheckCircle2, BrainCircuit, ShieldCheck, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import './Dashboard.css';
+import { API_BASE } from '../config';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -30,8 +31,8 @@ const AdminDashboard = () => {
         const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
         const [statsRes, usersRes] = await Promise.all([
-          fetch(`http://localhost:5000/api/admin/stats?userId=${userId}`, { headers }),
-          fetch(`http://localhost:5000/api/admin/users?userId=${userId}`, { headers })
+          fetch(`${API_BASE}/api/admin/stats?userId=${userId}`, { headers }),
+          fetch(`${API_BASE}/api/admin/users?userId=${userId}`, { headers })
         ]);
 
         if (statsRes.ok && usersRes.ok) {

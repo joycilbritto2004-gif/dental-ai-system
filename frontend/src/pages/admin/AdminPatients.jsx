@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ChevronRight, Activity, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import '../Dashboard.css';
+import { API_BASE } from '../../config';
 
 const AdminPatients = () => {
   const [patients, setPatients] = useState([]);
@@ -19,7 +20,7 @@ const AdminPatients = () => {
         const token = localStorage.getItem('dentaai_token');
         const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
-        const res = await fetch(`http://localhost:5000/api/admin/users?userId=${userId}`, { headers });
+        const res = await fetch(`${API_BASE}/api/admin/users?userId=${userId}`, { headers });
         if (res.ok) {
           const data = await res.json();
           setPatients(data.filter(u => u.role === 'patient'));

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { UserCircle, Calendar, Eye, CheckCircle2 } from 'lucide-react';
 import '../Dashboard.css';
+import { API_BASE } from '../../config';
 
 const DoctorVerifiedCases = () => {
   const [verifiedCases, setVerifiedCases] = useState([]);
@@ -18,7 +19,7 @@ const DoctorVerifiedCases = () => {
         }
         const token = localStorage.getItem('dentaai_token') || localStorage.getItem('token');
         const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-        const res = await fetch(`http://localhost:5000/api/consultations?doctorId=${DOCTOR_ID}`, { headers });
+        const res = await fetch(`${API_BASE}/api/consultations?doctorId=${DOCTOR_ID}`, { headers });
         if (!res.ok) throw new Error('Failed to fetch');
         const stored = await res.json();
         

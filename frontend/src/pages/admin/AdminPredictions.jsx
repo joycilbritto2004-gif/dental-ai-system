@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Activity, Search, BrainCircuit } from 'lucide-react';
 import { motion } from 'framer-motion';
 import '../Dashboard.css';
+import { API_BASE } from '../../config';
 
 const AdminPredictions = () => {
   const [scans, setScans] = useState([]);
@@ -13,7 +14,7 @@ const AdminPredictions = () => {
       try {
         const token = localStorage.getItem('dentaai_token');
         const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-        const res = await fetch('http://localhost:5000/api/scans/all', { headers });
+        const res = await fetch(`${API_BASE}/api/scans/all`, { headers });
         if (res.ok) {
           const data = await res.json();
           setScans(data);

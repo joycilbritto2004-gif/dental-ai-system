@@ -1,7 +1,6 @@
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
-const path = require('path');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const { initSocket } = require('./socket');
@@ -26,12 +25,19 @@ const server = http.createServer(app);
 initSocket(server);
 
 // Middleware
-app.use(cors());
+// CORS_ORIGINS restricts which frontends may call this API; unset means allow any origin,
+// which is fine locally but should always be set on a deployment.
+const allowedOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+app.use(cors(allowedOrigins.length ? { origin: allowedOrigins, credentials: true } : {}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files from the uploads directory
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Uploaded dental images are patient medical data, so they are NOT served statically.
+// They go through GET /api/scans/image/:filename, which checks scan ownership first.
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));

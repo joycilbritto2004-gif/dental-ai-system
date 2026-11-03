@@ -3,6 +3,7 @@ import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Star, MapPin, BriefcaseMedical, Clock, Award, Languages, Phone, Mail, Calendar, MessageSquare, ChevronLeft, UserCircle, Stethoscope, Activity, ShieldCheck } from 'lucide-react';
 import '../Dashboard.css';
+import { API_BASE } from '../../config';
 
 const DoctorProfile = () => {
   const { id } = useParams();
@@ -32,7 +33,7 @@ const DoctorProfile = () => {
   useEffect(() => {
     const fetchDoctor = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/api/doctors/${id}`);
+        const res = await fetch(`${API_BASE}/api/doctors/${id}`);
         if (res.ok) {
           const data = await res.json();
           setDoc(data);

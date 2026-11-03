@@ -42,7 +42,16 @@ const sendNotification = (options) => {
 // @access  Public
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password, role, phone } = req.body;
+    const { name, email, password, phone } = req.body;
+
+    // Public registration may only create patient or doctor accounts.
+    // Admin accounts are provisioned out-of-band by seedAdmin.js — never from a request body,
+    // otherwise anyone could POST { role: 'admin' } and read every patient record.
+    const SELF_REGISTERABLE_ROLES = ['patient', 'doctor'];
+    const requestedRole = String(req.body.role || 'patient').toLowerCase();
+    if (!SELF_REGISTERABLE_ROLES.includes(requestedRole)) {
+      return res.status(403).json({ message: 'This account type cannot be self-registered' });
+    }
 
     const userExists = await User.findOne({ email });
 
@@ -54,8 +63,10 @@ const registerUser = async (req, res) => {
       name,
       email,
       password,
-      role,
+      role: requestedRole,
       phone,
+      // Doctors stay unapproved until an admin verifies them; patients need no verification.
+      verificationStatus: requestedRole === 'doctor' ? 'Pending' : 'Approved',
     });
 
     if (user) {

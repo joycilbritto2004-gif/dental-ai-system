@@ -4,6 +4,7 @@ import { Send, Image as ImageIcon, BrainCircuit, FileText, X, CreditCard, CheckC
 import { getConsultationStatusMeta } from '../../utils/consultationStatus';
 import { getSocket, joinConsultationRoom, leaveConsultationRoom } from '../../utils/socket';
 import '../Dashboard.css';
+import { API_BASE } from '../../config';
 
 const MessagesUI = ({ role = 'patient' }) => {
   const { id: routeConsultationId } = useParams();
@@ -45,8 +46,8 @@ const MessagesUI = ({ role = 'patient' }) => {
         const userId = user._id || user.id;
 
         const url = role === 'doctor'
-          ? `http://localhost:5000/api/consultations?doctorId=${userId}`
-          : `http://localhost:5000/api/consultations`;
+          ? `${API_BASE}/api/consultations?doctorId=${userId}`
+          : `${API_BASE}/api/consultations`;
 
         const res = await fetch(url, { headers });
         if (!res.ok) throw new Error('Failed to fetch consultations');
@@ -124,7 +125,7 @@ const MessagesUI = ({ role = 'patient' }) => {
         const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
         // 1. Poll consultation record for live status updates (e.g., Pending -> Accepted) without page refresh
-        const consultRes = await fetch(`http://localhost:5000/api/consultations/${selectedConsultationId}`, { headers });
+        const consultRes = await fetch(`${API_BASE}/api/consultations/${selectedConsultationId}`, { headers });
         if (consultRes.ok && isMounted) {
           const consultData = await consultRes.json();
           setActiveConsultation(prev => {
@@ -145,7 +146,7 @@ const MessagesUI = ({ role = 'patient' }) => {
         }
 
         // 2. Poll messages for the active consultation
-        const msgRes = await fetch(`http://localhost:5000/api/messages/${selectedConsultationId}`, { headers });
+        const msgRes = await fetch(`${API_BASE}/api/messages/${selectedConsultationId}`, { headers });
         if (msgRes.ok && isMounted) {
           const msgData = await msgRes.json();
           setAllMessages(Array.isArray(msgData) ? msgData : []);
@@ -216,7 +217,7 @@ const MessagesUI = ({ role = 'patient' }) => {
         verificationStatus: 'Verified'
       };
 
-      const res = await fetch(`http://localhost:5000/api/consultations/${selectedConsultationId}/complete`, {
+      const res = await fetch(`${API_BASE}/api/consultations/${selectedConsultationId}/complete`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(payload)
@@ -254,7 +255,7 @@ const MessagesUI = ({ role = 'patient' }) => {
         'Content-Type': 'application/json',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       };
-      const res = await fetch(`http://localhost:5000/api/consultations/${selectedConsultationId}/accept`, {
+      const res = await fetch(`${API_BASE}/api/consultations/${selectedConsultationId}/accept`, {
         method: 'PUT',
         headers
       });
@@ -310,7 +311,7 @@ const MessagesUI = ({ role = 'patient' }) => {
         message: newMessageObj.text || newMessageObj.message || ''
       };
 
-      const res = await fetch('http://localhost:5000/api/messages', {
+      const res = await fetch(`${API_BASE}/api/messages`, {
         method: 'POST',
         headers,
         body: JSON.stringify(payload)

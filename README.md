@@ -72,12 +72,24 @@ npm install
 ```
 **Environment Configuration (`backend/.env`):**
 Create a `.env` file in the `backend` directory:
+Copy `backend/.env.example` to `backend/.env` and fill it in. The variable names matter —
+these are the ones the code actually reads:
 ```env
 PORT=5000
-MONGO_URI=mongodb://127.0.0.1:27017/dental_ai
+MONGODB_URI=mongodb://127.0.0.1:27017/dental_ai
 JWT_SECRET=your_super_secret_key
-FLASK_API_URL=http://127.0.0.1:5001
+AI_SERVICE_URL=http://127.0.0.1:5002
+CORS_ORIGINS=http://localhost:5173
+
+# Credentials for the seed scripts (see "Local Demo Accounts" below)
+SEED_ADMIN_EMAIL=you@example.com
+SEED_ADMIN_PASSWORD=choose_a_long_local_password
+SEED_DOCTOR_PASSWORD=choose_a_long_local_password
 ```
+
+**Frontend configuration (`frontend/.env`):** copy `frontend/.env.example`. For a deployment,
+set `VITE_API_URL` to the public URL of this API — without it the built frontend calls
+`http://localhost:5000` on the visitor's own machine.
 **Start the Node Server:**
 ```bash
 npm start
@@ -122,13 +134,20 @@ npm run dev
 
 ## 🔐 Local Demo Accounts
 
-To explore the doctor features without registering a new specialist, a seed script automatically provisions a test doctor account.
+To explore the doctor features without registering a new specialist, run the seed script. It
+provisions a synthetic, pre-approved demo dentist (`priya.menon@dentaai.com`) using the password
+you set in `backend/.env` as `SEED_DOCTOR_PASSWORD`:
 
-**Test Doctor:**
-- **Name**: Dr. Priya Menon
-- **Email**: `priya.menon@dentaai.com`
-- **Password**: `password123`
-- **Role**: Doctor
+```bash
+cd backend && node seedDoctor.js
+```
+
+Admin accounts cannot be self-registered — the registration endpoint accepts only `patient`
+and `doctor`. Create one with `node seedAdmin.js`, which uses `SEED_ADMIN_EMAIL` and
+`SEED_ADMIN_PASSWORD` from `backend/.env`.
+
+Both seeds refuse to run against a non-local database, since they create accounts with
+known passwords. No credentials are published in this repository.
 
 ---
 
