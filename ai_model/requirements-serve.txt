@@ -1,0 +1,15 @@
+# Runtime-only dependencies for serving predictions (see requirements.txt for the
+# training environment, which also pulls in jupyter, matplotlib, pandas and scikit-learn).
+#
+# tensorflow-cpu is used instead of tensorflow: there is no GPU on a web host, and the
+# CPU wheel is roughly a third of the size.
+#
+# TensorFlow is pinned to 2.15.0 because best_dental_model.keras reports
+# keras_version 2.15.0. Loading it on a different major Keras version is not guaranteed.
+tensorflow-cpu==2.15.0
+numpy==1.26.2
+Pillow==10.1.0
+Flask==3.0.0
+flask-cors==4.0.0
+werkzeug==3.1.8
+gunicorn==21.2.0

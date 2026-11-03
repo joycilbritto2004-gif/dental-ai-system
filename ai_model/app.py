@@ -1,5 +1,4 @@
 import os
-import uuid
 import logging
 # pyrefly: ignore [missing-import]
 import numpy as np
@@ -9,8 +8,6 @@ from PIL import Image, UnidentifiedImageError
 # pyrefly: ignore [missing-import]
 from flask import Flask, request, jsonify
 from flask_cors import CORS  # type: ignore
-# pyrefly: ignore [missing-import]
-from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
@@ -24,11 +21,9 @@ logger = logging.getLogger(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, 'best_dental_model.keras')
 
-# Save uploads to the backend folder; the Node API serves them from there through an
-# authenticated, ownership-checked route (GET /api/scans/image/:filename).
-UPLOAD_FOLDER = os.path.abspath(os.path.join(BASE_DIR, '..', 'backend', 'uploads'))
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
+# This service is stateless: it reads the image from the request, runs inference and
+# returns scores. It deliberately writes nothing to disk. The Node API owns image
+# storage, because the two services do not share a filesystem once deployed separately.
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 app.config['MAX_CONTENT_LENGTH'] = MAX_UPLOAD_BYTES
 
@@ -89,24 +84,17 @@ def predict():
     if not allowed_file(file.filename):
         return jsonify({"error": "Allowed file types are png, jpg, jpeg"}), 400
 
-    filename = secure_filename(file.filename)
-    unique_filename = f"{uuid.uuid4()}_{filename}"
-    file_path = os.path.join(UPLOAD_FOLDER, unique_filename)
-
     try:
         # Decode before trusting the extension: a .jpg that is not an image is rejected here
         # rather than failing deeper in the pipeline.
         try:
             file.stream.seek(0)
-            probe = Image.open(file.stream)
-            probe.verify()
+            Image.open(file.stream).verify()
             file.stream.seek(0)
         except (UnidentifiedImageError, OSError, ValueError):
             return jsonify({"error": "The uploaded file is not a readable image."}), 400
 
-        file.save(file_path)
-
-        img = Image.open(file_path).convert('RGB').resize(INPUT_SIZE)
+        img = Image.open(file.stream).convert('RGB').resize(INPUT_SIZE)
 
         # Same preprocessing as training: MobileNetV2's preprocess_input, applied here
         # because the saved checkpoint does not include it in the graph.
@@ -125,7 +113,6 @@ def predict():
             "recommendation": RECOMMENDATIONS.get(
                 condition, "A professional dental consultation is recommended."
             ),
-            "imagePath": f"/uploads/{unique_filename}",
             # All six class scores, so the UI can show the full distribution rather than
             # only the winning label.
             "classProbabilities": {
@@ -137,12 +124,7 @@ def predict():
 
     except Exception:
         # Log the detail server-side; never return tracebacks or internal paths to a client.
-        logger.exception("Prediction failed for upload %s", unique_filename)
-        if os.path.exists(file_path):
-            try:
-                os.remove(file_path)
-            except OSError:
-                pass
+        logger.exception("Prediction failed")
         return jsonify({"error": "Image analysis failed. Please try another image."}), 500
 
 

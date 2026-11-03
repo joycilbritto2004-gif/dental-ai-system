@@ -10,6 +10,7 @@ const crypto = require('crypto');
 const ScanHistory = require('../models/ScanHistory');
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://127.0.0.1:5002';
+const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png'];
@@ -75,15 +76,35 @@ router.post('/predict', protect, restrictTo('patient'), handleUploadErrors, asyn
       timeout: 30000,
     });
 
-    // Clean up temporary file
-    fs.unlink(req.file.path, (err) => {
-      if (err) console.error('Error deleting temp file:', err);
-    });
-
     const prediction = aiResponse.data || {};
     if (!prediction.condition || prediction.confidence === undefined) {
+      fs.unlink(req.file.path, () => {});
       return res.status(502).json({ error: 'AI service returned an incomplete prediction' });
     }
+
+    // This service stores the image, not the AI service. The Flask service used to write
+    // it to ../backend/uploads, which only resolves when both processes share a filesystem;
+    // once they are deployed separately that path does not exist here and every image 404s.
+    // Node already holds the upload, so it owns the file and the stored path.
+    const storedName = `${crypto.randomUUID()}${path.extname(req.file.originalname).toLowerCase()}`;
+    const storedPath = path.join(UPLOADS_DIR, storedName);
+    try {
+      await fs.promises.mkdir(UPLOADS_DIR, { recursive: true });
+      await fs.promises.rename(req.file.path, storedPath);
+    } catch (moveError) {
+      // rename fails across devices on some hosts; fall back to a copy.
+      try {
+        await fs.promises.copyFile(req.file.path, storedPath);
+        await fs.promises.unlink(req.file.path);
+      } catch (copyError) {
+        console.error('Failed to store uploaded image:', copyError.message);
+        fs.unlink(req.file.path, () => {});
+        return res.status(500).json({
+          error: 'The analysis completed but the image could not be stored. Please try again.',
+        });
+      }
+    }
+    const imagePath = `/uploads/${storedName}`;
 
     // Persist the result here, from the model's own response, rather than trusting the
     // browser to post it back afterwards — otherwise a patient can substitute any
@@ -92,7 +113,7 @@ router.post('/predict', protect, restrictTo('patient'), handleUploadErrors, asyn
     try {
       savedScan = await ScanHistory.create({
         patientId: req.user._id,
-        imagePath: prediction.imagePath || null,
+        imagePath,
         condition: prediction.condition,
         confidence: prediction.confidence,
         recommendation: prediction.recommendation,

@@ -7,7 +7,7 @@ frontend. The other pieces need somewhere that runs a long-lived process.
 | --- | --- | --- |
 | React frontend (`frontend/`) | **Yes** | Static build; this is already deployed. |
 | Node/Express API (`backend/`) | **No** | Socket.IO needs a persistent connection, which Vercel's serverless functions do not hold open. Uploads also write to local disk, which is ephemeral there. |
-| Python/Flask AI service (`ai_model/`) | **No** | TensorFlow plus the MobileNetV2 checkpoint is far past Vercel's serverless bundle limit. |
+| Python/Flask AI service (`ai_model/`) | **No** | TensorFlow plus the MobileNetV2 checkpoint is far past Vercel's serverless bundle limit. A `Dockerfile` is provided for hosts that take containers. |
 | MongoDB | **No** | Use MongoDB Atlas (the free M0 tier is enough for this project). |
 
 So "deploy to Vercel" gets you the UI. Without the API hosted somewhere, the site loads and then
@@ -30,6 +30,10 @@ locally. Do not leave a hosted URL that looks live but cannot do anything.
 Create a free cluster on MongoDB Atlas, add a database user, allow access from your backend host,
 and copy the connection string.
 
+There is a Render blueprint at `render.yaml` covering both backend services. From the Render
+dashboard: **New → Blueprint**, point it at this repository, then fill in the variables marked
+`sync: false`. The steps below explain what each one is.
+
 ### 2. Node API
 Deploy `backend/` to a host that runs a persistent Node process — Render, Railway and Fly.io all
 have usable free or cheap tiers. Start command `npm start`. Set:
@@ -46,18 +50,35 @@ GMAIL_APP_PASSWORD=...
 ADMIN_EMAIL=...
 ```
 
-Note that uploaded images are written to `backend/uploads` on local disk. On a host with an
-ephemeral filesystem they vanish on redeploy, so scan images will disappear from old reports.
-Moving uploads to object storage (S3, Cloudinary) is the proper fix and is not done yet.
+**Known limitation — uploaded images do not survive a redeploy.** The Node API writes them to
+`backend/uploads` on local disk. Free tiers on Render and Railway have an ephemeral filesystem, so
+every deploy wipes them and scan images disappear from older reports (the report itself survives;
+the image 404s and the UI shows its "no scan image available" state). The proper fix is object
+storage — S3 or Cloudinary — and it is not done. On Render you can instead attach a persistent
+disk mounted at `backend/uploads`, which needs a paid instance type.
 
 ### 3. Flask AI service
-Needs a container with room for TensorFlow — Render or Railway with a Dockerfile, or Hugging Face
-Spaces. There is no Dockerfile in the repo yet. Set `AI_ALLOWED_ORIGINS` to nothing (only the Node
-API should call it) and leave `FLASK_DEBUG` unset.
+`ai_model/Dockerfile` builds the serving container. It installs `requirements-serve.txt` —
+runtime dependencies only, using `tensorflow-cpu` — rather than the training `requirements.txt`,
+which also pulls in jupyter, matplotlib, pandas and scikit-learn and roughly triples the image.
 
-If you skip this step, everything except AI scanning works, and the scan page shows the
-"AI analysis service is currently unavailable" error. That is a legitimate way to host a demo —
-just be explicit about it rather than letting it look like a bug.
+```bash
+docker build -t dentaai-ai ./ai_model
+docker run -p 5002:5002 dentaai-ai
+```
+
+Set `AI_ALLOWED_ORIGINS` to empty (only the Node API should call it) and leave `FLASK_DEBUG` unset.
+
+**This is the service that will not fit on a free tier.** TensorFlow plus the loaded MobileNetV2
+graph needs more than 512 MB of resident memory, so it is OOM-killed on Render's and Railway's
+free instances. Expect to pay for the smallest paid tier, or not to host it.
+
+**Skipping it is a perfectly reasonable choice.** Leave `AI_SERVICE_URL` unset on the Node API and
+everything except AI scanning works on the hosted site; the scan page shows "AI analysis service is
+currently unavailable", which is honest error handling rather than a crash. Run the Flask service
+locally for the demo and say so in the report. Given that the AI model is the centrepiece of the
+project, demonstrating it on a laptop where it has real CPU is better than demonstrating it on a
+starved container anyway.
 
 ### 4. Frontend on Vercel
 In the Vercel project settings:

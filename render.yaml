@@ -1,0 +1,51 @@
+# Render blueprint for the two services Vercel cannot host.
+#
+# Vercel keeps serving the React frontend; this file covers the Node API and the Flask
+# inference service. Import it from the Render dashboard with
+# New > Blueprint > point at this repository.
+#
+# IMPORTANT: the AI service needs more than 512 MB of RAM to hold TensorFlow plus the
+# model, so it will be OOM-killed on Render's free instance type. It is set to 'starter'
+# below, which is a paid plan. If you do not want to pay, do not deploy this service —
+# run it locally instead and leave AI_SERVICE_URL unset. Everything except AI scanning
+# then works on the hosted site.
+services:
+  - type: web
+    name: dentaai-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MONGODB_URI
+        sync: false        # paste your MongoDB Atlas connection string
+      - key: CORS_ORIGINS
+        sync: false        # https://your-project.vercel.app
+      - key: AI_SERVICE_URL
+        sync: false        # URL of dentaai-ai below, or leave unset to disable scanning
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: GMAIL_USER
+        sync: false
+      - key: GMAIL_APP_PASSWORD
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+
+  - type: web
+    name: dentaai-ai
+    runtime: docker
+    plan: starter          # free (512 MB) is not enough for TensorFlow — see note above
+    rootDir: ai_model
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/ai/health
+    dockerCommand: gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120 app:app
+    envVars:
+      - key: AI_ALLOWED_ORIGINS
+        value: ""          # only the Node API should call this service
