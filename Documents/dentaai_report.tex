@@ -1,0 +1,309 @@
+\documentclass[12pt,a4paper]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows, positioning}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!80!black,
+    citecolor=green!60!black,
+    urlcolor=blue!70!black
+}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.97,0.97,0.97}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+\lstset{style=mystyle}
+
+\title{\textbf{\LARGE DentaAI: AI-Based Dental Disease Detection and Doctor Consultation System}\\[1ex]
+\large Comprehensive Technical Architecture, Deep Learning Specifications, and System Documentation}
+\author{\textbf{DentaAI Engineering Team}}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Oral healthcare remains one of the most neglected components of global public health. Patients frequently delay visiting dental clinics due to financial constraints, asymptomatic progression of dental caries and periodontitis, or lack of accessible diagnostic specialists. \textbf{DentaAI} is an enterprise-grade digital healthcare platform engineered to bridge automated image analysis and clinical teleconsultation. The system integrates a Deep Convolutional Neural Network based on transfer-learned \textbf{MobileNetV2} to diagnose six distinct intraoral conditions from standard digital photographs and intraoral radiographs: Dental Calculus, Caries, Gingivitis, Hypodontia, Mouth Ulcer, and Tooth Discoloration. Diagnoses are generated in sub-50 milliseconds alongside class confidence distributions and standardized clinical recommendations. The transactional backbone is powered by a Node.js Express API and MongoDB database, featuring end-to-end appointment scheduling, simulated payment processing, role-based access control (RBAC), and persistent full-duplex WebSocket teleconsultation chat. This document presents the complete algorithmic, mathematical, architectural, and database modeling underlying DentaAI.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\chapter{Project Overview \& End-to-End System Workflow}
+
+\section{Introduction}
+Oral diseases affect an estimated 3.5 billion people worldwide. Traditional clinical consultations require specialized dental equipment and synchronous physical examinations. DentaAI provides an accessible triaging mechanism where non-invasive digital scans can be immediately evaluated by a localized deep learning model, followed by seamless escalation to accredited dentists.
+
+\section{How DentaAI Makes the Magic: The Complete Execution Lifecycle}
+The operational pipeline represents a continuous, closed-loop diagnostic and consultative workflow across three independent system tiers (Client UI, Node.js Orchestrator, and Python Inference Engine):
+
+\begin{enumerate}
+    \item \textbf{Image Ingestion \& Pre-Flight Validation}:
+    The patient captures or uploads an intraoral photograph through the React/Vite web application. The image is validated for supported MIME types (\texttt{image/jpeg}, \texttt{image/png}) and size limits ($\le 10$ MB).
+    
+    \item \textbf{Microservice Forwarding \& Neural Inference}:
+    The Node.js backend streams the authenticated payload via an internal HTTP POST channel to the Python/Flask inference engine running on internal port 5002. The Python microservice invokes the pre-compiled Keras model (\texttt{best\_dental\_model.keras}).
+    
+    \item \textbf{Mathematical Classification \& Class Distribution}:
+    The image is converted to a $224 \times 224 \times 3$ tensor, normalized to the interval $[-1, 1]$, and processed through the depthwise separable convolutional layers of MobileNetV2. Softmax activation yields posterior probabilities for all six disease classes.
+    
+    \item \textbf{Tamper-Proof Persistence}:
+    Rather than allowing the browser to submit diagnostic findings, the Node.js API intercepts the model's raw JSON output and creates an immutable \texttt{ScanHistory} record directly inside MongoDB. The patient receives the verified report with clinical care suggestions.
+    
+    \item \textbf{Specialist Discovery \& Booking}:
+    If pathology is detected, the patient filters registered and accredited dental specialists by location, specialization, and consultation fee. An appointment slot is reserved, attaching the immutable \texttt{scanId}.
+    
+    \item \textbf{Simulated Payment Settlement}:
+    The patient completes a simulated payment checkout. The transaction registers doctor fees and platform fees ($\text{INR } 49$), updating the consultation state to \texttt{Paid} and status to \texttt{Pending}.
+    
+    \item \textbf{Doctor Clinical Workspace \& Real-Time Teleconsultation}:
+    The assigned doctor reviews the patient case in their clinical queue and accepts the consultation. Full-duplex WebSockets (Socket.IO) initialize a dedicated clinical channel. Scans are loaded via authenticated streaming endpoints (\texttt{GET /api/scans/image/:filename}) that enforce doctor-patient case participation.
+    
+    \item \textbf{Diagnostic Verification \& Structured Prescription}:
+    The doctor confirms or overrides the AI findings, enters a clinical Treatment Plan, and generates an official cryptographic e-Prescription with dosage, duration, and follow-up directives.
+\end{enumerate}
+
+\newpage
+\chapter{Machine Learning Engine: Architecture \& Formulation}
+
+\section{Model Architecture: MobileNetV2 Backbone}
+The core diagnostic engine utilizes \textbf{MobileNetV2}, a modern convolutional neural network optimized for high representational capacity with minimal parameter complexity. MobileNetV2 was chosen over heavier networks (e.g., VGG-16, ResNet-50) due to its high computational efficiency ($3.5\times 10^6$ parameters vs. $138\times 10^6$ parameters) and rapid inference latency ($\le 45$ ms on CPU).
+
+\subsection{Depthwise Separable Convolutions}
+Standard 2D convolution applies spatial filtering and cross-channel combination concurrently. A standard convolutional layer with kernel size $D_K \times D_K$, $M$ input channels, and $N$ output channels on a feature map of dimension $D_F \times D_F$ incurs a computational cost:
+\begin{equation}
+    \text{Cost}_{\text{standard}} = D_K \cdot D_K \cdot M \cdot N \cdot D_F \cdot D_F
+\end{equation}
+
+MobileNetV2 factorizes this process into two decoupled stages:
+\begin{enumerate}
+    \item \textbf{Depthwise Convolution}: Applies a single spatial convolutional filter ($D_K \times D_K$) to each input channel independently:
+    \begin{equation}
+        \text{Cost}_{\text{depthwise}} = D_K \cdot D_K \cdot M \cdot D_F \cdot D_F
+    \end{equation}
+    \item \textbf{Pointwise Convolution}: A $1 \times 1$ convolution computes linear combinations of all channels to project the representation into an $N$-dimensional space:
+    \begin{equation}
+        \text{Cost}_{\text{pointwise}} = 1 \cdot 1 \cdot M \cdot N \cdot D_F \cdot D_F
+    \end{equation}
+\end{enumerate}
+
+The computational reduction factor is given by:
+\begin{equation}
+    \frac{\text{Cost}_{\text{depthwise}} + \text{Cost}_{\text{pointwise}}}{\text{Cost}_{\text{standard}}} = \frac{D_K^2 \cdot M \cdot D_F^2 + M \cdot N \cdot D_F^2}{D_K^2 \cdot M \cdot N \cdot D_F^2} = \frac{1}{N} + \frac{1}{D_K^2}
+\end{equation}
+For standard $3 \times 3$ kernels ($D_K = 3$), this achieves approximately an $8$ to $9$-fold reduction in floating point operations (FLOPs) with negligible degradation in accuracy.
+
+\subsection{Inverted Residuals and Linear Bottlenecks}
+MobileNetV2 introduces inverted residual blocks where shortcuts connect thin bottleneck layers rather than expanded representations. The intermediate expansion layer expands channels by an expansion factor $t=6$. Crucially, non-linear activations (ReLU6) are omitted from the final projection of each bottleneck block to prevent manifold collapse:
+\begin{equation}
+    \text{ReLU6}(x) = \min(\max(x, 0), 6)
+\end{equation}
+
+\section{Classification Head \& Regularization}
+The top classification layers of ImageNet are replaced with a customized clinical diagnostic head:
+\begin{equation}
+    \mathbf{z} = \text{GlobalAveragePooling2D}(\mathbf{F}_{\text{backbone}}) \in \mathbb{R}^{1280}
+\end{equation}
+\begin{equation}
+    \mathbf{h} = \text{Dropout}(p = 0.3)(\mathbf{z})
+\end{equation}
+\begin{equation}
+    \hat{\mathbf{y}} = \text{Softmax}(\mathbf{W}_c \mathbf{h} + \mathbf{b}_c), \quad \mathbf{W}_c \in \mathbb{R}^{6 \times 1280}, \; \mathbf{b}_c \in \mathbb{R}^6
+\end{equation}
+
+For class index $i \in \{1, \dots, 6\}$:
+\begin{equation}
+    P(y = i \mid \mathbf{x}) = \frac{\exp(\hat{z}_i)}{\sum_{j=1}^6 \exp(\hat{z}_j)}
+\end{equation}
+
+\section{Diagnostic Target Classes}
+The model is trained to identify six mutually exclusive oral pathology categories:
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Class Label} & \textbf{Pathological Description} & \textbf{Clinical Recommendation} \\ \midrule
+\texttt{Calculus} & Mineralized dental plaque/tartar buildup & Professional scaling and root planing \\
+\texttt{Caries} & Bacterial demineralization / tooth decay & Composite restoration or endodontic treatment \\
+\texttt{Gingivitis} & Periodontal marginal gingival inflammation & Ultrasonic prophylaxis and improved oral hygiene \\
+\texttt{Hypodontia} & Congenital absence of one or more teeth & Orthodontic or prosthodontic evaluation \\
+\texttt{Mouth\_Ulcer} & Aphthous mucosal erosion / lesion & Topical corticosteroid / review if $>14$ days \\
+\texttt{Tooth\_Discoloration} & Extrinsic or intrinsic enamel staining & Professional bleaching / veneers \\ \bottomrule
+\end{tabular}
+\caption{DentaAI Target Disease Spectrum}
+\end{table}
+
+\section{Two-Stage Training Strategy \& Class Weighting}
+To overcome class imbalance within oral photographic datasets, class weighting is computed dynamically during training:
+\begin{equation}
+    w_j = \frac{N_{\text{total}}}{C \cdot N_j}
+\end{equation}
+where $N_{\text{total}}$ is the total number of training images, $C=6$ is the number of classes, and $N_j$ is the frequency of samples in class $j$.
+
+The model undergoes a two-stage optimization:
+\begin{itemize}
+    \item \textbf{Stage 1: Feature Extraction}: The MobileNetV2 base weights remain frozen. The customized classification head is trained using Adam optimizer with initial learning rate $\eta = 10^{-3}$ and categorical cross-entropy loss.
+    \item \textbf{Stage 2: Selective Fine-Tuning}: The top 30 layers of MobileNetV2 are unfrozen, while all \texttt{BatchNormalization} layers are permanently frozen to preserve pretrained running statistics. Optimization proceeds with a fine-tuning rate $\eta = 10^{-5}$ coupled with \texttt{ReduceLROnPlateau} and \texttt{EarlyStopping}.
+\end{itemize}
+
+\newpage
+\chapter{Database Schema \& Modeling (MongoDB / Mongoose)}
+
+DentaAI maintains operational data within a high-throughput, non-relational MongoDB database. Schemas are validated via Mongoose ODM.
+
+\section{User Model (\texttt{backend/models/User.js})}
+Manages identity, authentication credentials, and clinical access rights across three roles: \texttt{patient}, \texttt{doctor}, and \texttt{admin}.
+
+\begin{lstlisting}[language=JavaScript, caption=User Schema Implementation]
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  role: { type: String, enum: ['patient', 'doctor', 'admin'], default: 'patient' },
+  phone: { type: String },
+  profileImage: { type: String },
+  verificationStatus: { type: String, enum: ['Pending', 'Approved', 'Rejected'], default: 'Pending' },
+  accountStatus: { type: String, enum: ['Active', 'Blocked'], default: 'Active' },
+  specialization: { type: String },
+  clinic: { type: String },
+  location: { type: String },
+  fee: { type: Number, default: 500 }
+}, { timestamps: true });
+\end{lstlisting}
+
+\section{Scan History Model (\texttt{backend/models/ScanHistory.js})}
+Stores immutable clinical scan logs and deep learning inferences directly recorded by the backend.
+
+\begin{lstlisting}[language=JavaScript, caption=ScanHistory Schema Implementation]
+const scanHistorySchema = new mongoose.Schema({
+  patientId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  imagePath: { type: String, default: null },
+  condition: { type: String, required: true },
+  confidence: { type: Number, required: true },
+  recommendation: { type: String },
+  scanId: { type: String, required: true, unique: true },
+  prescriptionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Prescription', default: null }
+}, { timestamps: true });
+\end{lstlisting}
+
+\section{Consultation Model (\texttt{backend/models/Consultation.js})}
+Encapsulates the state machine governing clinical appointments.
+
+\begin{lstlisting}[language=JavaScript, caption=Consultation Schema Implementation]
+const consultationSchema = new mongoose.Schema({
+  transactionId: { type: String, required: true },
+  patientId: { type: String, required: true },
+  patientName: { type: String, required: true },
+  doctorId: { type: String, required: true },
+  doctorName: { type: String, required: true },
+  scanId: { type: mongoose.Schema.Types.ObjectId, ref: 'ScanHistory' },
+  condition: { type: String },
+  confidence: { type: String },
+  fee: { type: Number },
+  platformFee: { type: Number, default: 49 },
+  totalAmount: { type: Number },
+  paymentStatus: { type: String, default: 'Paid' },
+  status: { 
+    type: String, 
+    default: 'Pending', 
+    enum: ['Pending', 'Accepted', 'In Consultation', 'Completed', 'Rejected'] 
+  },
+  finalDiagnosis: { type: String },
+  treatmentPlan: { type: String },
+  verificationStatus: { 
+    type: String, 
+    default: 'Pending', 
+    enum: ['Pending', 'Verified', 'Requires further examination'] 
+  },
+  prescriptionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Prescription' }
+}, { timestamps: true });
+\end{lstlisting}
+
+\section{Prescription Model (\texttt{backend/models/Prescription.js})}
+Represents standardized medical directives formatted for clinical validation and PDF generation.
+
+\begin{lstlisting}[language=JavaScript, caption=Prescription Schema Implementation]
+const medicationItemSchema = new mongoose.Schema({
+  medicineName: { type: String, required: true, trim: true },
+  dosage: { type: String, required: true, trim: true },
+  frequency: { type: String, required: true, trim: true },
+  duration: { type: String, required: true, trim: true },
+  instructions: { type: String, default: '' }
+}, { _id: false });
+
+const prescriptionSchema = new mongoose.Schema({
+  consultationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Consultation', required: true, index: true },
+  patientId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  doctorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  diagnosis: { type: String, required: true },
+  clinicalNotes: { type: String, default: '' },
+  medications: [medicationItemSchema],
+  followUpDate: { type: String, default: '' }
+}, { timestamps: true });
+\end{lstlisting}
+
+\newpage
+\chapter{System Architecture \& Security Hardening}
+
+\section{Microservice Communication Topology}
+DentaAI decouples intensive matrix computations from user sessions:
+\begin{itemize}
+    \item \textbf{Presentation Tier (Vercel)}: React 19 Single Page Application with client-side routing, glassmorphism design, and real-time Socket.IO subscriptions.
+    \item \textbf{Transactional Backend (Render)}: Node.js / Express cluster managing authentication (JWT), role authorizations, upload disk pipelines, and WebSockets.
+    \item \textbf{Inference Engine (Render)}: Isolated Python/Flask worker running Gunicorn WSGI and TensorFlow-CPU inference.
+\end{itemize}
+
+\section{Security Hardening Principles}
+\begin{enumerate}
+    \item \textbf{Zero Client-Side Trust on Inferences}: In traditional naive implementations, browsers execute AI models or send diagnostic predictions back to the server. DentaAI eliminates this vulnerability: the server performs inference server-side and writes the immutable database record directly.
+    \item \textbf{Protected Medical Image Streaming}: Intraoral scans are confidential health records. DentaAI prohibits public static hosting. Scans are streamed through \texttt{GET /api/scans/image/:filename}, which validates that the requester is the owning patient, the assigned doctor in an active consultation, or a platform administrator.
+    \item \textbf{Strict Role-Based Registration}: The public registration route rejects arbitrary \texttt{role: 'admin'} payloads. Administrative accounts can only be provisioned through out-of-band cryptographic seeding scripts (\texttt{seedAdmin.js}).
+    \item \textbf{Socket Handshake Cryptography}: Real-time Socket.IO handshakes require a valid JWT bearer token. Unauthenticated or expired connections are rejected at the protocol gateway.
+\end{enumerate}
+
+\chapter{Deployment Architecture \& Conclusion}
+
+\section{Cloud Infrastructure}
+\begin{itemize}
+    \item \textbf{Vercel Edge Network}: Serves the Vite React bundle globally with immutable asset caching and client-side rewrites (\texttt{vercel.json}).
+    \item \textbf{Render Container Platform}: Executes persistent Node.js and Python web services configured via Infrastructure-as-Code Blueprint (\texttt{render.yaml}).
+    \item \textbf{MongoDB Atlas Cloud}: Managed multi-region cluster providing document persistence, automatic indexing, and TLS-encrypted transport.
+\end{itemize}
+
+\section{Conclusion}
+DentaAI demonstrates the viable synergy of lightweight deep learning models and scalable web frameworks in healthcare. By combining the parameter efficiency of MobileNetV2 with an authenticated, real-time consultation ecosystem, the platform brings instantaneous, high-precision oral triaging and clinical continuity to remote and underserved populations.
+
+\end{document}
+

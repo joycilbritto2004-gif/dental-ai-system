@@ -3,7 +3,10 @@ import uuid
 import logging
 # pyrefly: ignore [missing-import]
 import numpy as np
-import tensorflow as tf  # type: ignore
+try:
+    import tensorflow as tf  # type: ignore
+except ImportError:
+    tf = None
 # pyrefly: ignore [missing-import]
 from PIL import Image, UnidentifiedImageError
 # pyrefly: ignore [missing-import]
@@ -33,8 +36,13 @@ MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 app.config['MAX_CONTENT_LENGTH'] = MAX_UPLOAD_BYTES
 
 model = None
-if os.path.exists(MODEL_PATH):
-    model = tf.keras.models.load_model(MODEL_PATH)
+if tf is not None and os.path.exists(MODEL_PATH):
+    try:
+        model = tf.keras.models.load_model(MODEL_PATH)
+    except Exception as e:
+        logger.warning("Failed to load model from %s: %s", MODEL_PATH, e)
+elif tf is None:
+    logger.warning("TensorFlow is not installed. AI service running in degraded mode.")
 else:
     logger.warning("Model not found at %s", MODEL_PATH)
 
@@ -150,5 +158,6 @@ if __name__ == '__main__':
     # Never enable the Werkzeug debugger on a reachable port: its console executes
     # arbitrary code. Set FLASK_DEBUG=true locally if you need the reloader.
     debug_mode = os.environ.get('FLASK_DEBUG', '').lower() == 'true'
-    port = int(os.environ.get('AI_SERVICE_PORT', '5002'))
-    app.run(debug=debug_mode, host='127.0.0.1', port=port)
+    port = int(os.environ.get('AI_SERVICE_PORT', os.environ.get('PORT', '5002')))
+    host = os.environ.get('AI_SERVICE_HOST', '0.0.0.0')
+    app.run(debug=debug_mode, host=host, port=port)

@@ -16,7 +16,7 @@ const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png'];
 
 // Configure multer to save files temporarily
 const upload = multer({
-  dest: path.join(__dirname, '..', 'uploads', 'temp'),
+  dest: (() => { const d = path.join(__dirname, '..', 'uploads', 'temp'); fs.mkdirSync(d, { recursive: true }); return d; })(),
   limits: { fileSize: MAX_IMAGE_BYTES, files: 1 },
   fileFilter: (req, file, cb) => {
     if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {

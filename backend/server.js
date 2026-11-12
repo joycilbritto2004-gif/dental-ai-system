@@ -32,7 +32,7 @@ const allowedOrigins = (process.env.CORS_ORIGINS || '')
   .map((o) => o.trim())
   .filter(Boolean);
 
-app.use(cors(allowedOrigins.length ? { origin: allowedOrigins, credentials: true } : {}));
+app.use(cors({ origin: allowedOrigins.length ? allowedOrigins : true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

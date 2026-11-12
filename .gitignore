@@ -6,6 +6,8 @@ backend/node_modules/
 # Environment Variables
 .env
 .env.*
+.deploy.env
+!.deploy.env.example
 !.env.example
 
 # Python Virtual Environments

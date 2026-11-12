@@ -1,0 +1,46 @@
+services:
+  # =======================================================
+  # 1. Primary Node.js / Express API Backend
+  # =======================================================
+  - type: web
+    name: dentaai-backend
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false
+      - key: AI_SERVICE_URL
+        fromService:
+          type: web
+          name: dentaai-ai-service
+          property: host
+
+  # =======================================================
+  # 2. Python Flask AI Inference Service
+  # =======================================================
+  - type: web
+    name: dentaai-ai-service
+    runtime: python
+    plan: free
+    rootDir: ai_model
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -w 1 --bind 0.0.0.0:$PORT app:app
+    healthCheckPath: /api/ai/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: AI_SERVICE_HOST
+        value: 0.0.0.0
+
