@@ -18,7 +18,10 @@ import {
   ShieldAlert,
   RefreshCw,
   Stethoscope,
-  ChevronRight
+  ChevronRight,
+  BookOpen,
+  Check,
+  Star
 } from 'lucide-react';
 import '../Dashboard.css';
 import { API_BASE } from '../../config';
@@ -316,10 +319,20 @@ export const normalizeCondition = (raw) => {
 export const MEDICAL_DISCLAIMER_TEXT = 
   "These recommendations are intended for general oral health education only. AI screening results are preliminary and do not constitute a confirmed diagnosis. Please consult a qualified dentist for professional evaluation and treatment.";
 
+const CONDITIONS_LIST = [
+  { key: 'Calculus', label: 'Calculus (Tartar)' },
+  { key: 'Caries', label: 'Caries (Tooth Decay)' },
+  { key: 'Gingivitis', label: 'Gingivitis (Gum Care)' },
+  { key: 'Hypodontia', label: 'Hypodontia (Missing Teeth)' },
+  { key: 'Mouth Ulcer', label: 'Mouth Ulcer (Lesions)' },
+  { key: 'Tooth Discoloration', label: 'Tooth Discoloration' }
+];
+
 const PatientHealthTips = () => {
   const [latestScan, setLatestScan] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedCondition, setSelectedCondition] = useState(null);
 
   const fetchLatestScan = async () => {
     setLoading(true);
@@ -370,8 +383,12 @@ const PatientHealthTips = () => {
     fetchLatestScan();
   }, []);
 
-  const normalizedKey = latestScan ? normalizeCondition(latestScan.condition) : null;
-  const conditionDetails = normalizedKey ? CONDITION_DATA[normalizedKey] : null;
+  const latestScanNormalized = latestScan ? normalizeCondition(latestScan.condition) : null;
+
+  // Active condition key: user selection or default to latest scan (or fallback to Gingivitis)
+  const activeConditionKey = selectedCondition || latestScanNormalized || 'Gingivitis';
+  const conditionDetails = CONDITION_DATA[activeConditionKey] || CONDITION_DATA['Gingivitis'];
+  const isLatestScanMatch = latestScanNormalized && activeConditionKey === latestScanNormalized;
 
   const formattedScanDate = latestScan?.createdAt 
     ? new Date(latestScan.createdAt).toLocaleDateString(undefined, { 
@@ -382,34 +399,64 @@ const PatientHealthTips = () => {
     : null;
 
   return (
-    <div className="dashboard-view" style={{ maxWidth: '1200px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+    <div className="screening-history-wrapper">
       
-      {/* 1. PAGE HEADER CARD */}
-      <div 
-        className="page-header-card" 
-        style={{ 
-          padding: '32px 36px', 
-          borderRadius: '24px', 
-          border: '1px solid var(--border-color)', 
-          background: 'var(--bg-card, rgba(255, 255, 255, 0.78))', 
-          backdropFilter: 'blur(16px)',
-          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.04)', 
-          position: 'relative', 
-          overflow: 'hidden' 
-        }}
-      >
-        <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '45%', background: 'radial-gradient(circle at top right, rgba(0, 210, 255, 0.12), transparent 70%)', pointerEvents: 'none' }}></div>
-        <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'var(--secondary)' }}></div>
-        <div style={{ position: 'relative', zIndex: 10 }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 14px', borderRadius: '999px', background: 'rgba(0, 210, 255, 0.1)', color: 'var(--secondary-hover, #00A6A6)', fontSize: '0.85rem', fontWeight: 700, marginBottom: '12px' }}>
-            <Sparkles size={16} /> Intelligent Oral Care Guidance
+      {/* 1. CLINICAL HEADER CARD */}
+      <div className="screening-header-card">
+        <div className="screening-header-stripe"></div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
+          <div>
+            <div className="screening-badge">
+              <Sparkles size={14} /> Intelligent Oral Care Guidance
+            </div>
+            <h1 className="screening-title">Health & Hygiene Tips</h1>
+            <p className="screening-subtitle">
+              Personalized, non-diagnostic dental care recommendations dynamically aligned with your latest AI scan and proven oral hygiene guidelines.
+            </p>
           </div>
-          <h2 style={{ color: 'var(--text-main, #17324D)', letterSpacing: '-0.5px', fontSize: '2.2rem', fontWeight: 800, margin: '0 0 6px 0', lineHeight: 1.2 }}>
-            Health Tips
-          </h2>
-          <p style={{ color: 'var(--text-muted, #475569)', fontSize: '1.05rem', margin: 0, fontWeight: 500, maxWidth: '750px' }}>
-            Personalized dental care recommendations dynamically aligned with your latest AI scan and proven oral hygiene guidelines.
-          </p>
+
+          {/* Quick Action Buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <Link 
+              to="/dashboard/patient" 
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '11px 20px',
+                borderRadius: '12px',
+                background: '#00A6A6',
+                color: '#FFFFFF',
+                fontWeight: 700,
+                fontSize: '0.88rem',
+                textDecoration: 'none',
+                boxShadow: '0 4px 14px rgba(0, 166, 166, 0.28)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <Upload size={16} /> Start New Scan
+            </Link>
+            <Link 
+              to="/dashboard/patient/recommended-doctors" 
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '11px 20px',
+                borderRadius: '12px',
+                background: '#FFFFFF',
+                color: '#17324D',
+                border: '1px solid #BFD4E5',
+                fontWeight: 700,
+                fontSize: '0.88rem',
+                textDecoration: 'none',
+                boxShadow: '0 2px 8px rgba(7, 26, 51, 0.04)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <Stethoscope size={16} color="#00A6A6" /> Consult Dentist
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -422,15 +469,15 @@ const PatientHealthTips = () => {
             alignItems: 'center', 
             justifyContent: 'center', 
             padding: '60px 20px', 
-            background: 'var(--bg-card, rgba(255, 255, 255, 0.78))', 
-            backdropFilter: 'blur(16px)',
+            background: '#FFFFFF', 
             borderRadius: '24px', 
-            border: '1px solid var(--border-color)', 
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' 
+            border: '1px solid #BFD4E5', 
+            boxShadow: '0 6px 24px rgba(7, 26, 51, 0.04)',
+            marginBottom: '24px'
           }}
         >
-          <Activity className="spin-anim" size={38} color="var(--secondary)" style={{ marginBottom: '16px' }} />
-          <p style={{ margin: 0, color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.95rem' }}>
+          <Activity className="spin-anim" size={38} color="#00A6A6" style={{ marginBottom: '16px' }} />
+          <p style={{ margin: 0, color: '#64748B', fontWeight: 600, fontSize: '0.95rem' }}>
             Fetching your latest oral health scan data...
           </p>
         </div>
@@ -440,22 +487,23 @@ const PatientHealthTips = () => {
       {!loading && error && (
         <div 
           style={{ 
-            padding: '24px 32px', 
-            background: 'rgba(239, 68, 68, 0.06)', 
+            padding: '20px 26px', 
+            background: '#FEF2F2', 
             borderRadius: '20px', 
-            border: '1px solid rgba(239, 68, 68, 0.25)', 
+            border: '1px solid #FCA5A5', 
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'space-between',
             flexWrap: 'wrap',
-            gap: '16px'
+            gap: '16px',
+            marginBottom: '24px'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <AlertTriangle size={24} color="#ef4444" style={{ flexShrink: 0 }} />
+            <AlertTriangle size={24} color="#EF4444" style={{ flexShrink: 0 }} />
             <div>
-              <p style={{ margin: 0, fontWeight: 700, color: '#ef4444', fontSize: '0.95rem' }}>Unable to load scan-based tips</p>
-              <p style={{ margin: '2px 0 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>{error}</p>
+              <p style={{ margin: 0, fontWeight: 700, color: '#991B1B', fontSize: '0.95rem' }}>Unable to load scan-based tips</p>
+              <p style={{ margin: '2px 0 0 0', color: '#64748B', fontSize: '0.85rem' }}>{error}</p>
             </div>
           </div>
           <button 
@@ -466,10 +514,11 @@ const PatientHealthTips = () => {
               gap: '6px', 
               padding: '8px 16px', 
               borderRadius: '10px', 
-              background: '#ef4444', 
+              background: '#EF4444', 
               color: '#FFFFFF', 
               fontWeight: 700, 
-              fontSize: '0.85rem',
+              fontSize: '0.85rem', 
+              border: 'none',
               cursor: 'pointer'
             }}
           >
@@ -478,455 +527,450 @@ const PatientHealthTips = () => {
         </div>
       )}
 
-      {/* 4. DYNAMIC PERSONALIZED SECTION OR NO-SCAN STATE */}
-      {!loading && !error && (
-        <>
-          {latestScan && conditionDetails ? (
-            /* ACTIVE SCAN AVAILABLE - PERSONALIZED HEALTH TIPS SECTION */
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              
-              {/* Scan Assessment Overview Card: Condition, Confidence, Scan Date */}
-              <div 
-                style={{ 
-                  background: 'var(--bg-card, rgba(255, 255, 255, 0.78))', 
-                  backdropFilter: 'blur(16px)',
-                  border: '1px solid var(--border-color)', 
-                  borderRadius: '24px', 
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', 
-                  padding: '28px 32px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '20px'
-                }}
-              >
-                <div 
-                  style={{ 
-                    display: 'flex', 
-                    flexWrap: 'wrap', 
-                    alignItems: 'center', 
-                    justifyContent: 'space-between', 
-                    gap: '16px'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div 
-                      style={{ 
-                        width: '56px', 
-                        height: '56px', 
-                        borderRadius: '16px', 
-                        background: conditionDetails.badgeBg, 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        color: conditionDetails.badgeColor,
-                        flexShrink: 0
-                      }}
-                    >
-                      <HeartPulse size={28} />
-                    </div>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '4px' }}>
-                        <span 
-                          style={{ 
-                            fontSize: '0.75rem', 
-                            fontWeight: 800, 
-                            textTransform: 'uppercase', 
-                            letterSpacing: '0.5px', 
-                            padding: '3px 10px', 
-                            borderRadius: '999px', 
-                            background: conditionDetails.badgeBg, 
-                            color: conditionDetails.badgeColor 
-                          }}
-                        >
-                          {conditionDetails.category}
-                        </span>
-                        {latestScan.confidence && (
-                          <span 
-                            style={{ 
-                              fontSize: '0.75rem', 
-                              fontWeight: 700, 
-                              padding: '3px 10px', 
-                              borderRadius: '999px', 
-                              background: 'rgba(7, 26, 51, 0.06)', 
-                              color: 'var(--text-main, #17324D)' 
-                            }}
-                          >
-                            {latestScan.confidence}% AI Screening Confidence
-                          </span>
-                        )}
-                      </div>
-                      <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main, #17324D)' }}>
-                        {conditionDetails.name}
-                      </h3>
-                    </div>
-                  </div>
-
-                  {/* Scan Date Metadata */}
-                  <div 
-                    style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: '8px',
-                      background: 'var(--card-bg-dark, rgba(255, 255, 255, 0.70))',
-                      padding: '10px 18px',
-                      borderRadius: '16px',
-                      border: '1px solid var(--border-color)',
-                      color: 'var(--text-muted, #475569)',
-                      fontSize: '0.85rem',
-                      fontWeight: 600
-                    }}
-                  >
-                    <Calendar size={16} color="var(--secondary)" />
-                    <span>Scan Date: <strong style={{ color: 'var(--text-main, #17324D)' }}>{formattedScanDate || 'Recent'}</strong></span>
-                  </div>
-                </div>
-
-                {/* Condition Summary */}
-                <div 
-                  style={{ 
-                    background: 'rgba(0, 210, 255, 0.04)', 
-                    border: '1px solid rgba(0, 210, 255, 0.15)', 
-                    borderRadius: '16px', 
-                    padding: '14px 18px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px'
-                  }}
-                >
-                  <Info size={18} color="var(--secondary)" style={{ flexShrink: 0 }} />
-                  <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-main, #17324D)', lineHeight: 1.5, fontWeight: 500 }}>
-                    <strong style={{ fontWeight: 700 }}>Condition Overview:</strong> {conditionDetails.summary}
-                  </p>
-                </div>
-              </div>
-
-              {/* 2 Cards Side-by-Side on Desktop, Stacked Vertically on Mobile */}
-              <div 
-                style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', 
-                  gap: '24px',
-                  alignItems: 'stretch'
-                }}
-              >
-                {/* CARD 1: ORAL HYGIENE GUIDANCE */}
-                <div 
-                  style={{ 
-                    background: 'var(--bg-card, rgba(255, 255, 255, 0.78))', 
-                    backdropFilter: 'blur(16px)',
-                    border: '1px solid var(--border-color)', 
-                    borderRadius: '24px', 
-                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', 
-                    padding: '30px 28px',
-                    display: 'flex',
-                    flexDirection: 'column'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-                    <div style={{ background: 'rgba(6, 198, 232, 0.15)', padding: '10px', borderRadius: '12px', color: '#00A6A6' }}>
-                      <Sparkles size={22} />
-                    </div>
-                    <div>
-                      <h4 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main, #17324D)' }}>
-                        Oral Hygiene Guidance
-                      </h4>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted, #475569)', fontWeight: 600 }}>Practical brushing, flossing & habits</span>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
-                    {conditionDetails.hygieneGuidance.map((item, idx) => (
-                      <div 
-                        key={idx} 
-                        style={{ 
-                          background: 'var(--card-bg-dark, rgba(255, 255, 255, 0.70))', 
-                          border: '1px solid var(--border-color)', 
-                          borderRadius: '16px', 
-                          padding: '16px',
-                          display: 'flex',
-                          gap: '12px',
-                          alignItems: 'flex-start',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
-                        }}
-                      >
-                        <CheckCircle2 size={18} color="#00A6A6" style={{ flexShrink: 0, marginTop: '2px' }} />
-                        <div>
-                          <p style={{ margin: '0 0 3px 0', fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-main, #17324D)' }}>
-                            {item.title}
-                          </p>
-                          <p style={{ margin: 0, fontSize: '0.84rem', color: 'var(--text-muted, #475569)', lineHeight: 1.45, fontWeight: 500 }}>
-                            {item.desc}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* CARD 2: PREVENTIVE CARE */}
-                <div 
-                  style={{ 
-                    background: 'var(--bg-card, rgba(255, 255, 255, 0.78))', 
-                    backdropFilter: 'blur(16px)',
-                    border: '1px solid var(--border-color)', 
-                    borderRadius: '24px', 
-                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', 
-                    padding: '30px 28px',
-                    display: 'flex',
-                    flexDirection: 'column'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-                    <div style={{ background: 'rgba(16, 185, 129, 0.15)', padding: '10px', borderRadius: '12px', color: '#16A34A' }}>
-                      <ShieldCheck size={22} />
-                    </div>
-                    <div>
-                      <h4 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main, #17324D)' }}>
-                        Preventive Care
-                      </h4>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted, #475569)', fontWeight: 600 }}>Clinical prevention & daily protection</span>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
-                    {conditionDetails.preventiveCare.map((item, idx) => (
-                      <div 
-                        key={idx} 
-                        style={{ 
-                          background: 'var(--card-bg-dark, rgba(255, 255, 255, 0.70))', 
-                          border: '1px solid var(--border-color)', 
-                          borderRadius: '16px', 
-                          padding: '16px',
-                          display: 'flex',
-                          gap: '12px',
-                          alignItems: 'flex-start',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
-                        }}
-                      >
-                        <ShieldCheck size={18} color="#16A34A" style={{ flexShrink: 0, marginTop: '2px' }} />
-                        <div>
-                          <p style={{ margin: '0 0 3px 0', fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-main, #17324D)' }}>
-                            {item.title}
-                          </p>
-                          <p style={{ margin: 0, fontSize: '0.84rem', color: 'var(--text-muted, #475569)', lineHeight: 1.45, fontWeight: 500 }}>
-                            {item.desc}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-              </div>
-
+      {/* 4. CONDITION SWITCHER CONTROLS BAR */}
+      {!loading && (
+        <div className="tips-controls-card">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <BookOpen size={18} color="#00A6A6" />
+              <span style={{ fontSize: '0.92rem', fontWeight: 800, color: '#17324D' }}>
+                Browse Oral Care Guidance by Condition
+              </span>
             </div>
-          ) : (
-            /* NO SCAN AVAILABLE STATE */
-            <div 
-              style={{ 
-                padding: '48px 24px', 
-                background: 'var(--bg-card, rgba(255, 255, 255, 0.78))', 
-                backdropFilter: 'blur(16px)',
-                border: '1px dashed var(--border-color)', 
-                borderRadius: '24px', 
-                textAlign: 'center', 
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' 
-              }}
-            >
-              <div 
+            {latestScanNormalized && !isLatestScanMatch && (
+              <button 
+                onClick={() => setSelectedCondition(latestScanNormalized)}
                 style={{ 
-                  width: '72px', 
-                  height: '72px', 
-                  borderRadius: '50%', 
-                  background: 'rgba(0, 210, 255, 0.1)', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  margin: '0 auto 20px auto', 
-                  color: 'var(--secondary)' 
-                }}
-              >
-                <HeartPulse size={36} />
-              </div>
-              <h3 style={{ margin: '0 0 8px 0', fontSize: '1.45rem', fontWeight: 800, color: 'var(--text-main, #17324D)' }}>
-                No AI scan available yet
-              </h3>
-              <p style={{ color: 'var(--text-muted, #475569)', fontSize: '0.95rem', maxWidth: '520px', margin: '0 auto 24px auto', lineHeight: 1.5, fontWeight: 500 }}>
-                Upload an image of your teeth on the scan upload page to unlock personalized, condition-specific preventive guidance.
-              </p>
-              <Link 
-                to="/dashboard/patient" 
-                style={{ 
+                  background: '#F0FDFA', 
+                  border: '1px solid #99F6E4', 
+                  color: '#00A6A6', 
+                  padding: '5px 12px', 
+                  borderRadius: '999px', 
+                  fontWeight: 700, 
+                  fontSize: '0.78rem', 
+                  cursor: 'pointer', 
                   display: 'inline-flex', 
                   alignItems: 'center', 
-                  gap: '8px', 
-                  background: 'var(--secondary, #00A6A6)', 
-                  color: '#FFFFFF', 
-                  padding: '12px 24px', 
-                  borderRadius: '12px', 
-                  fontWeight: 700, 
-                  fontSize: '0.95rem', 
-                  textDecoration: 'none',
-                  boxShadow: '0 4px 14px rgba(0, 166, 166, 0.3)',
-                  transition: 'all 0.2s'
+                  gap: '6px',
+                  transition: 'all 0.2s ease'
                 }}
               >
-                <Upload size={18} /> Go to Scan Upload <ArrowRight size={16} />
-              </Link>
-            </div>
-          )}
+                <Sparkles size={13} /> View My Latest Scan ({latestScanNormalized})
+              </button>
+            )}
+          </div>
 
-          {/* 5. GENERAL DENTAL HEALTH GUIDELINES (Always Visible to All Patients) */}
-          <div style={{ marginTop: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-              <div style={{ background: 'rgba(0, 210, 255, 0.12)', padding: '8px', borderRadius: '10px', color: 'var(--secondary)' }}>
-                <ShieldCheck size={22} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflowX: 'auto', paddingBottom: '4px', scrollbarWidth: 'thin' }}>
+            {CONDITIONS_LIST.map((item) => {
+              const isSelected = activeConditionKey === item.key;
+              const isScanCondition = latestScanNormalized === item.key;
+
+              return (
+                <button
+                  key={item.key}
+                  onClick={() => setSelectedCondition(item.key)}
+                  className={`tips-condition-pill ${isSelected ? 'active' : ''}`}
+                >
+                  {isScanCondition && (
+                    <span style={{ 
+                      fontSize: '0.68rem', 
+                      background: isSelected ? 'rgba(255, 255, 255, 0.25)' : '#00A6A6', 
+                      color: '#FFFFFF', 
+                      padding: '1px 6px', 
+                      borderRadius: '999px', 
+                      fontWeight: 800 
+                    }}>
+                      Scan
+                    </span>
+                  )}
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 5. CONDITION HERO ASSESSMENT CARD */}
+      {!loading && conditionDetails && (
+        <div className="tips-hero-card">
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div 
+                style={{ 
+                  width: '56px', 
+                  height: '56px', 
+                  borderRadius: '16px', 
+                  background: conditionDetails.badgeBg, 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  color: conditionDetails.badgeColor,
+                  flexShrink: 0
+                }}
+              >
+                <HeartPulse size={28} />
               </div>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main, #17324D)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                  <span 
+                    style={{ 
+                      fontSize: '0.74rem', 
+                      fontWeight: 800, 
+                      textTransform: 'uppercase', 
+                      letterSpacing: '0.5px', 
+                      padding: '3px 10px', 
+                      borderRadius: '999px', 
+                      background: conditionDetails.badgeBg, 
+                      color: conditionDetails.badgeColor 
+                    }}
+                  >
+                    {conditionDetails.category}
+                  </span>
+
+                  {isLatestScanMatch && latestScan?.confidence && (
+                    <span 
+                      style={{ 
+                        fontSize: '0.74rem', 
+                        fontWeight: 800, 
+                        padding: '3px 10px', 
+                        borderRadius: '999px', 
+                        background: '#ECFDF5', 
+                        color: '#059669',
+                        border: '1px solid #A7F3D0'
+                      }}
+                    >
+                      ⚡ {latestScan.confidence}% AI Screening Confidence
+                    </span>
+                  )}
+
+                  {isLatestScanMatch ? (
+                    <span 
+                      style={{ 
+                        fontSize: '0.74rem', 
+                        fontWeight: 700, 
+                        padding: '3px 10px', 
+                        borderRadius: '999px', 
+                        background: 'rgba(0, 166, 166, 0.1)', 
+                        color: '#00A6A6',
+                        border: '1px solid rgba(0, 166, 166, 0.2)'
+                      }}
+                    >
+                      Active Scan Match
+                    </span>
+                  ) : (
+                    <span 
+                      style={{ 
+                        fontSize: '0.74rem', 
+                        fontWeight: 700, 
+                        padding: '3px 10px', 
+                        borderRadius: '999px', 
+                        background: '#F1F5F9', 
+                        color: '#475569',
+                        border: '1px solid #E2E8F0'
+                      }}
+                    >
+                      Educational Care Guide
+                    </span>
+                  )}
+                </div>
+
+                <h2 style={{ margin: 0, fontSize: '1.65rem', fontWeight: 800, color: '#17324D', letterSpacing: '-0.3px' }}>
+                  {conditionDetails.name}
+                </h2>
+              </div>
+            </div>
+
+            {/* Scan Date Metadata */}
+            {isLatestScanMatch && formattedScanDate ? (
+              <div 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px',
+                  background: '#F8FAFC',
+                  padding: '10px 18px',
+                  borderRadius: '14px',
+                  border: '1px solid #E2E8F0',
+                  color: '#475569',
+                  fontSize: '0.85rem',
+                  fontWeight: 600
+                }}
+              >
+                <Calendar size={16} color="#00A6A6" />
+                <span>Scan Date: <strong style={{ color: '#17324D' }}>{formattedScanDate}</strong></span>
+              </div>
+            ) : null}
+          </div>
+
+          {/* Condition Summary Box */}
+          <div 
+            style={{ 
+              background: '#F0FDFA', 
+              border: '1px solid #99F6E4', 
+              borderRadius: '16px', 
+              padding: '16px 20px',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '14px'
+            }}
+          >
+            <Info size={20} color="#00A6A6" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <p style={{ margin: 0, fontSize: '0.92rem', color: '#17324D', lineHeight: 1.55, fontWeight: 500 }}>
+              <strong style={{ fontWeight: 800, color: '#0F766E' }}>Condition Overview: </strong>
+              {conditionDetails.summary}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* 6. GUIDANCE 2-COLUMN GRID (HYGIENE + PREVENTIVE) */}
+      {!loading && conditionDetails && (
+        <div className="tips-guidance-grid">
+          
+          {/* COLUMN 1: ORAL HYGIENE GUIDANCE */}
+          <div className="tips-column-card">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ background: 'rgba(0, 166, 166, 0.12)', padding: '10px', borderRadius: '12px', color: '#00A6A6' }}>
+                  <Sparkles size={22} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#17324D' }}>
+                    Oral Hygiene Guidance
+                  </h3>
+                  <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: 600 }}>Practical brushing, flossing & daily habits</span>
+                </div>
+              </div>
+              <span style={{ fontSize: '0.74rem', fontWeight: 800, background: '#F1F5F9', color: '#475569', padding: '3px 10px', borderRadius: '999px', border: '1px solid #E2E8F0' }}>
+                4 Steps
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
+              {conditionDetails.hygieneGuidance.map((item, idx) => (
+                <div key={idx} className="tips-item-card">
+                  <div 
+                    style={{ 
+                      width: '28px', 
+                      height: '28px', 
+                      borderRadius: '50%', 
+                      background: 'rgba(0, 166, 166, 0.1)', 
+                      color: '#00A6A6', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      flexShrink: 0,
+                      marginTop: '2px'
+                    }}
+                  >
+                    0{idx + 1}
+                  </div>
+                  <div>
+                    <h4 style={{ margin: '0 0 4px 0', fontSize: '0.94rem', fontWeight: 700, color: '#17324D' }}>
+                      {item.title}
+                    </h4>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#475569', lineHeight: 1.55, fontWeight: 500 }}>
+                      {item.desc}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* COLUMN 2: PREVENTIVE CARE */}
+          <div className="tips-column-card">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ background: 'rgba(16, 185, 129, 0.12)', padding: '10px', borderRadius: '12px', color: '#10B981' }}>
+                  <ShieldCheck size={22} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#17324D' }}>
+                    Preventive Care
+                  </h3>
+                  <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: 600 }}>Clinical prevention & daily protection</span>
+                </div>
+              </div>
+              <span style={{ fontSize: '0.74rem', fontWeight: 800, background: '#ECFDF5', color: '#059669', padding: '3px 10px', borderRadius: '999px', border: '1px solid #A7F3D0' }}>
+                4 Protocols
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
+              {conditionDetails.preventiveCare.map((item, idx) => (
+                <div key={idx} className="tips-item-card">
+                  <div 
+                    style={{ 
+                      width: '28px', 
+                      height: '28px', 
+                      borderRadius: '50%', 
+                      background: 'rgba(16, 185, 129, 0.1)', 
+                      color: '#10B981', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      flexShrink: 0,
+                      marginTop: '2px'
+                    }}
+                  >
+                    0{idx + 1}
+                  </div>
+                  <div>
+                    <h4 style={{ margin: '0 0 4px 0', fontSize: '0.94rem', fontWeight: 700, color: '#17324D' }}>
+                      {item.title}
+                    </h4>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#475569', lineHeight: 1.55, fontWeight: 500 }}>
+                      {item.desc}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* 7. GENERAL DENTAL HEALTH GUIDELINES (Always Visible) */}
+      {!loading && (
+        <div style={{ marginBottom: '24px' }}>
+          <div className="tips-section-header-card">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{ background: 'rgba(0, 166, 166, 0.12)', padding: '12px', borderRadius: '14px', color: '#00A6A6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ShieldCheck size={26} />
+              </div>
+              <div>
+                <h3 style={{ margin: '0 0 3px 0', fontSize: '1.35rem', fontWeight: 800, color: '#17324D', letterSpacing: '-0.3px' }}>
                   General Dental Health Guidelines
                 </h3>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted, #475569)', fontWeight: 500 }}>
+                <p style={{ margin: 0, fontSize: '0.86rem', color: '#52677A', fontWeight: 500 }}>
                   Foundational oral hygiene practices recommended by dental clinicians for all patients.
                 </p>
               </div>
             </div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#F0FDFA', color: '#00A6A6', padding: '6px 14px', borderRadius: '999px', fontSize: '0.78rem', fontWeight: 800, border: '1px solid #99F6E4' }}>
+              <Sparkles size={14} /> Universal Daily Protocols
+            </div>
+          </div>
 
-            <div 
-              style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
-                gap: '20px' 
-              }}
-            >
-              {/* Card 1: Brushing & Flossing */}
-              <div 
-                style={{ 
-                  background: 'var(--bg-card, rgba(255, 255, 255, 0.78))', 
-                  backdropFilter: 'blur(16px)',
-                  border: '1px solid var(--border-color)', 
-                  borderRadius: '20px', 
-                  padding: '28px', 
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' 
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '20px' }}>
-                  <div style={{ background: 'rgba(0, 210, 255, 0.1)', padding: '12px', borderRadius: '12px', color: 'var(--secondary)' }}>
-                    <Smile size={24} />
+          <div className="tips-general-grid">
+            {/* Card 1: Brushing & Flossing */}
+            <div className="tips-general-card">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ background: 'rgba(0, 166, 166, 0.1)', padding: '11px', borderRadius: '12px', color: '#00A6A6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Smile size={22} />
                   </div>
-                  <h4 style={{ margin: 0, color: 'var(--text-main, #17324D)', fontSize: '1.15rem', fontWeight: 800 }}>
+                  <h4 style={{ margin: 0, color: '#17324D', fontSize: '1.15rem', fontWeight: 800 }}>
                     Brushing & Flossing
                   </h4>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  {[
-                    'Brush for at least 2 minutes, twice a day.',
-                    'Use a soft-bristled toothbrush to protect your gums.',
-                    'Floss at least once daily to remove hidden plaque.',
-                    "Don't brush too hard; gentle circular motions are best."
-                  ].map((tip, idx) => (
-                    <div key={idx} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                      <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--secondary)', marginTop: '8px', flexShrink: 0 }}></div>
-                      <span style={{ color: 'var(--text-muted, #475569)', fontSize: '0.9rem', lineHeight: 1.5, fontWeight: 500 }}>{tip}</span>
-                    </div>
-                  ))}
-                </div>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, background: 'rgba(0, 166, 166, 0.08)', color: '#00A6A6', padding: '3px 10px', borderRadius: '999px', border: '1px solid rgba(0, 166, 166, 0.2)' }}>
+                  Daily Habit
+                </span>
               </div>
-
-              {/* Card 2: Diet & Nutrition */}
-              <div 
-                style={{ 
-                  background: 'var(--bg-card, rgba(255, 255, 255, 0.78))', 
-                  backdropFilter: 'blur(16px)',
-                  border: '1px solid var(--border-color)', 
-                  borderRadius: '20px', 
-                  padding: '28px', 
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' 
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '20px' }}>
-                  <div style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '12px', borderRadius: '12px', color: '#f59e0b' }}>
-                    <Coffee size={24} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {[
+                  'Brush for at least 2 minutes, twice a day.',
+                  'Use a soft-bristled toothbrush to protect your gums.',
+                  'Floss at least once daily to remove hidden plaque.',
+                  "Don't brush too hard; gentle circular motions are best."
+                ].map((tip, idx) => (
+                  <div key={idx} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                    <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#00A6A6', marginTop: '7px', flexShrink: 0 }}></div>
+                    <span style={{ color: '#475569', fontSize: '0.88rem', lineHeight: 1.5, fontWeight: 500 }}>{tip}</span>
                   </div>
-                  <h4 style={{ margin: 0, color: 'var(--text-main, #17324D)', fontSize: '1.15rem', fontWeight: 800 }}>
+                ))}
+              </div>
+            </div>
+
+            {/* Card 2: Diet & Nutrition */}
+            <div className="tips-general-card">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ background: 'rgba(217, 119, 6, 0.1)', padding: '11px', borderRadius: '12px', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Coffee size={22} />
+                  </div>
+                  <h4 style={{ margin: 0, color: '#17324D', fontSize: '1.15rem', fontWeight: 800 }}>
                     Diet & Nutrition
                   </h4>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  {[
-                    'Limit sugary and acidic foods and drinks.',
-                    'Drink plenty of water, especially after meals.',
-                    'Eat crunchy fruits and vegetables to stimulate saliva.',
-                    'Avoid snacking constantly to give your teeth a break.'
-                  ].map((tip, idx) => (
-                    <div key={idx} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                      <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f59e0b', marginTop: '8px', flexShrink: 0 }}></div>
-                      <span style={{ color: 'var(--text-muted, #475569)', fontSize: '0.9rem', lineHeight: 1.5, fontWeight: 500 }}>{tip}</span>
-                    </div>
-                  ))}
-                </div>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, background: 'rgba(217, 119, 6, 0.08)', color: '#D97706', padding: '3px 10px', borderRadius: '999px', border: '1px solid rgba(217, 119, 6, 0.2)' }}>
+                  Enamel Health
+                </span>
               </div>
-
-              {/* Card 3: When to Visit a Dentist */}
-              <div 
-                style={{ 
-                  background: 'var(--bg-card, rgba(255, 255, 255, 0.78))', 
-                  backdropFilter: 'blur(16px)',
-                  border: '1px solid var(--border-color)', 
-                  borderRadius: '20px', 
-                  padding: '28px', 
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' 
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '20px' }}>
-                  <div style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '12px', borderRadius: '12px', color: '#ef4444' }}>
-                    <Stethoscope size={24} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {[
+                  'Limit sugary and acidic foods and drinks.',
+                  'Drink plenty of water, especially after meals.',
+                  'Eat crunchy fruits and vegetables to stimulate saliva.',
+                  'Avoid constant snacking to let teeth remineralize.'
+                ].map((tip, idx) => (
+                  <div key={idx} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                    <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#D97706', marginTop: '7px', flexShrink: 0 }}></div>
+                    <span style={{ color: '#475569', fontSize: '0.88rem', lineHeight: 1.5, fontWeight: 500 }}>{tip}</span>
                   </div>
-                  <h4 style={{ margin: 0, color: 'var(--text-main, #17324D)', fontSize: '1.15rem', fontWeight: 800 }}>
+                ))}
+              </div>
+            </div>
+
+            {/* Card 3: When to Visit a Dentist */}
+            <div className="tips-general-card">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ background: 'rgba(225, 29, 72, 0.1)', padding: '11px', borderRadius: '12px', color: '#E11D48', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Stethoscope size={22} />
+                  </div>
+                  <h4 style={{ margin: 0, color: '#17324D', fontSize: '1.15rem', fontWeight: 800 }}>
                     When to Visit a Dentist
                   </h4>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  {[
-                    'Schedule regular check-ups every 6 months.',
-                    'Visit immediately if you experience persistent tooth pain.',
-                    'See a professional if your gums bleed frequently or are swollen.',
-                    'Consult a dentist for any sudden sensitivity to hot or cold.'
-                  ].map((tip, idx) => (
-                    <div key={idx} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                      <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444', marginTop: '8px', flexShrink: 0 }}></div>
-                      <span style={{ color: 'var(--text-muted, #475569)', fontSize: '0.9rem', lineHeight: 1.5, fontWeight: 500 }}>{tip}</span>
-                    </div>
-                  ))}
-                </div>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, background: 'rgba(225, 29, 72, 0.08)', color: '#E11D48', padding: '3px 10px', borderRadius: '999px', border: '1px solid rgba(225, 29, 72, 0.2)' }}>
+                  Clinical Check
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {[
+                  'Schedule regular check-ups every 6 months.',
+                  'Visit immediately if you experience persistent tooth pain.',
+                  'See a professional if gums bleed frequently or are swollen.',
+                  'Consult a dentist for any sudden sensitivity to hot or cold.'
+                ].map((tip, idx) => (
+                  <div key={idx} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                    <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#E11D48', marginTop: '7px', flexShrink: 0 }}></div>
+                    <span style={{ color: '#475569', fontSize: '0.88rem', lineHeight: 1.5, fontWeight: 500 }}>{tip}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
+        </div>
+      )}
 
-          {/* 6. MEDICAL DISCLAIMER CARD */}
-          <div 
-            style={{ 
-              background: 'rgba(7, 26, 51, 0.03)', 
-              border: '1px solid var(--border-color)', 
-              borderRadius: '20px', 
-              padding: '24px 28px',
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '16px',
-              marginTop: '8px'
-            }}
-          >
-            <ShieldAlert size={24} color="var(--secondary)" style={{ flexShrink: 0, marginTop: '2px' }} />
-            <div>
-              <h5 style={{ margin: '0 0 6px 0', fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-main, #17324D)' }}>
-                Medical Disclaimer
+      {/* 8. CLINICAL & MEDICAL DISCLAIMER BANNER (BOTTOM) */}
+      {!loading && (
+        <div className="tips-disclaimer-card">
+          <ShieldAlert size={28} color="#00A6A6" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px', flexWrap: 'wrap' }}>
+              <h5 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#17324D' }}>
+                Medical & Educational Disclaimer
               </h5>
-              <p style={{ margin: 0, fontSize: '0.86rem', color: 'var(--text-muted, #475569)', lineHeight: 1.6, fontWeight: 500 }}>
-                {MEDICAL_DISCLAIMER_TEXT}
-              </p>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, background: 'rgba(0, 166, 166, 0.1)', color: '#00A6A6', padding: '2px 8px', borderRadius: '999px' }}>
+                Clinical Advisory
+              </span>
             </div>
+            <p style={{ margin: 0, fontSize: '0.88rem', color: '#334155', lineHeight: 1.6, fontWeight: 500 }}>
+              {MEDICAL_DISCLAIMER_TEXT}
+            </p>
           </div>
-        </>
+        </div>
       )}
 
     </div>

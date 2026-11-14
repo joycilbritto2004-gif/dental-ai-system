@@ -1,6 +1,29 @@
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useLocation, Link, useNavigate } from 'react-router-dom';
-import { Send, Image as ImageIcon, BrainCircuit, FileText, X, CreditCard, CheckCircle2, MessageSquare, ChevronLeft, Lock, XCircle, UserCircle, Calendar, ShieldCheck, Eye, Activity } from 'lucide-react';
+import {
+  Send,
+  Image as ImageIcon,
+  BrainCircuit,
+  FileText,
+  X,
+  CheckCircle2,
+  MessageSquare,
+  ChevronLeft,
+  Lock,
+  XCircle,
+  Calendar,
+  ShieldCheck,
+  Eye,
+  Activity,
+  Video,
+  Clock,
+  Sparkles,
+  ArrowRight,
+  BadgeCheck,
+  AlertCircle,
+  MapPin,
+  Building2
+} from 'lucide-react';
 import { getConsultationStatusMeta } from '../../utils/consultationStatus';
 import { getSocket, joinConsultationRoom, leaveConsultationRoom } from '../../utils/socket';
 import '../Dashboard.css';
@@ -23,6 +46,7 @@ const MessagesUI = ({ role = 'patient' }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [mobileShowChat, setMobileShowChat] = useState(!!targetConsultationId);
 
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -31,6 +55,7 @@ const MessagesUI = ({ role = 'patient' }) => {
   useEffect(() => {
     if (targetConsultationId && targetConsultationId !== selectedConsultationId) {
       setSelectedConsultationId(targetConsultationId);
+      setMobileShowChat(true);
     }
   }, [targetConsultationId]);
 
@@ -55,11 +80,17 @@ const MessagesUI = ({ role = 'patient' }) => {
         const data = await res.json();
         const validList = Array.isArray(data) ? data : [];
         validList.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-        setConsultations(validList);
+        
+        // Strict separation: Only Online Chat consultations belong in the messaging workspace
+        const chatList = validList.filter(c => {
+          const cType = String(c.consultationType || '').toLowerCase();
+          return cType.includes('chat');
+        });
+        setConsultations(chatList);
 
-        // If no consultation is selected yet, choose the target or the first active one
-        if (!selectedConsultationId && validList.length > 0) {
-          setSelectedConsultationId(validList[0].id || validList[0]._id);
+        // If no consultation is selected yet, choose the target or the first active chat
+        if (!selectedConsultationId && chatList.length > 0) {
+          setSelectedConsultationId(chatList[0].id || chatList[0]._id);
         }
       } catch (e) {
         console.error('Error loading consultations in MessagesUI:', e);
@@ -97,7 +128,6 @@ const MessagesUI = ({ role = 'patient' }) => {
           }
           return c;
         }));
-        // Re-fetch messages immediately
         pollConsultationAndMessages();
       }
     };
@@ -124,7 +154,7 @@ const MessagesUI = ({ role = 'patient' }) => {
         const token = localStorage.getItem('dentaai_token') || localStorage.getItem('token');
         const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
-        // 1. Poll consultation record for live status updates (e.g., Pending -> Accepted) without page refresh
+        // 1. Poll consultation record for live status updates
         const consultRes = await fetch(`${API_BASE}/api/consultations/${selectedConsultationId}`, { headers });
         if (consultRes.ok && isMounted) {
           const consultData = await consultRes.json();
@@ -134,6 +164,13 @@ const MessagesUI = ({ role = 'patient' }) => {
             }
             return prev;
           });
+
+          // Strict Access Control: In-person clinic appointments must never poll or fetch messages
+          const isChat = String(consultData.consultationType || '').toLowerCase().includes('chat');
+          if (!isChat) {
+            setAllMessages([]);
+            return;
+          }
 
           // Sync status in the sidebar list if it changed
           setConsultations(prevList => prevList.map(c => {
@@ -145,7 +182,7 @@ const MessagesUI = ({ role = 'patient' }) => {
           }));
         }
 
-        // 2. Poll messages for the active consultation
+        // 2. Poll messages for the active chat consultation only
         const msgRes = await fetch(`${API_BASE}/api/messages/${selectedConsultationId}`, { headers });
         if (msgRes.ok && isMounted) {
           const msgData = await msgRes.json();
@@ -156,10 +193,7 @@ const MessagesUI = ({ role = 'patient' }) => {
       }
     };
 
-    // Immediate initial fetch
     pollConsultationAndMessages();
-
-    // Regular polling interval (every 3 seconds) for live status transitions as fallback
     const intervalId = setInterval(pollConsultationAndMessages, 3000);
 
     return () => {
@@ -197,6 +231,11 @@ const MessagesUI = ({ role = 'patient' }) => {
   const [isCompleting, setIsCompleting] = useState(false);
   const [completeDiagnosis, setCompleteDiagnosis] = useState('');
   const [completeTreatment, setCompleteTreatment] = useState('');
+
+  // Doctor display name helper: prevents "Dr. Dr. Priya Menon" even if DB stored repeated prefix
+  const doctorDisplayName = activeConsultation?.doctorName
+    ? `Dr. ${activeConsultation.doctorName.replace(/^(Dr\.?\s*)+/i, '').trim()}`
+    : 'the specialist';
 
   const handleCompleteConsultation = async () => {
     if (!selectedConsultationId) return;
@@ -387,73 +426,64 @@ const MessagesUI = ({ role = 'patient' }) => {
   };
 
   const chatPartnerName = activeConsultation
-    ? (role === 'patient' ? (activeConsultation.doctorName || 'Attending Specialist') : (activeConsultation.patientName || 'Patient'))
+    ? (role === 'patient' ? doctorDisplayName : (activeConsultation.patientName || 'Patient'))
     : 'Consultation Chat';
 
   const chatPartnerSubtitle = activeConsultation
     ? (role === 'patient' 
         ? (activeConsultation.doctorSpecialization || 'DentaAI Specialist') 
-        : `Patient UID: P-${activeConsultation.id ? activeConsultation.id.toString().substring(0, 6) : '00000'}`)
+        : `Patient Case P-${activeConsultation.id ? activeConsultation.id.toString().substring(0, 6) : '00000'}`)
     : '';
 
   const statusMeta = getConsultationStatusMeta(activeConsultation?.status);
+  const isChatActiveConsultation = !activeConsultation || String(activeConsultation.consultationType || '').toLowerCase().includes('chat');
+
+  // Partner Initials
+  const partnerInitials = chatPartnerName
+    ? chatPartnerName.replace(/^(Dr\.|Dr)\s*/i, '').trim().split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+    : 'DR';
 
   if (isLoading && consultations.length === 0) {
     return (
-      <div className="dashboard-view flex-align-center justify-center" style={{ minHeight: '60vh' }}>
-        <Activity className="spin-anim" size={40} color="var(--primary, #1677FF)" />
+      <div className="dashboard-view" style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center', color: '#17324D', fontWeight: 700, fontSize: '1.1rem' }}>
+          <Activity className="spin-anim" size={36} color="#00A6A6" style={{ margin: '0 auto 14px' }} />
+          Loading Consultation Workspace...
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="dashboard-view animate-fade-in" style={{ height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column' }}>
+    <div className="dashboard-view messages-page-wrapper animate-fade-in">
       
       {/* TOP HEADER CARD */}
-      <div 
-        className="mb-4 page-header-card" 
-        style={{ 
-          padding: '20px 28px', 
-          borderRadius: '20px', 
-          background: '#ffffff',
-          border: '1px solid #cbd5e1', 
-          boxShadow: '0 4px 20px rgba(15, 23, 42, 0.05)', 
-          flexShrink: 0 
-        }}
-      >
-        <div className="flex-between" style={{ flexWrap: 'wrap', gap: '16px', alignItems: 'center' }}>
+      <div className="messages-header-card">
+        <div className="messages-header-top">
+          
           <div>
-            <div className="flex-align-center gap-2 mb-1">
+            <div style={{ marginBottom: '6px' }}>
               <Link 
                 to={role === 'doctor' ? '/dashboard/doctor/consultations' : '/dashboard/patient/consultations'} 
-                className="text-muted hover:text-primary flex-align-center gap-1 font-semibold"
-                style={{ fontSize: '0.9rem', color: '#64748b' }}
+                className="messages-back-btn"
               >
-                <ChevronLeft size={16} /> {role === 'doctor' ? 'Back to Consultations' : 'Back to My Appointments'}
+                <ChevronLeft size={16} color="#00A6A6" /> {role === 'doctor' ? 'Back to Consultations' : 'Back to My Appointments'}
               </Link>
             </div>
-            <h2 className="font-extrabold text-slate-900" style={{ fontSize: '1.65rem', margin: '2px 0 4px 0', color: '#0f172a' }}>
-              Consultation Conversation
-            </h2>
-            <p className="font-medium text-slate-500" style={{ fontSize: '0.95rem', margin: 0, color: '#64748b' }}>
-              Secure direct communication linked to consultation case <span style={{ fontWeight: 700, color: '#0f172a' }}>P-{activeConsultation?.id ? activeConsultation.id.toString().substring(0,6) : 'Case'}</span>
+            <h1 className="messages-header-title">Consultation Workspace</h1>
+            <p className="messages-header-desc">
+              Direct clinical communication for Case <strong style={{ color: '#00A6A6' }}>P-{activeConsultation?.id ? activeConsultation.id.toString().substring(0, 6) : 'ACTIVE'}</strong>
             </p>
           </div>
 
-          {/* Quick Context Badges */}
+          {/* Quick Context & Actions */}
           {activeConsultation && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              
               <span 
-                className="badge font-bold" 
-                style={{ 
-                  background: statusMeta.bg, 
-                  color: statusMeta.color, 
-                  border: `1px solid ${statusMeta.border}`,
-                  padding: '6px 14px',
-                  borderRadius: '999px',
-                  fontSize: '0.85rem'
-                }}
+                className={`chat-status-pill ${isPending ? 'pending' : isAccepted ? 'active' : 'completed'}`}
               >
+                <span className="radio-dot" style={{ width: '8px', height: '8px' }}></span>
                 {statusMeta.label}
               </span>
 
@@ -461,11 +491,12 @@ const MessagesUI = ({ role = 'patient' }) => {
                 <>
                   <Link 
                     to={`/dashboard/doctor/consultation/${activeConsultation.id || activeConsultation._id}`}
-                    className="btn btn-outline btn-sm flex-align-center gap-1 font-bold"
-                    style={{ background: '#ffffff', borderColor: '#cbd5e1', color: '#0f172a', padding: '8px 14px', borderRadius: '10px' }}
+                    className="btn btn-outline btn-sm font-bold"
+                    style={{ background: '#FFFFFF', borderColor: '#BFD4E5', color: '#17324D', padding: '8px 14px', borderRadius: '10px' }}
                   >
-                    <Eye size={16} color="#1677FF" /> Open Diagnostic Workspace
+                    <Eye size={15} color="#00A6A6" /> Diagnostic Workspace
                   </Link>
+
                   {isAccepted && (
                     <button 
                       onClick={() => {
@@ -473,120 +504,100 @@ const MessagesUI = ({ role = 'patient' }) => {
                         setCompleteTreatment(activeConsultation?.treatmentPlan || '');
                         setShowCompleteModal(true);
                       }}
-                      className="btn btn-success btn-sm flex-align-center gap-1 font-bold"
+                      className="btn btn-success btn-sm font-bold"
                       style={{ padding: '8px 16px', borderRadius: '10px', boxShadow: '0 2px 8px rgba(22, 163, 74, 0.2)' }}
                     >
-                      <CheckCircle2 size={16} /> Complete Consultation
+                      <CheckCircle2 size={15} /> Complete Consultation
                     </button>
                   )}
                 </>
               )}
+
             </div>
           )}
+
         </div>
       </div>
 
-      {/* MAIN CONTAINER */}
-      <div style={{ display: 'flex', gap: '24px', flex: 1, minHeight: 0 }}>
+      {/* 2-COLUMN SPLIT CONTAINER */}
+      <div className="messages-split-wrapper">
         
-        {/* LEFT: BOOKED CONSULTATION SELECTOR (Allows switching between active appointments) */}
-        <div 
-          className="card" 
-          style={{ 
-            width: '340px', 
-            background: '#ffffff', 
-            border: '1px solid #cbd5e1', 
-            borderRadius: '20px', 
-            boxShadow: '0 4px 20px rgba(15, 23, 42, 0.05)', 
-            display: 'flex', 
-            flexDirection: 'column', 
-            overflow: 'hidden',
-            flexShrink: 0
-          }}
-        >
-          <div style={{ padding: '18px 20px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-            <h4 className="font-bold text-slate-800" style={{ margin: 0, fontSize: '0.95rem', color: '#1e293b' }}>
-              {role === 'doctor' ? 'My Consultations Queue' : 'My Booked Appointments'}
-            </h4>
-            <p className="text-slate-500" style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>
-              Messages are exclusively linked to their specific case.
-            </p>
-          </div>
+        {/* LEFT COLUMN: BOOKED CONSULTATIONS QUEUE */}
+        <div className={`messages-sidebar ${mobileShowChat ? 'mobile-hidden' : ''}`}>
           
-          <div style={{ overflowY: 'auto', flex: 1 }}>
+          <div className="messages-sidebar-header">
+            <h3 className="messages-sidebar-title">
+              {role === 'doctor' ? 'Consultations Queue' : 'My Booked Appointments'}
+            </h3>
+            <span className="messages-count-badge">{consultations.length} Active</span>
+          </div>
+
+          <div className="messages-sidebar-list">
             {consultations.length === 0 ? (
-              <div className="text-center" style={{ padding: '40px 20px', color: '#64748b' }}>
-                <MessageSquare size={36} style={{ margin: '0 auto 12px', opacity: 0.4 }} />
-                <p className="font-medium" style={{ margin: 0, fontSize: '0.9rem' }}>No booked consultations yet.</p>
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: '#64748B' }}>
+                <MessageSquare size={36} color="#CBD5E1" style={{ margin: '0 auto 12px' }} />
+                <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600 }}>No booked consultations yet.</p>
               </div>
             ) : (
               consultations.map(c => {
-                const partner = role === 'patient' ? (c.doctorName || 'Doctor') : (c.patientName || 'Patient');
+                const partner = role === 'patient' 
+                  ? `Dr. ${(c.doctorName || 'Doctor').replace(/^(Dr\.?\s*)+/i, '').trim()}` 
+                  : (c.patientName || 'Patient');
                 const partnerSub = role === 'patient' ? (c.doctorSpecialization || 'Specialist') : `Case P-${c.id?.toString().substring(0, 5)}`;
                 const itemStatus = getConsultationStatusMeta(c.status);
                 const isSelected = String(c.id || c._id) === String(selectedConsultationId);
-                
+                const cInitials = partner.replace(/^(Dr\.?\s*)+/i, '').trim().split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'DR';
+
                 return (
-                  <div 
-                    key={c.id || c._id} 
+                  <div
+                    key={c.id || c._id}
                     onClick={() => {
                       const newId = c.id || c._id;
                       setSelectedConsultationId(newId);
-                      navigate(role === 'doctor' 
-                        ? `/dashboard/doctor/consultation/${newId}/messages` 
-                        : `/dashboard/patient/consultation/${newId}/messages`, 
+                      setMobileShowChat(true);
+                      navigate(role === 'doctor'
+                        ? `/dashboard/doctor/consultation/${newId}/messages`
+                        : `/dashboard/patient/consultation/${newId}/messages`,
                         { state: { consultationId: newId }, replace: true }
                       );
                     }}
-                    style={{ 
-                      padding: '16px 20px', 
-                      borderBottom: '1px solid #f1f5f9', 
-                      backgroundColor: isSelected ? '#f0f9ff' : 'transparent', 
-                      borderLeft: isSelected ? '4px solid #1677FF' : '4px solid transparent',
-                      cursor: 'pointer',
-                      transition: 'background-color 0.15s ease'
-                    }}
+                    className={`messages-appointment-card ${isSelected ? 'selected' : ''}`}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                      <div 
-                        style={{ 
-                          width: '42px', 
-                          height: '42px', 
-                          borderRadius: '50%', 
-                          background: isSelected ? '#1677FF' : '#f1f5f9', 
-                          color: isSelected ? '#ffffff' : '#334155', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center', 
-                          fontWeight: 700,
-                          fontSize: '0.95rem',
-                          flexShrink: 0
-                        }}
-                      >
-                        {partner.charAt(0) === 'D' && partner.charAt(1) === 'r' ? (partner.charAt(3) || 'D') : partner.charAt(0)}
+                    <div className="appointment-avatar-box">
+                      {cInitials}
+                    </div>
+
+                    <div className="appointment-info-col">
+                      <div className="appointment-name-row">
+                        <span className="appointment-doctor-name">{partner}</span>
+                        <span 
+                          style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            color: itemStatus.color,
+                            background: itemStatus.bg,
+                            border: `1px solid ${itemStatus.border}`,
+                            padding: '2px 8px',
+                            borderRadius: '999px',
+                            flexShrink: 0
+                          }}
+                        >
+                          {itemStatus.label}
+                        </span>
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                          <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {partner}
-                          </span>
-                          <span 
-                            style={{ 
-                              fontSize: '0.7rem', 
-                              fontWeight: 700, 
-                              color: itemStatus.color,
-                              background: itemStatus.bg,
-                              border: `1px solid ${itemStatus.border}`,
-                              padding: '2px 8px',
-                              borderRadius: '999px'
-                            }}
-                          >
-                            {itemStatus.label}
-                          </span>
-                        </div>
-                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {partnerSub} &bull; {c.date || 'Scheduled'}
-                        </p>
+
+                      <div className="appointment-sub-row">
+                        <span>{partnerSub}</span>
+                      </div>
+
+                      <div className="appointment-badge-strip">
+                        <span className="appointment-type-tag">
+                          {c.consultationType === 'Video Consultation' ? <Video size={11} color="#00A6A6" /> : <MessageSquare size={11} color="#1677FF" />}
+                          {c.consultationType === 'Video Consultation' ? 'Video' : 'Chat'}
+                        </span>
+                        <span style={{ fontSize: '0.72rem', color: '#64748B', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                          <Clock size={11} /> {c.date || 'Scheduled'}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -594,306 +605,409 @@ const MessagesUI = ({ role = 'patient' }) => {
               })
             )}
           </div>
+
         </div>
 
-        {/* RIGHT: CHAT WORKSPACE FOR SELECTED CONSULTATION */}
-        <div 
-          className="card" 
-          style={{ 
-            flex: 1, 
-            background: '#ffffff', 
-            border: '1px solid #cbd5e1', 
-            borderRadius: '20px', 
-            boxShadow: '0 4px 20px rgba(15, 23, 42, 0.05)', 
-            display: 'flex', 
-            flexDirection: 'column', 
-            overflow: 'hidden' 
-          }}
-        >
+        {/* RIGHT COLUMN: ACTIVE CHAT PANE & CLINICAL WORKSPACE */}
+        <div className={`messages-chat-pane ${!mobileShowChat ? 'mobile-hidden' : ''}`}>
+          
           {selectedConsultationId && activeConsultation ? (
-            <>
-              {/* Consultation Context Header */}
-              <div 
-                style={{ 
-                  padding: '16px 24px', 
-                  borderBottom: '1px solid #e2e8f0', 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center', 
-                  background: '#f8fafc' 
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <div 
-                    style={{ 
-                      width: '46px', 
-                      height: '46px', 
-                      borderRadius: '50%', 
-                      background: 'linear-gradient(135deg, #1677FF, #00A6A6)', 
-                      color: 'white', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      fontWeight: 'bold', 
-                      fontSize: '1.2rem',
-                      boxShadow: '0 4px 10px rgba(22, 119, 255, 0.2)'
-                    }}
-                  >
-                    <UserCircle size={26} />
-                  </div>
-                  <div>
-                    <h4 style={{ margin: 0, fontWeight: 800, color: '#0f172a', fontSize: '1.15rem' }}>
-                      {chatPartnerName}
-                    </h4>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '3px' }}>
-                      <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>
-                        {chatPartnerSubtitle}
+            !isChatActiveConsultation ? (
+              <div style={{ flex: 1, overflowY: 'auto', padding: '32px 24px', background: '#F8FAFC' }}>
+                <div style={{ maxWidth: '640px', margin: '20px auto', background: '#FFFFFF', borderRadius: '20px', border: '1px solid #BFD4E5', padding: '32px', boxShadow: '0 8px 30px rgba(7, 26, 51, 0.06)' }}>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '20px' }}>
+                    <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'rgba(0, 166, 166, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Building2 size={28} color="#00A6A6" />
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#00A6A6', background: 'rgba(0, 166, 166, 0.08)', padding: '3px 10px', borderRadius: '999px' }}>
+                        Physical Clinic Appointment
                       </span>
-                      <span style={{ fontSize: '0.8rem', color: '#0f172a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <Calendar size={13} color="#1677FF" /> {activeConsultation.date} @ {activeConsultation.time}
-                      </span>
+                      <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#17324D', margin: '6px 0 0' }}>In-Person Clinic Visit</h2>
                     </div>
                   </div>
-                </div>
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span 
-                    style={{ 
-                      display: 'inline-flex', 
-                      alignItems: 'center', 
-                      gap: '4px',
-                      background: statusMeta.bg, 
-                      color: statusMeta.color, 
-                      border: `1px solid ${statusMeta.border}`,
-                      padding: '5px 12px',
-                      borderRadius: '8px',
-                      fontWeight: 800,
-                      fontSize: '0.85rem'
-                    }}
-                  >
-                    {statusMeta.label}
-                  </span>
-                  <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <ShieldCheck size={14} color="#1677FF" /> Encrypted Channel
-                  </span>
-                  {role === 'doctor' && isAccepted && (
-                    <button
-                      onClick={() => {
-                        setCompleteDiagnosis(activeConsultation?.finalDiagnosis || '');
-                        setCompleteTreatment(activeConsultation?.treatmentPlan || '');
-                        setShowCompleteModal(true);
-                      }}
-                      className="btn btn-success btn-sm font-bold flex-align-center gap-1"
-                      style={{ padding: '6px 14px', borderRadius: '8px' }}
+
+                  <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '12px', padding: '14px 16px', display: 'flex', gap: '12px', alignItems: 'flex-start', marginBottom: '24px' }}>
+                    <AlertCircle size={20} color="#D97706" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <div style={{ fontSize: '0.88rem', color: '#92400E', lineHeight: '1.5' }}>
+                      <strong>Online Consultation Chat Disabled:</strong> This appointment is reserved for a physical, in-person consultation at the doctor's clinic. Virtual messaging and chat windows are strictly disabled for in-person appointments. Please attend the clinic physically at your scheduled slot.
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+                    <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '14px' }}>
+                      <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Consulting Doctor</span>
+                      <strong style={{ color: '#17324D', fontSize: '0.96rem', display: 'block' }}>{doctorDisplayName}</strong>
+                      <span style={{ color: '#52677A', fontSize: '0.82rem' }}>{activeConsultation.doctorSpecialization || 'Dental Specialist'}</span>
+                    </div>
+
+                    <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '14px' }}>
+                      <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Scheduled Slot</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#17324D', fontWeight: 700, fontSize: '0.96rem' }}>
+                        <Calendar size={15} color="#00A6A6" /> {activeConsultation.date}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#52677A', fontSize: '0.82rem', marginTop: '2px' }}>
+                        <Clock size={14} /> {activeConsultation.time}
+                      </div>
+                    </div>
+
+                    <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '14px', gridColumn: '1 / -1' }}>
+                      <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Physical Clinic Location</span>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                        <MapPin size={18} color="#00A6A6" style={{ flexShrink: 0, marginTop: '2px' }} />
+                        <div>
+                          <strong style={{ color: '#17324D', fontSize: '0.96rem', display: 'block' }}>
+                            {activeConsultation.clinic || 'Apollo Dental Clinic & Implant Center'}
+                          </strong>
+                          <span style={{ color: '#52677A', fontSize: '0.85rem' }}>
+                            {activeConsultation.location || '124 Healthcare Boulevard, 2nd Floor, Indiranagar, Bengaluru, Karnataka 560038'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '14px', gridColumn: '1 / -1' }}>
+                      <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Payment Summary</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ color: '#52677A', fontSize: '0.88rem' }}>In-Person Consultation (₹500) + Platform Fee (₹49)</span>
+                        <strong style={{ color: '#17324D', fontSize: '1.05rem', fontWeight: 800 }}>₹{activeConsultation.totalAmount || 549} Paid</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ textAlign: 'center' }}>
+                    <Link
+                      to={role === 'doctor' ? '/dashboard/doctor/consultations' : '/dashboard/patient/consultations'}
+                      className="btn btn-primary font-bold"
+                      style={{ padding: '10px 24px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
                     >
-                      <CheckCircle2 size={15} /> Complete Consultation
-                    </button>
-                  )}
+                      <ChevronLeft size={16} /> Back to My Appointments
+                    </Link>
+                  </div>
                 </div>
               </div>
+            ) : (
+            <>
+              {/* Consultation Partner Header */}
+              <div className="messages-chat-header">
+                
+                <div className="chat-partner-info">
+                  <button
+                    type="button"
+                    onClick={() => setMobileShowChat(false)}
+                    className="mobile-back-to-list-btn"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
 
-              {/* Status Alert Banner for Pending, Completed or Cancelled Cases */}
-              {isPending && (
-                <div style={{ background: '#fffbeb', borderBottom: '1px solid #fde68a', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <Lock size={20} color="#b45309" style={{ flexShrink: 0 }} />
-                    <div>
-                      <span style={{ fontWeight: 800, color: '#92400e', fontSize: '0.9rem' }}>
-                        {role === 'doctor' ? '🔒 Consultation Request Awaiting Acceptance' : '🔒 Messaging Locked — Awaiting Doctor Acceptance'}
+                  <div className="chat-partner-avatar">
+                    {partnerInitials}
+                    <div className="chat-avatar-status-dot"></div>
+                  </div>
+
+                  <div>
+                    <h2 className="chat-partner-title">{chatPartnerName}</h2>
+                    <div className="chat-partner-subtitle-row">
+                      <span className="chat-partner-spec">{chatPartnerSubtitle}</span>
+                      <span className="meta-dot">•</span>
+                      <span className="chat-partner-slot">
+                        <Calendar size={13} color="#00A6A6" /> {activeConsultation.date} @ {activeConsultation.time}
                       </span>
-                      <p style={{ margin: 0, fontSize: '0.82rem', color: '#b45309', fontWeight: 500 }}>
-                        {role === 'doctor'
-                          ? 'Accept this consultation request to enable messaging with the patient.'
-                          : 'Messaging will be available after the doctor accepts your consultation request.'}
-                      </p>
+                      <span className="appointment-type-tag">
+                        {activeConsultation.consultationType === 'Video Consultation' ? <Video size={12} color="#00A6A6" /> : <MessageSquare size={12} color="#1677FF" />}
+                        {activeConsultation.consultationType || 'Consultation'}
+                      </span>
                     </div>
                   </div>
-                  {role === 'doctor' && (
+                </div>
+
+                <div className="chat-header-actions">
+                  <span className={`chat-status-pill ${isPending ? 'pending' : isAccepted ? 'active' : 'completed'}`}>
+                    <span className="radio-dot" style={{ width: '8px', height: '8px' }}></span>
+                    {statusMeta.label}
+                  </span>
+
+                  <span className="chat-security-pill">
+                    <ShieldCheck size={14} color="#10B981" /> 256-Bit SSL Encrypted
+                  </span>
+
+                  {role === 'doctor' && isPending && (
                     <button
                       onClick={handleDoctorAcceptInChat}
                       disabled={isAcceptingInChat}
-                      className="btn btn-success btn-sm font-bold flex-align-center gap-1"
-                      style={{ padding: '6px 14px', borderRadius: '8px' }}
+                      className="btn btn-primary btn-sm font-bold"
+                      style={{ padding: '8px 16px', borderRadius: '10px' }}
                     >
                       <CheckCircle2 size={16} /> Accept Consultation
                     </button>
                   )}
                 </div>
-              )}
 
-              {isCompleted && (
-                <div style={{ background: '#f0fdf4', borderBottom: '1px solid #bbf7d0', padding: '14px 24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <CheckCircle2 size={22} color="#15803d" style={{ flexShrink: 0 }} />
-                  <div>
-                    <span style={{ fontWeight: 800, color: '#15803d', fontSize: '0.92rem', display: 'block', marginBottom: '2px' }}>Consultation Completed</span>
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#166534', fontWeight: 600 }}>
-                      This consultation has ended. You can view the conversation history, but new messages are disabled.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {isCancelled && (
-                <div style={{ background: '#fef2f2', borderBottom: '1px solid #fecaca', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <XCircle size={20} color="#b91c1c" style={{ flexShrink: 0 }} />
-                  <div>
-                    <span style={{ fontWeight: 800, color: '#b91c1c', fontSize: '0.9rem' }}>Consultation Cancelled</span>
-                    <p style={{ margin: 0, fontSize: '0.82rem', color: '#991b1b', fontWeight: 500 }}>
-                      This consultation request was declined or cancelled. New messages cannot be sent.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Messages Content Area */}
-              <div 
-                style={{ 
-                  flex: 1, 
-                  overflowY: 'auto', 
-                  padding: '24px', 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: '16px', 
-                  background: '#f8fafc' 
-                }}
-              >
-                {allMessages.length === 0 ? (
-                  <div style={{ margin: 'auto', textAlign: 'center', color: '#64748b', maxWidth: '400px' }}>
-                    <div style={{ 
-                      background: '#ffffff', 
-                      width: '64px', 
-                      height: '64px', 
-                      borderRadius: '50%', 
-                      border: isPending ? '1px solid #fde68a' : '1px solid #cbd5e1', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      margin: '0 auto 16px', 
-                      boxShadow: '0 4px 12px rgba(15, 23, 42, 0.05)' 
-                    }}>
-                      {isPending ? (
-                        <Lock size={30} color="#b45309" />
-                      ) : (
-                        <MessageSquare size={32} color="#1677FF" style={{ opacity: 0.8 }} />
-                      )}
-                    </div>
-                    <h4 style={{ fontWeight: 800, color: '#0f172a', marginBottom: '6px', fontSize: '1.2rem' }}>
-                      {isPending ? 'Messaging Locked' : 'No messages yet'}
-                    </h4>
-                    <p style={{ fontSize: '0.9rem', color: '#64748b', lineHeight: 1.5, margin: 0 }}>
-                      {isPending
-                        ? (role === 'doctor' 
-                            ? 'Accept this consultation request above to enable messaging with the patient.' 
-                            : 'Messaging will be available after the doctor accepts your consultation request.')
-                        : (role === 'patient' 
-                            ? 'Send a message to your specialist regarding symptoms, questions, or updates.' 
-                            : 'Initiate communication with the patient regarding their scheduled consultation.')}
-                    </p>
-                  </div>
-                ) : (
-                  allMessages.map((msg, index) => {
-                    const isMine = msg.sender === role;
-                    const messageText = msg.message || msg.text;
-
-                    return (
-                      <div key={msg.id || msg._id || `msg-${index}`} style={{ display: 'flex', flexDirection: 'column', alignItems: isMine ? 'flex-end' : 'flex-start' }}>
-                        
-                        {/* TEXT MESSAGE BUBBLE */}
-                        {msg.type === 'text' && (
-                          <div 
-                            style={{
-                              background: isMine ? 'linear-gradient(135deg, #1677FF, #00A6A6)' : '#ffffff',
-                              color: isMine ? '#ffffff' : '#0f172a',
-                              border: isMine ? 'none' : '1px solid #cbd5e1',
-                              padding: '12px 18px',
-                              borderRadius: isMine ? '16px 16px 0 16px' : '16px 16px 16px 0',
-                              maxWidth: '75%',
-                              fontSize: '0.95rem',
-                              lineHeight: '1.5',
-                              fontWeight: 500,
-                              boxShadow: '0 2px 10px rgba(15, 23, 42, 0.04)'
-                            }}
-                          >
-                            {messageText}
-                          </div>
-                        )}
-
-                        {/* IMAGE MESSAGE */}
-                        {msg.type === 'image' && (
-                          <div 
-                            style={{ 
-                              padding: '8px', 
-                              background: isMine ? 'linear-gradient(135deg, #1677FF, #00A6A6)' : '#ffffff', 
-                              border: isMine ? 'none' : '1px solid #cbd5e1', 
-                              borderRadius: isMine ? '16px 16px 0 16px' : '16px 16px 16px 0', 
-                              maxWidth: '320px',
-                              boxShadow: '0 2px 10px rgba(15, 23, 42, 0.04)'
-                            }}
-                          >
-                            <img src={msg.image} alt="Attachment" style={{ width: '100%', borderRadius: '10px', display: 'block' }} />
-                          </div>
-                        )}
-
-                        {/* AI REPORT EMBED */}
-                        {msg.type === 'ai-report' && (
-                          <div 
-                            style={{ 
-                              backgroundColor: '#ffffff', 
-                              border: '1px solid #cbd5e1', 
-                              borderRadius: '16px', 
-                              padding: '20px', 
-                              width: '360px', 
-                              maxWidth: '92%', 
-                              boxShadow: '0 4px 15px rgba(15, 23, 42, 0.05)' 
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', paddingBottom: '12px', borderBottom: '1px solid #e2e8f0' }}>
-                              <div style={{ background: '#e0f2fe', padding: '8px', borderRadius: '8px', color: '#0369a1' }}>
-                                <BrainCircuit size={18} />
-                              </div>
-                              <h4 style={{ margin: 0, fontWeight: 800, color: '#0f172a', fontSize: '0.95rem' }}>AI Dental Analysis Summary</h4>
-                            </div>
-                            <div style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between' }}>
-                              <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Identified Pathology</span>
-                              <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.9rem' }}>{msg.report?.condition?.replace('_', ' ')}</span>
-                            </div>
-                            <div style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between' }}>
-                              <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Confidence</span>
-                              <span style={{ fontWeight: 800, color: '#0284c7', fontSize: '0.9rem' }}>{msg.report?.confidence}</span>
-                            </div>
-                            <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'space-between' }}>
-                              <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Status</span>
-                              <span style={{ fontSize: '0.75rem', padding: '3px 8px', borderRadius: '6px', fontWeight: 800, background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a' }}>
-                                {msg.report?.status}
-                              </span>
-                            </div>
-                            <p style={{ fontSize: '0.75rem', color: '#475569', margin: 0, textAlign: 'center', fontWeight: 500, fontStyle: 'italic' }}>
-                              * Pre-screened algorithmic analysis for physician verification.
-                            </p>
-                          </div>
-                        )}
-
-                        <span style={{ fontSize: '0.75rem', marginTop: '6px', color: '#64748b', fontWeight: 600 }}>
-                          {msg.time}
-                        </span>
-                      </div>
-                    );
-                  })
-                )}
-                <div ref={messagesEndRef} />
               </div>
 
-              {/* COMPOSER / INPUT SECTION */}
+              {/* CENTER PANE: PENDING STATE (ONE COMPACT, UNIFIED HUB CARD - NO DUPLICATES OR SCROLL CLIPPING!) */}
+              {isPending ? (
+                <div className="messages-pending-hub">
+                  <div className="pending-hub-card">
+                    
+                    {/* 1. HORIZONTAL PROGRESS STEPPER */}
+                    <div className="pending-stepper-compact">
+                      <div className="step-compact-item done">
+                        <span className="step-circle"><CheckCircle2 size={14} /></span>
+                        <div className="step-text-wrap">
+                          <strong>Confirmed</strong>
+                          <span>₹{activeConsultation.totalAmount || 549} Paid</span>
+                        </div>
+                      </div>
+
+                      <div className="step-line done"></div>
+
+                      <div className="step-compact-item active">
+                        <span className="step-circle"><Clock size={14} /></span>
+                        <div className="step-text-wrap">
+                          <strong>Doctor Review</strong>
+                          <span>Awaiting Slot</span>
+                        </div>
+                      </div>
+
+                      <div className="step-line"></div>
+
+                      <div className="step-compact-item upcoming">
+                        <span className="step-circle"><Lock size={13} /></span>
+                        <div className="step-text-wrap">
+                          <strong>Live Session</strong>
+                          <span>Chat & Call</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 2. DOCTOR NOTIFICATION STATUS */}
+                    <div className="pending-main-status-body">
+                      <div className="pending-status-icon-box">
+                        <Clock size={24} color="#D97706" />
+                      </div>
+                      
+                      <div className="pending-status-text-content">
+                        <div className="pending-title-line">
+                          <h3 className="pending-status-title">Awaiting Doctor Acceptance</h3>
+                          <span className="pending-status-pill">
+                            <span className="pulse-dot-amber"></span> Review in Progress
+                          </span>
+                        </div>
+
+                        <p className="pending-status-desc">
+                          Your appointment request has been securely submitted to <strong>{doctorDisplayName}</strong>. The specialist has been notified and is currently confirming the scheduled consultation slot.
+                        </p>
+
+                        <div className="pending-speed-pill">
+                          <Sparkles size={14} color="#D97706" />
+                          <span>Average specialist response time is under 15 minutes. You will be alerted immediately once accepted.</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 3. ATTACHED SCAN SUMMARY STRIP */}
+                    {activeConsultation.condition && activeConsultation.condition !== 'N/A' && (
+                      <div className="pending-attached-scan-strip">
+                        <div className="scan-strip-left">
+                          <div className="scan-strip-icon">
+                            <BrainCircuit size={16} color="#00A6A6" />
+                          </div>
+                          <div>
+                            <span className="scan-strip-label">Attached Scan Findings</span>
+                            <div className="scan-strip-condition">
+                              {activeConsultation.condition.replace(/_/g, ' ')}
+                              <span className="scan-strip-conf">
+                                {activeConsultation.confidence} AI Score
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="scan-strip-right">
+                          <span className="scan-case-pill">
+                            Case P-{activeConsultation.id ? activeConsultation.id.toString().substring(0, 6) : 'ACTIVE'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* DOCTOR ACTION (IF VIEWED BY DOCTOR) */}
+                    {role === 'doctor' && (
+                      <button
+                        onClick={handleDoctorAcceptInChat}
+                        disabled={isAcceptingInChat}
+                        className="pending-doctor-accept-cta"
+                      >
+                        <CheckCircle2 size={18} />
+                        <span>Accept Consultation & Open Live Messaging</span>
+                      </button>
+                    )}
+
+                  </div>
+                </div>
+              ) : (
+                /* MESSAGES CONTENT AREA (WHEN ACCEPTED OR COMPLETED) */
+                <div 
+                  style={{ 
+                    flex: 1, 
+                    overflowY: 'auto', 
+                    padding: '24px', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: '16px', 
+                    background: '#F8FAFC' 
+                  }}
+                >
+                  {/* VIDEO CONSULTATION CALLOUT BANNER (IF ACTIVE) */}
+                  {isAccepted && activeConsultation.consultationType === 'Video Consultation' && (
+                    <div style={{ background: '#F0FDFA', border: '1px solid #99F6E4', borderRadius: '14px', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(0, 166, 166, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Video size={18} color="#00A6A6" />
+                        </div>
+                        <div>
+                          <strong style={{ color: '#17324D', fontSize: '0.92rem', display: 'block' }}>Video Consultation Room Active</strong>
+                          <span style={{ color: '#52677A', fontSize: '0.8rem' }}>1-on-1 private video room is ready for your appointment</span>
+                        </div>
+                      </div>
+                      <Link
+                        to={`/dashboard/video-consultation/${activeConsultation.id || activeConsultation._id}`}
+                        className="btn btn-primary btn-sm font-bold"
+                        style={{ padding: '8px 16px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        <Video size={15} /> Join Video Room
+                      </Link>
+                    </div>
+                  )}
+
+                  {/* COMPLETED BANNER */}
+                  {isCompleted && (
+                    <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '14px', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <CheckCircle2 size={22} color="#15803D" style={{ flexShrink: 0 }} />
+                      <div>
+                        <strong style={{ color: '#15803D', fontSize: '0.95rem', display: 'block' }}>Consultation Concluded</strong>
+                        <span style={{ color: '#166534', fontSize: '0.82rem' }}>
+                          {activeConsultation.finalDiagnosis || 'Official clinical diagnosis & prescription has been issued.'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {allMessages.length === 0 ? (
+                    <div style={{ margin: 'auto', textAlign: 'center', color: '#64748B', maxWidth: '380px', padding: '40px 20px' }}>
+                      <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: '#FFFFFF', border: '1px solid #BFD4E5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                        <MessageSquare size={28} color="#00A6A6" />
+                      </div>
+                      <h4 style={{ fontWeight: 800, color: '#17324D', margin: '0 0 6px 0', fontSize: '1.2rem' }}>
+                        Session Started
+                      </h4>
+                      <p style={{ fontSize: '0.88rem', color: '#52677A', lineHeight: 1.5, margin: 0 }}>
+                        {role === 'patient' 
+                          ? `You are directly connected with ${doctorDisplayName}. Send a message, describe your symptoms, or share additional photos.` 
+                          : `You are connected with ${activeConsultation.patientName}. Initiate clinical dialogue or request additional observations.`}
+                      </p>
+                    </div>
+                  ) : (
+                    allMessages.map((msg, index) => {
+                      const isMine = msg.sender === role;
+                      const messageText = msg.message || msg.text;
+
+                      return (
+                        <div key={msg.id || msg._id || `msg-${index}`} style={{ display: 'flex', flexDirection: 'column', alignItems: isMine ? 'flex-end' : 'flex-start' }}>
+                          
+                          {/* TEXT MESSAGE BUBBLE */}
+                          {msg.type === 'text' && (
+                            <div 
+                              style={{
+                                background: isMine ? 'linear-gradient(135deg, #00A6A6 0%, #06C6E8 100%)' : '#FFFFFF',
+                                color: isMine ? '#FFFFFF' : '#17324D',
+                                border: isMine ? 'none' : '1px solid #BFD4E5',
+                                padding: '12px 18px',
+                                borderRadius: isMine ? '16px 16px 0 16px' : '16px 16px 16px 0',
+                                maxWidth: '75%',
+                                fontSize: '0.95rem',
+                                lineHeight: '1.5',
+                                fontWeight: 500,
+                                boxShadow: '0 2px 8px rgba(7, 26, 51, 0.04)'
+                              }}
+                            >
+                              {messageText}
+                            </div>
+                          )}
+
+                          {/* IMAGE MESSAGE */}
+                          {msg.type === 'image' && (
+                            <div 
+                              style={{ 
+                                padding: '8px', 
+                                background: isMine ? 'linear-gradient(135deg, #00A6A6 0%, #06C6E8 100%)' : '#FFFFFF', 
+                                border: isMine ? 'none' : '1px solid #BFD4E5', 
+                                borderRadius: isMine ? '16px 16px 0 16px' : '16px 16px 16px 0', 
+                                maxWidth: '320px',
+                                boxShadow: '0 2px 8px rgba(7, 26, 51, 0.04)'
+                              }}
+                            >
+                              <img src={msg.image} alt="Attachment" style={{ width: '100%', borderRadius: '10px', display: 'block' }} />
+                            </div>
+                          )}
+
+                          {/* AI REPORT EMBED */}
+                          {msg.type === 'ai-report' && (
+                            <div 
+                              style={{ 
+                                backgroundColor: '#FFFFFF', 
+                                border: '1px solid #BFD4E5', 
+                                borderRadius: '16px', 
+                                padding: '18px', 
+                                width: '360px', 
+                                maxWidth: '92%', 
+                                boxShadow: '0 4px 15px rgba(7, 26, 51, 0.05)' 
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', paddingBottom: '10px', borderBottom: '1px solid #E2E8F0' }}>
+                                <div style={{ background: 'rgba(0, 166, 166, 0.1)', padding: '6px', borderRadius: '8px', color: '#00A6A6' }}>
+                                  <BrainCircuit size={18} />
+                                </div>
+                                <h4 style={{ margin: 0, fontWeight: 800, color: '#17324D', fontSize: '0.92rem' }}>AI Dental Analysis Summary</h4>
+                              </div>
+                              <div style={{ marginBottom: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ fontSize: '0.82rem', color: '#64748B', fontWeight: 600 }}>Identified Finding</span>
+                                <span style={{ fontWeight: 800, color: '#17324D', fontSize: '0.88rem' }}>{msg.report?.condition?.replace('_', ' ')}</span>
+                              </div>
+                              <div style={{ marginBottom: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ fontSize: '0.82rem', color: '#64748B', fontWeight: 600 }}>Model Confidence</span>
+                                <span style={{ fontWeight: 800, color: '#00A6A6', fontSize: '0.88rem' }}>{msg.report?.confidence}</span>
+                              </div>
+                              <p style={{ fontSize: '0.72rem', color: '#64748B', margin: '8px 0 0 0', textAlign: 'center', fontStyle: 'italic' }}>
+                                * Verified against specialist diagnostic benchmark.
+                              </p>
+                            </div>
+                          )}
+
+                          <span style={{ fontSize: '0.72rem', marginTop: '4px', color: '#64748B', fontWeight: 600 }}>
+                            {msg.time}
+                          </span>
+                        </div>
+                      );
+                    })
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+              )}
+
+              {/* COMPOSER / BOTTOM BAR */}
               <div 
                 style={{ 
                   padding: '16px 24px', 
-                  borderTop: '1px solid #e2e8f0', 
-                  background: '#ffffff' 
+                  borderTop: '1px solid #E2E8F0', 
+                  background: '#FFFFFF' 
                 }}
               >
-                {/* Secondary Actions (Share AI Report) */}
+                {/* Secondary Action: Share Scan */}
                 {!isMessagingLocked && role === 'patient' && (
-                  <div style={{ marginBottom: '12px' }}>
+                  <div style={{ marginBottom: '10px' }}>
                     <button 
                       type="button" 
                       onClick={shareAiReport} 
@@ -903,126 +1017,94 @@ const MessagesUI = ({ role = 'patient' }) => {
                         alignItems: 'center', 
                         gap: '6px', 
                         borderRadius: '8px', 
-                        borderColor: '#cbd5e1', 
-                        color: '#0f172a',
-                        background: '#f8fafc' 
+                        borderColor: '#BFD4E5', 
+                        color: '#17324D',
+                        background: '#F8FAFC',
+                        fontSize: '0.82rem',
+                        padding: '6px 12px'
                       }}
                     >
-                      <BrainCircuit size={15} color="#1677FF" /> Share Dental Scan Findings
+                      <BrainCircuit size={14} color="#00A6A6" /> Share Dental Scan Findings
                     </button>
                   </div>
                 )}
 
                 {/* Selected Image Preview */}
                 {!isMessagingLocked && selectedImage && (
-                  <div style={{ position: 'relative', display: 'inline-block', marginBottom: '12px' }}>
-                    <img src={selectedImage} alt="Preview" style={{ height: '70px', borderRadius: '10px', border: '1px solid #cbd5e1' }} />
+                  <div style={{ position: 'relative', display: 'inline-block', marginBottom: '10px' }}>
+                    <img src={selectedImage} alt="Preview" style={{ height: '64px', borderRadius: '10px', border: '1px solid #BFD4E5' }} />
                     <button 
                       onClick={() => setSelectedImage(null)} 
                       style={{ 
                         position: 'absolute', 
-                        top: '-8px', 
-                        right: '-8px', 
-                        width: '24px', 
-                        height: '24px', 
+                        top: '-6px', 
+                        right: '-6px', 
+                        width: '20px', 
+                        height: '20px', 
                         padding: 0, 
-                        background: '#ffffff', 
-                        border: '1px solid #cbd5e1', 
+                        background: '#FFFFFF', 
+                        border: '1px solid #BFD4E5', 
                         borderRadius: '50%', 
-                        color: '#64748b', 
+                        color: '#64748B', 
                         cursor: 'pointer', 
                         display: 'flex', 
                         alignItems: 'center', 
                         justifyContent: 'center' 
                       }}
                     >
-                      <X size={14} />
+                      <X size={12} />
                     </button>
                   </div>
                 )}
 
-                {/* Form or Locked/Read-Only Notice */}
+                {/* Bottom Bar: Single, Non-Redundant Status Placeholder When Locked */}
                 {isPending ? (
-                  <div 
-                    style={{ 
-                      padding: '12px 18px', 
-                      background: '#fffbeb', 
-                      border: '1px solid #fde68a', 
-                      borderRadius: '12px', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      gap: '8px',
-                      color: '#92400e',
-                      fontSize: '0.9rem',
-                      fontWeight: 600
-                    }}
-                  >
-                    <Lock size={16} /> {role === 'doctor' ? 'Accept consultation request above to unlock messaging.' : 'Messaging will be available after the doctor accepts your consultation request.'}
+                  <div className="messages-composer-disabled">
+                    <Lock size={15} color="#D97706" />
+                    <span>
+                      {role === 'doctor'
+                        ? 'Accept this consultation request above to begin messaging with the patient.'
+                        : `Messaging will be available as soon as ${doctorDisplayName} accepts your consultation request.`}
+                    </span>
                   </div>
                 ) : isCompleted ? (
-                  <div 
-                    style={{ 
-                      padding: '12px 18px', 
-                      background: '#f1f5f9', 
-                      border: '1px solid #cbd5e1', 
-                      borderRadius: '12px', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      gap: '8px',
-                      color: '#475569',
-                      fontSize: '0.9rem',
-                      fontWeight: 600
-                    }}
-                  >
-                    <Lock size={16} /> This consultation has ended. You can view the conversation history, but new messages are disabled.
+                  <div className="messages-composer-disabled">
+                    <CheckCircle2 size={16} color="#15803D" />
+                    <span>This consultation has concluded. The chat transcript is archived for your records.</span>
                   </div>
                 ) : isCancelled ? (
-                  <div 
-                    style={{ 
-                      padding: '12px 18px', 
-                      background: '#fef2f2', 
-                      border: '1px solid #fecaca', 
-                      borderRadius: '12px', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      gap: '8px',
-                      color: '#991b1b',
-                      fontSize: '0.9rem',
-                      fontWeight: 600
-                    }}
-                  >
-                    <Lock size={16} /> Consultation cancelled — messaging is disabled.
+                  <div className="messages-composer-disabled">
+                    <XCircle size={16} color="#B91C1C" />
+                    <span>Consultation was declined or cancelled. Messaging is disabled.</span>
                   </div>
                 ) : (
-                  <form onSubmit={handleSend} style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '6px 10px', borderRadius: '999px' }}>
+                  /* Active Message Input Form */
+                  <form onSubmit={handleSend} style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#F8FAFC', border: '1px solid #BFD4E5', padding: '6px 10px', borderRadius: '999px' }}>
                     <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" style={{ display: 'none' }} />
                     
                     <button 
                       type="button" 
                       onClick={() => fileInputRef.current?.click()} 
-                      style={{ background: 'none', border: 'none', color: '#64748b', padding: '8px', cursor: 'pointer', display: 'flex', borderRadius: '50%' }}
-                      title="Attach Image"
+                      style={{ background: 'none', border: 'none', color: '#64748B', padding: '8px', cursor: 'pointer', display: 'flex', borderRadius: '50%' }}
+                      title="Attach Intraoral Photo"
                     >
-                      <ImageIcon size={20} />
+                      <ImageIcon size={19} color="#00A6A6" />
                     </button>
                     
                     <input 
                       type="text" 
-                      placeholder="Type a message..." 
+                      placeholder="Type your message or query..." 
                       value={inputText}
                       onChange={(e) => setInputText(e.target.value)}
                       disabled={isSending}
-                      style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#0f172a', fontSize: '0.95rem', fontWeight: 500, padding: '0 8px' }}
+                      style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#17324D', fontSize: '0.95rem', fontWeight: 500, padding: '0 8px' }}
                     />
                     
                     <button 
                       type="submit" 
                       disabled={(!inputText.trim() && !selectedImage) || isSending} 
                       style={{ 
-                        background: 'linear-gradient(135deg, #1677FF, #00A6A6)', 
+                        background: 'linear-gradient(135deg, #00A6A6 0%, #06C6E8 100%)', 
                         color: 'white', 
                         border: 'none', 
                         borderRadius: '50%', 
@@ -1033,7 +1115,7 @@ const MessagesUI = ({ role = 'patient' }) => {
                         justifyContent: 'center', 
                         cursor: ((!inputText.trim() && !selectedImage) || isSending) ? 'not-allowed' : 'pointer', 
                         opacity: ((!inputText.trim() && !selectedImage) || isSending) ? 0.45 : 1, 
-                        boxShadow: '0 4px 10px rgba(22, 119, 255, 0.25)',
+                        boxShadow: '0 4px 10px rgba(0, 166, 166, 0.25)',
                         flexShrink: 0
                       }}
                     >
@@ -1041,31 +1123,35 @@ const MessagesUI = ({ role = 'patient' }) => {
                     </button>
                   </form>
                 )}
+
               </div>
             </>
+            )
           ) : (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px', textAlign: 'center' }}>
-              <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '50%', border: '1px solid #cbd5e1', marginBottom: '20px' }}>
-                <MessageSquare size={44} color="#64748b" opacity={0.6} />
+              <div style={{ background: '#F8FAFC', padding: '24px', borderRadius: '50%', border: '1px solid #BFD4E5', marginBottom: '18px' }}>
+                <MessageSquare size={44} color="#00A6A6" opacity={0.6} />
               </div>
-              <h3 style={{ margin: '0 0 8px 0', fontWeight: 800, color: '#0f172a', fontSize: '1.4rem' }}>
+              <h3 style={{ margin: '0 0 8px 0', fontWeight: 800, color: '#17324D', fontSize: '1.4rem' }}>
                 Select a Booked Consultation
               </h3>
-              <p style={{ margin: 0, color: '#64748b', fontWeight: 500, maxWidth: '340px', fontSize: '0.95rem' }}>
-                Messaging is strictly integrated with your consultations. Choose a case to view its verified conversation history.
+              <p style={{ margin: 0, color: '#52677A', fontWeight: 500, maxWidth: '360px', fontSize: '0.95rem', lineHeight: 1.5 }}>
+                Choose an appointment from the queue to view session messages, clinical recommendations, and diagnostic records.
               </p>
             </div>
           )}
+
         </div>
+
       </div>
 
-      {/* Complete Consultation Confirmation Modal */}
+      {/* Complete Consultation Confirmation Modal (For Doctors) */}
       {showCompleteModal && (
         <div 
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(15, 23, 42, 0.6)',
+            background: 'rgba(7, 26, 51, 0.6)',
             backdropFilter: 'blur(4px)',
             zIndex: 1000,
             display: 'flex',
@@ -1076,79 +1162,81 @@ const MessagesUI = ({ role = 'patient' }) => {
         >
           <div 
             style={{
-              background: '#ffffff',
-              border: '1px solid #cbd5e1',
-              borderRadius: '16px',
-              padding: '24px 28px',
+              background: '#FFFFFF',
+              border: '1px solid #BFD4E5',
+              borderRadius: '20px',
+              padding: '28px',
               maxWidth: '520px',
               width: '100%',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+              boxShadow: '0 20px 40px rgba(7, 26, 51, 0.15)'
             }}
           >
-            <div className="flex-between mb-3">
-              <div className="flex-align-center gap-2">
-                <CheckCircle2 size={22} color="#16a34a" />
-                <h3 className="font-extrabold text-slate-900" style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a' }}>
-                  Complete Consultation
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <CheckCircle2 size={22} color="#15803D" />
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#17324D' }}>
+                  Conclude Consultation
                 </h3>
               </div>
               <button 
                 onClick={() => setShowCompleteModal(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B' }}
               >
                 <X size={20} />
               </button>
             </div>
 
-            <div style={{ background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '10px', padding: '12px 14px', marginBottom: '16px' }}>
-              <p style={{ margin: 0, fontSize: '0.88rem', color: '#991b1b', lineHeight: 1.5, fontWeight: 600 }}>
-                Completing this consultation will conclude the session and make this chat read-only for both you and the patient. No further messages can be sent.
+            <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '12px', padding: '12px 16px', marginBottom: '16px' }}>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: '#166534', lineHeight: 1.5, fontWeight: 600 }}>
+                Completing this session will finalize the diagnosis and issue an official verification for patient records.
               </p>
             </div>
 
-            <p style={{ fontSize: '0.9rem', color: '#475569', marginBottom: '16px', lineHeight: 1.5 }}>
-              Patient: <strong>{activeConsultation?.patientName || 'Patient'}</strong> (Case P-{activeConsultation?.id ? activeConsultation.id.toString().substring(0,6) : 'Case'})
+            <p style={{ fontSize: '0.9rem', color: '#52677A', marginBottom: '16px', lineHeight: 1.5 }}>
+              Patient: <strong style={{ color: '#17324D' }}>{activeConsultation?.patientName || 'Patient'}</strong> (Case P-{activeConsultation?.id ? activeConsultation.id.toString().substring(0,6) : 'Case'})
             </p>
 
             <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#17324D', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
                 Final Clinical Diagnosis / Summary
               </label>
               <input 
                 type="text"
                 value={completeDiagnosis}
                 onChange={(e) => setCompleteDiagnosis(e.target.value)}
-                placeholder="e.g., General dental consultation completed. No critical pathology."
+                placeholder="e.g., Gingivitis evaluated. Professional ultrasonic scaling advised."
                 style={{
                   width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '0.9rem',
-                  color: '#0f172a',
-                  outline: 'none'
+                  padding: '12px',
+                  borderRadius: '10px',
+                  border: '1px solid #BFD4E5',
+                  fontSize: '0.92rem',
+                  color: '#17324D',
+                  outline: 'none',
+                  boxSizing: 'border-box'
                 }}
               />
             </div>
 
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#17324D', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
                 Treatment Plan / Patient Recommendations
               </label>
               <textarea 
                 rows={3}
                 value={completeTreatment}
                 onChange={(e) => setCompleteTreatment(e.target.value)}
-                placeholder="e.g., Maintain twice-daily brushing and routine cleaning."
+                placeholder="e.g., Twice daily chlorhexidine rinse and routine flossing."
                 style={{
                   width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '0.9rem',
-                  color: '#0f172a',
+                  padding: '12px',
+                  borderRadius: '10px',
+                  border: '1px solid #BFD4E5',
+                  fontSize: '0.92rem',
+                  color: '#17324D',
                   outline: 'none',
-                  resize: 'none'
+                  resize: 'none',
+                  boxSizing: 'border-box'
                 }}
               />
             </div>
@@ -1158,7 +1246,7 @@ const MessagesUI = ({ role = 'patient' }) => {
                 type="button"
                 onClick={() => setShowCompleteModal(false)}
                 className="btn btn-outline font-semibold"
-                style={{ color: '#475569', borderColor: '#cbd5e1' }}
+                style={{ color: '#52677A', borderColor: '#BFD4E5' }}
                 disabled={isCompleting}
               >
                 Cancel
@@ -1167,15 +1255,16 @@ const MessagesUI = ({ role = 'patient' }) => {
                 type="button"
                 onClick={handleCompleteConsultation}
                 className="btn btn-success font-bold flex-align-center gap-1"
-                style={{ padding: '8px 18px', borderRadius: '8px' }}
+                style={{ padding: '10px 20px', borderRadius: '10px' }}
                 disabled={isCompleting}
               >
-                <CheckCircle2 size={16} /> {isCompleting ? 'Completing...' : 'Confirm & Complete'}
+                <CheckCircle2 size={16} /> {isCompleting ? 'Finalizing...' : 'Confirm & Complete'}
               </button>
             </div>
           </div>
         </div>
       )}
+
     </div>
   );
 };

@@ -27,6 +27,14 @@ const getMessagesByConsultation = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to view messages for this consultation' });
     }
 
+    // Strict Access Control: In-person clinic appointments must never grant online chat access
+    const isChat = String(consultation.consultationType || '').toLowerCase().includes('chat');
+    if (!isChat) {
+      return res.status(403).json({
+        message: 'In-person clinic appointments do not include online chat access. Please attend the clinic physically.'
+      });
+    }
+
     const messages = await Message.find({ consultationId: consultation._id.toString() }).sort({ createdAt: 1 });
     res.json(messages);
   } catch (error) {
@@ -58,6 +66,14 @@ const createMessage = async (req, res) => {
 
     if (!isPatient && !isDoctor && !isAdmin) {
       return res.status(403).json({ message: 'Not authorized to send messages for this consultation' });
+    }
+
+    // Strict Access Control: In-person clinic appointments must never grant online chat access
+    const isChat = String(consultation.consultationType || '').toLowerCase().includes('chat');
+    if (!isChat) {
+      return res.status(403).json({
+        message: 'In-person clinic appointments do not include online chat access. Please attend the clinic physically.'
+      });
     }
 
     // Business rule: Enforce status locking

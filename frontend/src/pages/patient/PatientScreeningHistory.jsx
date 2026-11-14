@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   History, 
   Calendar, 
@@ -11,22 +11,44 @@ import {
   FileStack, 
   Activity, 
   Sparkles, 
-  Stethoscope
+  Stethoscope,
+  LayoutGrid,
+  List,
+  ChevronLeft,
+  ChevronRight,
+  HeartPulse,
+  X,
+  SlidersHorizontal,
+  Clock,
+  Eye,
+  CheckCircle2
 } from 'lucide-react';
 import '../Dashboard.css';
 import { API_BASE } from '../../config';
+import ScanImage from '../../components/ScanImage';
+import { hasScanImage } from '../../utils/scanImage';
 
 /**
  * PatientScreeningHistory
- * Dedicated page for authenticated patients to view their complete AI dental screening history.
- * Displays actual saved records from the database with clean cards, status dots, confidence pills,
- * and direct links to view the full report with precautions.
+ * Redesigned Medical Archive for Patient AI Screenings
+ * - Eliminates 1200px empty space with a clean, centered container (max-width: 1350px)
+ * - Solid white high-contrast cards (#FFFFFF) preventing background image bleed-through
+ * - Dual view modes: Visual Clinical Card Grid & Compact Structured List
+ * - Condition filter chips & certainty sorting
+ * - Pagination for effortlessly browsing 60+ scans
  */
 const PatientScreeningHistory = () => {
   const [scans, setScans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCondition, setSelectedCondition] = useState('all');
+  const [selectedCertainty, setSelectedCertainty] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
+
   const navigate = useNavigate();
 
   const fetchScreeningHistory = async () => {
@@ -49,7 +71,6 @@ const PatientScreeningHistory = () => {
       }
 
       const data = await response.json();
-      // Ensure sorted newest first
       const sorted = Array.isArray(data) 
         ? [...data].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
         : [];
@@ -66,31 +87,92 @@ const PatientScreeningHistory = () => {
     fetchScreeningHistory();
   }, []);
 
-  const getStatusDotColor = (confidence) => {
-    if (confidence === null || confidence === undefined || isNaN(Number(confidence))) {
-      return '#00A6A6'; // Default teal if no confidence score
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedCondition, selectedCertainty, sortBy]);
+
+  const getConfidenceTheme = (score) => {
+    const num = Number(score) || 0;
+    if (num >= 85) {
+      return {
+        color: '#10B981',
+        bg: '#ECFDF5',
+        border: '#A7F3D0',
+        label: 'High Certainty'
+      };
     }
-    const score = Number(confidence);
-    if (score > 90) return '#16A34A'; // Green
-    if (score > 70) return '#F59E0B'; // Amber
-    return '#DC2626'; // Red
+    if (num >= 65) {
+      return {
+        color: '#D97706',
+        bg: '#FFFBEB',
+        border: '#FDE68A',
+        label: 'Moderate Certainty'
+      };
+    }
+    return {
+      color: '#DC2626',
+      bg: '#FEF2F2',
+      border: '#FECACA',
+      label: 'Preliminary'
+    };
   };
+
+  // Conditions list with counts
+  const conditionStats = useMemo(() => {
+    const counts = {};
+    scans.forEach((s) => {
+      const cond = s.condition ? s.condition.replace(/_/g, ' ') : 'Unspecified';
+      counts[cond] = (counts[cond] || 0) + 1;
+    });
+    return counts;
+  }, [scans]);
+
+  // Filter & Sort
+  const filteredAndSortedScans = useMemo(() => {
+    return scans
+      .filter((scan) => {
+        const term = searchTerm.toLowerCase().trim();
+        const condition = (scan.condition || '').toLowerCase().replace(/_/g, ' ');
+        const id = (scan.scanId || scan._id || '').toLowerCase();
+        const dateStr = scan.createdAt ? new Date(scan.createdAt).toLocaleDateString().toLowerCase() : '';
+        const matchesSearch = !term || condition.includes(term) || id.includes(term) || dateStr.includes(term);
+
+        const condClean = scan.condition ? scan.condition.replace(/_/g, ' ') : 'Unspecified';
+        const matchesCondition = selectedCondition === 'all' || condClean === selectedCondition;
+
+        const score = Number(scan.confidence) || 0;
+        let matchesCertainty = true;
+        if (selectedCertainty === 'high') matchesCertainty = score >= 85;
+        else if (selectedCertainty === 'moderate') matchesCertainty = score >= 65 && score < 85;
+        else if (selectedCertainty === 'low') matchesCertainty = score < 65;
+
+        return matchesSearch && matchesCondition && matchesCertainty;
+      })
+      .sort((a, b) => {
+        if (sortBy === 'newest') return new Date(b.createdAt) - new Date(a.createdAt);
+        if (sortBy === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
+        if (sortBy === 'highest') return (Number(b.confidence) || 0) - (Number(a.confidence) || 0);
+        if (sortBy === 'lowest') return (Number(a.confidence) || 0) - (Number(b.confidence) || 0);
+        return 0;
+      });
+  }, [scans, searchTerm, selectedCondition, selectedCertainty, sortBy]);
+
+  const totalPages = Math.ceil(filteredAndSortedScans.length / itemsPerPage) || 1;
+  const paginatedScans = filteredAndSortedScans.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const totalScans = scans.length;
+  const highConfidenceCount = scans.filter(s => s.confidence && Number(s.confidence) >= 85).length;
+  const needsDoctorCount = scans.filter(s => s.confidence && Number(s.confidence) < 85).length;
 
   const stagger = {
     hidden: { opacity: 0 },
-    show: { opacity: 1, transition: { staggerChildren: 0.08 } }
+    show: { opacity: 1, transition: { staggerChildren: 0.05 } }
   };
   const item = { hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0 } };
-
-  const filteredScans = scans.filter((scan) => {
-    const term = searchTerm.toLowerCase();
-    const condition = (scan.condition || '').toLowerCase().replace(/_/g, ' ');
-    const id = (scan.scanId || scan._id || '').toLowerCase();
-    return condition.includes(term) || id.includes(term);
-  });
-
-  const totalScans = scans.length;
-  const highConfidenceCount = scans.filter(s => s.confidence && Number(s.confidence) > 90).length;
 
   return (
     <motion.div 
@@ -100,37 +182,260 @@ const PatientScreeningHistory = () => {
       variants={stagger}
       style={{ paddingBottom: '40px' }}
     >
-      {/* PAGE HEADER */}
-      <motion.div 
-        variants={item} 
-        className="mb-6 page-header-card" 
-        style={{ 
-          padding: '32px 36px', 
-          borderRadius: '20px', 
-          border: '1px solid var(--border-color, #BFD4E5)', 
-          background: 'var(--card-bg, #FFFFFF)',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', 
-          position: 'relative', 
-          overflow: 'hidden' 
-        }}
-      >
-        <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'var(--secondary, #00A6A6)' }}></div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--secondary, #00A6A6)' }}>
-                Patient Medical Records
+      <div className="screening-history-wrapper">
+        
+        {/* 1. TOP CLINICAL HEADER CARD */}
+        <motion.div variants={item} className="screening-header-card">
+          <div className="screening-header-stripe"></div>
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+            <div>
+              <span className="screening-badge">
+                <ShieldCheck size={13} color="#00A6A6" /> Verified Medical Records
               </span>
+              <h2 className="screening-title">Screening History</h2>
+              <p className="screening-subtitle">
+                Comprehensive archive of all intraoral AI neural scans, confidence evaluations, and verified clinical reports.
+              </p>
             </div>
-            <h2 style={{ color: 'var(--text-primary, #17324D)', letterSpacing: '-0.5px', fontSize: '2.2rem', lineHeight: '1.2', margin: '0 0 6px 0', fontWeight: 800 }}>
-              Screening History
-            </h2>
-            <p style={{ color: 'var(--text-secondary, #52677A)', fontSize: '1.05rem', margin: 0, fontWeight: 500 }}>
-              Review your past dental AI scans, confidence evaluations, and verified care reports.
-            </p>
+
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <Link 
+                to="/dashboard/patient" 
+                className="btn btn-primary"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '12px 22px',
+                  borderRadius: '12px',
+                  fontWeight: 800,
+                  fontSize: '0.92rem',
+                  textDecoration: 'none',
+                  background: 'linear-gradient(135deg, #00A6A6 0%, #06C6E8 100%)',
+                  color: '#FFFFFF',
+                  boxShadow: '0 4px 14px rgba(0, 166, 166, 0.25)',
+                  border: 'none'
+                }}
+              >
+                <Sparkles size={16} /> Start New AI Scan
+              </Link>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* 2. STATS OVERVIEW CARDS (Solid White, High Contrast) */}
+        <motion.div variants={item} className="screening-stats-grid">
+          
+          <div className="screening-stat-card" style={{ borderTop: '3px solid #1677FF' }}>
+            <div className="screening-stat-left">
+              <div className="screening-stat-icon" style={{ background: '#EBF5FF', color: '#1677FF' }}>
+                <History size={24} />
+              </div>
+              <div>
+                <div className="screening-stat-value">{totalScans}</div>
+                <div className="screening-stat-label">Total Screenings</div>
+              </div>
+            </div>
+            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1677FF', background: '#EBF5FF', padding: '3px 9px', borderRadius: '999px' }}>
+              All Scans
+            </span>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="screening-stat-card" style={{ borderTop: '3px solid #10B981' }}>
+            <div className="screening-stat-left">
+              <div className="screening-stat-icon" style={{ background: '#DCFCE7', color: '#10B981' }}>
+                <ShieldCheck size={24} />
+              </div>
+              <div>
+                <div className="screening-stat-value">{highConfidenceCount}</div>
+                <div className="screening-stat-label">High Certainty (&ge;85%)</div>
+              </div>
+            </div>
+            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#10B981', background: '#DCFCE7', padding: '3px 9px', borderRadius: '999px' }}>
+              Validated
+            </span>
+          </div>
+
+          <div className="screening-stat-card" style={{ borderTop: '3px solid #00A6A6' }}>
+            <div className="screening-stat-left">
+              <div className="screening-stat-icon" style={{ background: '#E6FFFA', color: '#00A6A6' }}>
+                <Stethoscope size={24} />
+              </div>
+              <div>
+                <div className="screening-stat-value" style={{ fontSize: '1.25rem', marginTop: '2px' }}>Dentist Review</div>
+                <Link to="/dashboard/patient/recommended-doctors" style={{ fontSize: '0.8rem', color: '#00A6A6', fontWeight: 800, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                  Find Specialists &rarr;
+                </Link>
+              </div>
+            </div>
+            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#00A6A6', background: '#E6FFFA', padding: '3px 9px', borderRadius: '999px' }}>
+              Specialist Care
+            </span>
+          </div>
+
+        </motion.div>
+
+        {/* 3. INTERACTIVE SEARCH, FILTERS & CONTROLS BAR */}
+        <motion.div variants={item} className="screening-controls-card">
+          
+          <div className="screening-controls-top">
+            
+            {/* Search Input */}
+            <div className="screening-search-box">
+              <Search size={18} color="#00A6A6" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
+              <input 
+                type="text"
+                placeholder="Search screening by condition, scan ID, or date..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="screening-search-input"
+              />
+              {searchTerm && (
+                <button 
+                  onClick={() => setSearchTerm('')}
+                  style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', cursor: 'pointer', color: '#94A3B8' }}
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+
+            {/* Actions: Sort & View Toggle */}
+            <div className="screening-actions-group">
+              <select 
+                value={sortBy} 
+                onChange={(e) => setSortBy(e.target.value)}
+                className="screening-sort-select"
+              >
+                <option value="newest">Sort: Newest First</option>
+                <option value="oldest">Sort: Oldest First</option>
+                <option value="highest">Sort: Highest Score</option>
+                <option value="lowest">Sort: Lowest Score</option>
+              </select>
+
+              {/* Grid / List Switcher */}
+              <div className="screening-view-toggle">
+                <button 
+                  type="button"
+                  onClick={() => setViewMode('grid')}
+                  className={`view-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                >
+                  <LayoutGrid size={15} /> Grid
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => setViewMode('list')}
+                  className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
+                >
+                  <List size={15} /> List
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Condition Filter Chips Bar */}
+          <div className="screening-chips-bar">
+            <button 
+              type="button"
+              onClick={() => setSelectedCondition('all')}
+              className={`screening-chip ${selectedCondition === 'all' ? 'active' : ''}`}
+            >
+              All Conditions ({totalScans})
+            </button>
+
+            {Object.entries(conditionStats).map(([condName, count]) => (
+              <button 
+                key={condName}
+                type="button"
+                onClick={() => setSelectedCondition(condName)}
+                className={`screening-chip ${selectedCondition === condName ? 'active' : ''}`}
+              >
+                {condName} ({count})
+              </button>
+            ))}
+
+            <button 
+              type="button"
+              onClick={() => setSelectedCertainty(selectedCertainty === 'high' ? 'all' : 'high')}
+              className={`screening-chip ${selectedCertainty === 'high' ? 'active' : ''}`}
+              style={selectedCertainty === 'high' ? { borderColor: '#10B981', color: '#10B981', background: '#ECFDF5' } : {}}
+            >
+              <CheckCircle2 size={12} color={selectedCertainty === 'high' ? '#10B981' : '#64748B'} />
+              High Confidence (&ge;85%)
+            </button>
+          </div>
+
+          {/* Count and Clear filters bar */}
+          <div className="screening-count-bar">
+            <span>
+              Showing <strong>{filteredAndSortedScans.length}</strong> of <strong>{totalScans}</strong> medical screening records
+            </span>
+            {(searchTerm || selectedCondition !== 'all' || selectedCertainty !== 'all' || sortBy !== 'newest') && (
+              <button 
+                type="button" 
+                onClick={() => {
+                  setSearchTerm('');
+                  setSelectedCondition('all');
+                  setSelectedCertainty('all');
+                  setSortBy('newest');
+                }}
+                style={{ background: 'transparent', border: 'none', color: '#00A6A6', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer' }}
+              >
+                Reset Filters &times;
+              </button>
+            )}
+          </div>
+
+        </motion.div>
+
+        {/* 4. LOADING STATE */}
+        {loading && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 20px', background: '#FFFFFF', borderRadius: '20px', border: '1px solid #BFD4E5' }}>
+            <Activity className="spin-anim" size={42} color="#00A6A6" />
+            <p style={{ marginTop: '16px', color: '#17324D', fontWeight: 700, fontSize: '1rem' }}>
+              Retrieving diagnostic screening history...
+            </p>
+          </div>
+        )}
+
+        {/* 5. ERROR STATE */}
+        {!loading && error && (
+          <motion.div variants={item} className="card" style={{ padding: '36px', textAlign: 'center', background: '#FFFFFF', border: '1px solid #FECACA', borderRadius: '20px' }}>
+            <AlertTriangle size={42} color="#DC2626" style={{ margin: '0 auto 12px' }} />
+            <h3 style={{ color: '#17324D', fontWeight: 800, margin: '0 0 8px 0' }}>Could Not Load Screening History</h3>
+            <p style={{ color: '#B91C1C', maxWidth: '500px', margin: '0 auto 20px', fontSize: '0.92rem' }}>{error}</p>
+            <button 
+              onClick={fetchScreeningHistory} 
+              className="btn btn-outline" 
+              style={{ padding: '10px 22px', borderRadius: '12px', fontWeight: 700, borderColor: '#00A6A6', color: '#00A6A6' }}
+            >
+              Retry Connection
+            </button>
+          </motion.div>
+        )}
+
+        {/* 6. EMPTY STATE */}
+        {!loading && !error && scans.length === 0 && (
+          <motion.div 
+            variants={item} 
+            className="card text-center" 
+            style={{ 
+              padding: '70px 20px', 
+              background: '#FFFFFF', 
+              border: '1px dashed #BFD4E5', 
+              borderRadius: '24px', 
+              boxShadow: '0 4px 20px rgba(7, 26, 51, 0.04)' 
+            }}
+          >
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#F0FDFA', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: '#00A6A6', border: '1px solid #99F6E4' }}>
+              <FileStack size={32} />
+            </div>
+            <h3 style={{ color: '#17324D', fontWeight: 800, fontSize: '1.4rem', margin: '0 0 8px 0' }}>No Screening History Yet</h3>
+            <p style={{ color: '#52677A', fontSize: '0.98rem', maxWidth: '460px', margin: '0 auto 24px', lineHeight: 1.5 }}>
+              Upload an intraoral dental photo on your dashboard to perform an AI scan. Your results, confidence scores, and reports will automatically appear here.
+            </p>
             <Link 
               to="/dashboard/patient" 
               className="btn btn-primary"
@@ -138,307 +443,272 @@ const PatientScreeningHistory = () => {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
-                padding: '12px 20px',
-                borderRadius: '10px',
-                fontWeight: 700,
+                padding: '12px 28px',
+                borderRadius: '999px',
+                fontWeight: 800,
                 fontSize: '0.95rem',
                 textDecoration: 'none',
-                background: 'var(--primary, #1677FF)',
+                background: 'linear-gradient(135deg, #00A6A6 0%, #06C6E8 100%)',
                 color: '#FFFFFF',
-                boxShadow: '0 2px 10px rgba(22, 119, 255, 0.25)'
+                boxShadow: '0 4px 14px rgba(0, 166, 166, 0.25)'
               }}
             >
-              <Sparkles size={16} /> Start New AI Scan
+              Start Your First Scan
             </Link>
-          </div>
-        </div>
-      </motion.div>
+          </motion.div>
+        )}
 
-      {/* STATS OVERVIEW BAR */}
-      <motion.div 
-        variants={item}
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: '16px',
-          marginBottom: '20px'
-        }}
-      >
-        <div className="card" style={{ background: 'var(--card-bg, rgba(255, 255, 255, 0.72))', border: '1px solid var(--border-color, rgba(255, 255, 255, 0.65))', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '14px', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: '#E0EEFF', color: '#1677FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <History size={22} />
-          </div>
-          <div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#17324D', lineHeight: 1.2 }}>{totalScans}</div>
-            <div style={{ fontSize: '0.8rem', color: '#52677A', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Screenings</div>
-          </div>
-        </div>
+        {/* 7. NO SEARCH / FILTER MATCHES */}
+        {!loading && !error && scans.length > 0 && filteredAndSortedScans.length === 0 && (
+          <motion.div variants={item} className="card text-center" style={{ padding: '50px 20px', background: '#FFFFFF', border: '1px solid #BFD4E5', borderRadius: '20px' }}>
+            <FileStack size={40} color="#94A3B8" style={{ margin: '0 auto 12px' }} />
+            <h4 style={{ color: '#17324D', fontWeight: 800, margin: '0 0 6px 0', fontSize: '1.15rem' }}>No matching screening records</h4>
+            <p style={{ color: '#52677A', margin: '0 0 16px 0', fontSize: '0.92rem' }}>
+              No scans matched your search "{searchTerm}" or active condition filter.
+            </p>
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setSelectedCondition('all');
+                setSelectedCertainty('all');
+              }}
+              className="btn btn-outline btn-sm font-bold"
+              style={{ borderRadius: '10px', padding: '8px 18px', color: '#00A6A6', borderColor: '#00A6A6' }}
+            >
+              Clear Search & Filter
+            </button>
+          </motion.div>
+        )}
 
-        <div className="card" style={{ background: 'var(--card-bg, rgba(255, 255, 255, 0.72))', border: '1px solid var(--border-color, rgba(255, 255, 255, 0.65))', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '14px', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: '#DCFCE7', color: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <ShieldCheck size={22} />
-          </div>
-          <div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#17324D', lineHeight: 1.2 }}>{highConfidenceCount}</div>
-            <div style={{ fontSize: '0.8rem', color: '#52677A', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>High Confidence Scans</div>
-          </div>
-        </div>
+        {/* 8. SCREENING RECORDS DISPLAY: GRID VIEW */}
+        {!loading && !error && filteredAndSortedScans.length > 0 && viewMode === 'grid' && (
+          <motion.div variants={stagger} className="screening-records-grid">
+            {paginatedScans.map((scan) => {
+              const dateObj = new Date(scan.createdAt);
+              const confTheme = getConfidenceTheme(scan.confidence);
+              const reportId = scan._id || scan.scanId || scan.id;
 
-        <div className="card" style={{ background: 'var(--card-bg, rgba(255, 255, 255, 0.72))', border: '1px solid var(--border-color, rgba(255, 255, 255, 0.65))', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '14px', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: '#DDF7F3', color: '#00A6A6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Stethoscope size={22} />
-          </div>
-          <div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#17324D', lineHeight: 1.2 }}>Dentist Verification</div>
-            <Link to="/dashboard/patient/recommended-doctors" style={{ fontSize: '0.8rem', color: '#00A6A6', fontWeight: 700, textDecoration: 'none' }}>
-              Find a Specialist &rarr;
-            </Link>
-          </div>
-        </div>
-      </motion.div>
+              return (
+                <motion.div
+                  key={reportId}
+                  variants={item}
+                  className="screening-grid-card"
+                >
+                  {/* Card Header: Condition & Scan ID */}
+                  <div className="grid-card-header">
+                    <span className="grid-condition-badge">
+                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: confTheme.color, boxShadow: `0 0 0 2px ${confTheme.color}33` }}></span>
+                      {scan.condition ? scan.condition.replace(/_/g, ' ') : 'General Checkup'}
+                    </span>
+                    <span className="grid-scan-id-tag">
+                      {scan.scanId ? scan.scanId : `P-${reportId.toString().substring(0, 6)}`}
+                    </span>
+                  </div>
 
-      {/* SEARCH AND FILTER BAR */}
-      <motion.div variants={item} style={{ marginBottom: '20px' }}>
-        <div style={{ position: 'relative', width: '100%', maxWidth: '450px' }}>
-          <Search size={18} color="#718496" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
-          <input 
-            type="text"
-            placeholder="Search screening by condition or scan ID..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '12px 16px 12px ' + '44px',
-              borderRadius: '12px',
-              border: '1px solid var(--border-color, rgba(255, 255, 255, 0.65))',
-              background: 'var(--card-bg, rgba(255, 255, 255, 0.75))',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
-              color: '#17324D',
-              fontSize: '0.92rem',
-              fontWeight: 500,
-              outline: 'none',
-              boxShadow: '0 1px 4px rgba(0, 0, 0, 0.02)'
-            }}
-          />
-        </div>
-      </motion.div>
+                  {/* Thumbnail / Image Preview */}
+                  <div className="grid-card-thumbnail-wrap">
+                    {hasScanImage(scan.imagePath) ? (
+                      <ScanImage
+                        imagePath={scan.imagePath}
+                        alt={scan.condition ? `${scan.condition.replace(/_/g, ' ')} Intraoral Scan` : 'Intraoral Dental Scan'}
+                        className="grid-card-thumbnail"
+                        fallback={
+                          <div className="grid-card-thumb-placeholder">
+                            <History size={30} color="#00A6A6" />
+                            <span>Intraoral Dental Scan</span>
+                          </div>
+                        }
+                      />
+                    ) : (
+                      <div className="grid-card-thumb-placeholder">
+                        <History size={30} color="#00A6A6" />
+                        <span>Intraoral Dental Scan</span>
+                      </div>
+                    )}
+                  </div>
 
-      {/* LOADING STATE */}
-      {loading && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px' }}>
-          <Activity className="spin-anim" size={40} color="var(--secondary, #00A6A6)" />
-          <p style={{ marginTop: '16px', color: '#52677A', fontWeight: 600, fontSize: '0.95rem' }}>Loading your screening history...</p>
-        </div>
-      )}
+                  {/* Captured Date */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: '#64748B', fontWeight: 600 }}>
+                    <Calendar size={13} color="#00A6A6" />
+                    <span>{dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} at {dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
 
-      {/* ERROR STATE */}
-      {!loading && error && (
-        <motion.div variants={item} className="card" style={{ padding: '36px', textAlign: 'center', background: '#FFFFFF', border: '1px solid #FECACA', borderRadius: '16px' }}>
-          <AlertTriangle size={42} color="#DC2626" style={{ margin: '0 auto 12px' }} />
-          <h3 style={{ color: '#17324D', fontWeight: 800, margin: '0 0 8px 0' }}>Could Not Load Screening History</h3>
-          <p style={{ color: '#B91C1C', maxWidth: '500px', margin: '0 auto 20px', fontSize: '0.92rem' }}>{error}</p>
-          <button 
-            onClick={fetchScreeningHistory} 
-            className="btn btn-outline" 
-            style={{ padding: '10px 20px', borderRadius: '10px', fontWeight: 700, borderColor: '#1677FF', color: '#1677FF' }}
-          >
-            Retry Connection
-          </button>
-        </motion.div>
-      )}
-
-      {/* EMPTY STATE */}
-      {!loading && !error && scans.length === 0 && (
-        <motion.div 
-          variants={item} 
-          className="card text-center" 
-          style={{ 
-            padding: '70px 20px', 
-            background: '#FFFFFF', 
-            border: '1px dashed #BFD4E5', 
-            borderRadius: '20px', 
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.02)' 
-          }}
-        >
-          <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#F0F7FF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: '#1677FF' }}>
-            <FileStack size={32} />
-          </div>
-          <h3 style={{ color: '#17324D', fontWeight: 800, fontSize: '1.4rem', margin: '0 0 8px 0' }}>No Screening History Yet</h3>
-          <p style={{ color: '#52677A', fontSize: '1rem', maxWidth: '460px', margin: '0 auto 24px', lineHeight: 1.5 }}>
-            Upload an intraoral dental photo on your dashboard to perform an AI scan. Your results and reports will automatically appear here.
-          </p>
-          <Link 
-            to="/dashboard/patient" 
-            className="btn btn-primary"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '12px 28px',
-              borderRadius: '999px',
-              fontWeight: 700,
-              fontSize: '1rem',
-              textDecoration: 'none',
-              background: '#1677FF',
-              color: '#FFFFFF',
-              boxShadow: '0 4px 14px rgba(22, 119, 255, 0.25)'
-            }}
-          >
-            Start Your First Scan
-          </Link>
-        </motion.div>
-      )}
-
-      {/* NO SEARCH RESULTS */}
-      {!loading && !error && scans.length > 0 && filteredScans.length === 0 && (
-        <motion.div variants={item} className="card text-center" style={{ padding: '40px 20px', background: '#FFFFFF', border: '1px solid #BFD4E5', borderRadius: '16px' }}>
-          <p style={{ color: '#52677A', margin: 0, fontSize: '0.95rem', fontWeight: 600 }}>
-            No screening records found matching "{searchTerm}".
-          </p>
-        </motion.div>
-      )}
-
-      {/* SCREENING RECORDS LIST (Clean white cards, light-blue borders, navy text, teal accents) */}
-      {!loading && !error && filteredScans.length > 0 && (
-        <motion.div variants={stagger} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {filteredScans.map((scan) => {
-            const dateObj = new Date(scan.createdAt);
-            const dotColor = getStatusDotColor(scan.confidence);
-            const hasConfidence = scan.confidence !== null && scan.confidence !== undefined && !isNaN(Number(scan.confidence));
-            const reportId = scan._id || scan.scanId;
-
-            return (
-              <motion.div
-                key={reportId}
-                variants={item}
-                className="card screening-history-item"
-                style={{
-                  background: 'var(--card-bg, rgba(255, 255, 255, 0.72))',
-                  border: '1px solid var(--border-color, rgba(255, 255, 255, 0.65))',
-                  backdropFilter: 'blur(12px)',
-                  WebkitBackdropFilter: 'blur(12px)',
-                  borderRadius: '16px',
-                  padding: '20px 24px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: '16px',
-                  boxShadow: '0 2px 10px rgba(0, 0, 0, 0.02)',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                {/* Left side: Status dot, Condition name, Date, Scan ID */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: '1 1 320px' }}>
-                  <div 
-                    style={{ 
-                      width: '12px', 
-                      height: '12px', 
-                      borderRadius: '50%', 
-                      background: dotColor,
-                      flexShrink: 0,
-                      boxShadow: `0 0 0 3px ${dotColor}25`
-                    }} 
-                  />
-                  <div>
-                    <h4 style={{ 
-                      margin: '0 0 4px 0', 
-                      fontSize: '1.15rem', 
-                      fontWeight: 800, 
-                      color: '#17324D', 
-                      textTransform: 'capitalize',
-                      letterSpacing: '-0.2px'
-                    }}>
-                      {scan.condition ? scan.condition.replace(/_/g, ' ') : 'Unrecognized Condition'}
-                    </h4>
-                    
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', color: '#52677A', fontSize: '0.85rem', fontWeight: 500 }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Calendar size={14} color="#718496" />
-                        {dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} at {dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {/* AI Confidence Meter Box */}
+                  <div className="grid-confidence-box">
+                    <div className="grid-conf-row">
+                      <span className="grid-conf-label">AI Neural Score</span>
+                      <span className="grid-conf-score" style={{ color: confTheme.color }}>
+                        {Number(scan.confidence || 0).toFixed(1)}%
                       </span>
-                      {scan.scanId && (
-                        <span>
-                          Scan ID: <strong style={{ color: '#17324D' }}>{scan.scanId}</strong>
-                        </span>
-                      )}
+                    </div>
+
+                    <div className="grid-conf-meter">
+                      <div 
+                        className="grid-conf-meter-bar"
+                        style={{ 
+                          width: `${Math.min(100, Math.max(0, Number(scan.confidence) || 0))}%`,
+                          background: confTheme.color 
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>
+                      <span style={{ color: confTheme.color, fontWeight: 800 }}>{confTheme.label}</span>
+                      <span>Verified Model</span>
                     </div>
                   </div>
-                </div>
 
-                {/* Center / Right side: Confidence Badge & Actions */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-                  {hasConfidence && (
-                    <div 
-                      style={{ 
-                        background: '#F8FAFC', 
-                        padding: '6px 14px', 
-                        borderRadius: '999px', 
-                        fontSize: '0.85rem', 
-                        fontWeight: 800, 
-                        color: '#17324D', 
-                        border: '1px solid #BFD4E5',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                      }}
-                    >
-                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: dotColor }}></span>
-                      <span>{Number(scan.confidence).toFixed(1)}% Confidence</span>
+                  {/* Recommendation Snippet */}
+                  {scan.recommendation && (
+                    <div className="grid-rec-snippet">
+                      <span style={{ fontWeight: 700, color: '#00A6A6' }}>Clinical Note: </span>
+                      {scan.recommendation}
                     </div>
                   )}
 
-                  {/* Open Record / View Report and Precautions */}
-                  <button
-                    onClick={() => navigate(`/dashboard/patient/reports/${reportId}`)}
-                    className="btn btn-primary"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '10px 18px',
-                      borderRadius: '10px',
-                      fontWeight: 700,
-                      fontSize: '0.88rem',
-                      cursor: 'pointer',
-                      background: '#1677FF',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      boxShadow: '0 2px 8px rgba(22, 119, 255, 0.2)'
-                    }}
-                  >
-                    <span>View Report</span>
-                    <ArrowRight size={15} />
-                  </button>
+                  {/* Actions Row */}
+                  <div className="grid-actions-row">
+                    <Link
+                      to={`/dashboard/patient/reports/${reportId}`}
+                      className="screening-btn-primary"
+                    >
+                      <Eye size={15} />
+                      <span>View Report</span>
+                    </Link>
 
-                  {/* Optional Consult Doctor link */}
-                  <Link
-                    to={`/dashboard/patient/recommended-doctors?condition=${encodeURIComponent(scan.condition || '')}`}
-                    state={{ predictionResult: scan }}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '10px 14px',
-                      borderRadius: '10px',
-                      fontWeight: 700,
-                      fontSize: '0.85rem',
-                      textDecoration: 'none',
-                      background: '#FFFFFF',
-                      color: '#00A6A6',
-                      border: '1px solid #BFD4E5'
-                    }}
-                  >
-                    <Stethoscope size={15} />
-                    <span>Consult Dentist</span>
-                  </Link>
-                </div>
-              </motion.div>
-            );
-          })}
-        </motion.div>
-      )}
+                    <Link
+                      to={`/dashboard/patient/recommended-doctors?condition=${encodeURIComponent(scan.condition || '')}`}
+                      state={{ predictionResult: scan }}
+                      className="screening-btn-secondary"
+                    >
+                      <Stethoscope size={14} color="#00A6A6" />
+                      <span>Consult</span>
+                    </Link>
+                  </div>
+
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        )}
+
+        {/* 9. SCREENING RECORDS DISPLAY: LIST VIEW */}
+        {!loading && !error && filteredAndSortedScans.length > 0 && viewMode === 'list' && (
+          <motion.div variants={stagger} className="screening-records-list">
+            {paginatedScans.map((scan) => {
+              const dateObj = new Date(scan.createdAt);
+              const confTheme = getConfidenceTheme(scan.confidence);
+              const reportId = scan._id || scan.scanId || scan.id;
+
+              return (
+                <motion.div
+                  key={reportId}
+                  variants={item}
+                  className="screening-list-item"
+                >
+                  {/* Left: Thumbnail & Condition Details */}
+                  <div className="list-item-left">
+                    {hasScanImage(scan.imagePath) ? (
+                      <ScanImage 
+                        imagePath={scan.imagePath} 
+                        alt={scan.condition || 'Scan'} 
+                        className="list-thumb-mini"
+                        fallback={
+                          <div className="list-thumb-mini list-thumb-placeholder">
+                            <History size={20} color="#00A6A6" />
+                          </div>
+                        }
+                      />
+                    ) : (
+                      <div className="list-thumb-mini list-thumb-placeholder">
+                        <History size={20} color="#00A6A6" />
+                      </div>
+                    )}
+
+                    <div>
+                      <h4 className="list-condition-title">
+                        {scan.condition ? scan.condition.replace(/_/g, ' ') : 'Intraoral Scan'}
+                      </h4>
+                      <div className="list-meta-row">
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <Calendar size={12} color="#00A6A6" />
+                          {dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                        <span>•</span>
+                        <span>ID: <strong style={{ color: '#17324D' }}>{scan.scanId || `P-${reportId.toString().substring(0, 6)}`}</strong></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Middle: Confidence Meter */}
+                  <div className="list-item-mid">
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', marginBottom: '4px' }}>
+                        <span style={{ color: '#64748B', fontWeight: 600 }}>AI Score</span>
+                        <strong style={{ color: confTheme.color }}>{Number(scan.confidence || 0).toFixed(1)}%</strong>
+                      </div>
+                      <div style={{ width: '100%', height: '6px', background: '#E2E8F0', borderRadius: '999px', overflow: 'hidden' }}>
+                        <div style={{ width: `${Math.min(100, Math.max(0, Number(scan.confidence) || 0))}%`, height: '100%', background: confTheme.color, borderRadius: '999px' }}></div>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: confTheme.color, background: confTheme.bg, border: `1px solid ${confTheme.border}`, padding: '3px 9px', borderRadius: '999px', flexShrink: 0 }}>
+                      {confTheme.label}
+                    </span>
+                  </div>
+
+                  {/* Right: Action Buttons */}
+                  <div className="list-item-right">
+                    <Link
+                      to={`/dashboard/patient/reports/${reportId}`}
+                      className="screening-btn-primary"
+                      style={{ padding: '8px 16px', fontSize: '0.82rem' }}
+                    >
+                      <span>View Report</span>
+                      <ArrowRight size={14} />
+                    </Link>
+
+                    <Link
+                      to={`/dashboard/patient/recommended-doctors?condition=${encodeURIComponent(scan.condition || '')}`}
+                      state={{ predictionResult: scan }}
+                      className="screening-btn-secondary"
+                      style={{ padding: '8px 14px', fontSize: '0.82rem' }}
+                    >
+                      <Stethoscope size={14} color="#00A6A6" />
+                      <span>Consult</span>
+                    </Link>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        )}
+
+        {/* 10. PAGINATION BAR */}
+        {!loading && !error && filteredAndSortedScans.length > itemsPerPage && (
+          <div className="screening-pagination-bar">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="pagination-nav-btn"
+            >
+              <ChevronLeft size={16} /> Previous
+            </button>
+
+            <span className="pagination-info">
+              Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong>
+            </span>
+
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="pagination-nav-btn"
+            >
+              Next <ChevronRight size={16} />
+            </button>
+          </div>
+        )}
+
+      </div>
     </motion.div>
   );
 };

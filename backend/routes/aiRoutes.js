@@ -8,6 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const ScanHistory = require('../models/ScanHistory');
+const { verifyScan, getPendingScans } = require('../controllers/scanHistoryController');
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://127.0.0.1:5002';
 
@@ -54,6 +55,16 @@ router.get('/health', async (req, res) => {
   }
 });
 
+// @desc    Get all scans awaiting doctor review
+// @route   GET /api/ai/pending-reviews
+// @access  Private (approved doctor or admin only)
+router.get('/pending-reviews', protect, restrictTo('doctor', 'admin'), getPendingScans);
+
+// @desc    Verify or override AI scan diagnosis by a licensed doctor
+// @route   PUT /api/ai/verify/:id
+// @access  Private (approved doctor or admin only)
+router.put('/verify/:id', protect, restrictTo('doctor', 'admin'), verifyScan);
+
 // @desc    Forward image to Python AI service
 // @route   POST /api/ai/predict
 // @access  Protected
@@ -97,6 +108,16 @@ router.post('/predict', protect, restrictTo('patient'), handleUploadErrors, asyn
         confidence: prediction.confidence,
         recommendation: prediction.recommendation,
         scanId: `SCAN-${crypto.randomBytes(4).toString('hex').toUpperCase()}`,
+        classProbabilities: prediction.classProbabilities || null,
+        status: 'Pending',
+        auditTrail: [{
+          action: 'INITIAL_SCAN',
+          performedBy: req.user._id,
+          timestamp: new Date(),
+          previousDiagnosis: null,
+          newDiagnosis: prediction.condition,
+          notes: 'Initial scan submitted by patient'
+        }]
       });
     } catch (saveError) {
       // The SDS requires that a failed write is never reported as a saved scan.
@@ -114,8 +135,8 @@ router.post('/predict', protect, restrictTo('patient'), handleUploadErrors, asyn
       recommendation: savedScan.recommendation,
       imagePath: savedScan.imagePath,
       date: savedScan.createdAt,
-      // Passed through from the model for display only; not persisted on the scan record.
-      classProbabilities: prediction.classProbabilities,
+      status: savedScan.status,
+      classProbabilities: savedScan.classProbabilities || prediction.classProbabilities,
     });
 
   } catch (error) {

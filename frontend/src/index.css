@@ -18,6 +18,11 @@
   
   --border-color: rgba(7, 26, 51, 0.1);
   --border-glass: rgba(7, 26, 51, 0.05);
+  --border-subtle: rgba(7, 26, 51, 0.06);
+  --border-strong: rgba(7, 26, 51, 0.12);
+  --bg-glass-panel: rgba(255, 255, 255, 0.92);
+  --color-primary: #00a6a6;
+  --color-primary-dark: #0284c7;
   
   --success: #10b981;
   --warning: #f59e0b;
@@ -45,6 +50,25 @@
   /* Gradients */
   --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
   --gradient-secondary: linear-gradient(135deg, #06C6E8 0%, #3A86FF 100%);
+}
+
+[data-theme="dark"] {
+  --bg-main: #0a0f1d;
+  --bg-card: #131d31;
+  --bg-dark: #060913;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-inverse: #071A33;
+  --border-color: rgba(255, 255, 255, 0.1);
+  --border-glass: rgba(255, 255, 255, 0.06);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --bg-glass-panel: rgba(19, 28, 49, 0.88);
+  --color-primary: #00c2c2;
+  --color-primary-dark: #38bdf8;
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.4);
 }
 
 * {
@@ -244,3 +268,19 @@ button {
 .border-slate-200 { border-color: #e2e8f0 !important; }
 .border-slate-300 { border-color: #cbd5e1 !important; }
 .border-sky-200   { border-color: #bae6fd !important; }
+
+/* Mobile Viewport Global Standards */
+@media (max-width: 640px) {
+  :root {
+    --nav-height: 64px;
+  }
+  .container {
+    padding: 0 1rem;
+  }
+  .btn {
+    min-height: 44px; /* Touch Target minimum */
+  }
+  input, select, textarea {
+    font-size: 16px !important; /* Prevents auto-zoom on iOS */
+  }
+}

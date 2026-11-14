@@ -69,9 +69,16 @@ const initSocket = (server) => {
 
       try {
         const consultation = await Consultation.findById(String(consultationId)).select(
-          'patientId doctorId'
+          'patientId doctorId consultationType'
         );
         if (!consultation) return;
+
+        // Strict Access Control: In-person clinic appointments must never join chat rooms
+        const isChat = String(consultation.consultationType || '').toLowerCase().includes('chat');
+        if (!isChat) {
+          console.warn(`[Socket] Blocked room join: in-person consultation ${consultationId} does not permit online chat.`);
+          return;
+        }
 
         const isParticipant =
           String(consultation.patientId) === String(userId) ||

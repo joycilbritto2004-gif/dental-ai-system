@@ -2,10 +2,20 @@ const Consultation = require('../models/Consultation');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 const ScanHistory = require('../models/ScanHistory');
+const DoctorSlot = require('../models/DoctorSlot');
 const mongoose = require('mongoose');
 const sendEmail = require('../utils/emailService');
 const { sendSMS } = require('../utils/smsService');
 const { getIO } = require('../socket');
+const {
+  normalizeTime,
+  normalizeDate,
+  buildSlotKey,
+  isSlotOccupied,
+  acquireSlotLock,
+  releaseSlotLock,
+  getDoctorSlots
+} = require('../utils/slotManager');
 
 const sendNotificationEmail = async (options) => {
   try {
@@ -22,6 +32,8 @@ const sendNotificationEmail = async (options) => {
 const PLATFORM_FEE = 49;
 
 const createConsultation = async (req, res) => {
+  let acquiredSlot = null;
+  let createdConsultation = null;
   try {
     const { doctorId } = req.body;
 
@@ -66,15 +78,55 @@ const createConsultation = async (req, res) => {
     // patient set fee, totalAmount, paymentStatus, status, finalDiagnosis, treatmentPlan and
     // verificationStatus — i.e. book a consultation that was already "Completed" with a
     // diagnosis they wrote themselves.
-    const fee = Number(doctor.fee) || 0;
+    // Consultation pricing structure:
+    // 1. In-Person Clinic Appointment: ₹500 consultation fee + ₹49 platform fee = ₹549 total
+    // 2. Online Chat Appointment: ₹200 consultation fee + ₹49 platform fee = ₹249 total
+    const isChat = String(req.body.consultationType || '').toLowerCase().includes('chat');
+    const fee = isChat ? 200 : 500;
+    const consultationType = isChat ? 'Chat Consultation' : 'In-Person Clinic Visit';
+
+    // Normalized slot fields
+    const normDate = req.body.date ? normalizeDate(req.body.date) : undefined;
+    const normTime = req.body.time ? normalizeTime(req.body.time) : undefined;
+
+    // Doctor appointment slot conflict check & atomic acquisition
+    if (normDate && normTime) {
+      // 1. Pre-check slot occupancy
+      const occupiedCheck = await isSlotOccupied(doctor._id.toString(), normDate, normTime);
+      if (occupiedCheck.occupied) {
+        return res.status(409).json({
+          message: 'This appointment slot has already been booked. Please choose another time slot or date.'
+        });
+      }
+
+      // 2. Atomic slot lock reservation (15-minute expiry if unpaid, permanent if paid)
+      try {
+        acquiredSlot = await acquireSlotLock({
+          doctorId: doctor._id.toString(),
+          date: normDate,
+          time: normTime,
+          patientId,
+          consultationType,
+          isPaid: Boolean(req.body.transactionId),
+          reservationMinutes: 15
+        });
+      } catch (lockErr) {
+        if (lockErr.statusCode === 409 || lockErr.code === 11000) {
+          return res.status(409).json({
+            message: 'This appointment slot has already been booked. Please choose another time slot or date.'
+          });
+        }
+        throw lockErr;
+      }
+    }
 
     const consultation = new Consultation({
       // Patient-supplied booking details
       transactionId: String(req.body.transactionId || ''),
       message: req.body.message ? String(req.body.message) : '',
-      consultationType: req.body.consultationType ? String(req.body.consultationType) : undefined,
-      date: req.body.date ? String(req.body.date) : undefined,
-      time: req.body.time ? String(req.body.time) : undefined,
+      consultationType,
+      date: normDate,
+      time: normTime,
 
       // Identities and clinical findings, resolved server-side
       patientId,
@@ -82,6 +134,8 @@ const createConsultation = async (req, res) => {
       doctorId: doctor._id.toString(),
       doctorName: doctor.name,
       doctorSpecialization: doctor.specialization,
+      clinic: doctor.clinic || '',
+      location: doctor.location || '',
       scanId: validatedScanId,
       condition: req.body.condition,
       confidence: req.body.confidence,
@@ -101,8 +155,16 @@ const createConsultation = async (req, res) => {
       verificationStatus: 'Pending',
     });
 
-    const createdConsultation = await consultation.save();
-    
+    createdConsultation = await consultation.save();
+
+    // Link consultation ID with the acquired slot lock
+    if (acquiredSlot) {
+      await DoctorSlot.updateOne(
+        { _id: acquiredSlot._id },
+        { $set: { consultationId: createdConsultation._id } }
+      ).catch((linkErr) => console.error('Failed to link slot to consultation:', linkErr.message));
+    }
+
     // Notify Doctor via in-app
     try {
       if (createdConsultation.doctorId) {
@@ -118,7 +180,7 @@ const createConsultation = async (req, res) => {
     } catch (notifErr) {
       console.error("Failed to create notification:", notifErr);
     }
-    
+
     // Notify Patient via email
     sendNotificationEmail({
       email: req.user.email,
@@ -157,6 +219,12 @@ const createConsultation = async (req, res) => {
 
     res.status(201).json(createdConsultation);
   } catch (error) {
+    if (acquiredSlot && (!createdConsultation || !createdConsultation._id)) {
+      await DoctorSlot.deleteOne({ _id: acquiredSlot._id }).catch(() => { });
+    }
+    if (error.statusCode === 409) {
+      return res.status(409).json({ message: error.message });
+    }
     res.status(400).json({ message: error.message });
   }
 };
@@ -175,13 +243,13 @@ const getConsultations = async (req, res) => {
     } else if (req.user.role === 'patient') {
       filter.patientId = req.user._id.toString();
     }
-    
+
     // Allow admin to see all, or filter if query params exist (and admin is requesting)
     if (req.user.role === 'admin') {
-       if (req.query.doctorId) filter.doctorId = req.query.doctorId;
-       if (req.query.patientId) filter.patientId = req.query.patientId;
+      if (req.query.doctorId) filter.doctorId = req.query.doctorId;
+      if (req.query.patientId) filter.patientId = req.query.patientId;
     }
-    
+
     const consultations = await Consultation.find(filter).populate('scanId').sort({ createdAt: -1 });
     res.json(consultations);
   } catch (error) {
@@ -230,8 +298,8 @@ const getConsultationById = async (req, res) => {
         const twoHoursBefore = new Date(consultCreatedAt.getTime() - 2 * 60 * 60 * 1000);
 
         const candidateScans = await ScanHistory.find({
-          patientId: mongoose.Types.ObjectId.isValid(consultObj.patientId) 
-            ? new mongoose.Types.ObjectId(consultObj.patientId) 
+          patientId: mongoose.Types.ObjectId.isValid(consultObj.patientId)
+            ? new mongoose.Types.ObjectId(consultObj.patientId)
             : consultObj.patientId,
           createdAt: { $lte: consultCreatedAt, $gte: twoHoursBefore }
         }).sort({ createdAt: -1 });
@@ -317,6 +385,16 @@ const updateConsultation = async (req, res) => {
         return res.status(400).json({ message: `Invalid status '${req.body.status}'. Allowed: ${allowedStatuses.join(', ')}` });
       }
       consultation.status = req.body.status;
+      if (['Cancelled', 'Rejected'].includes(req.body.status)) {
+        if (consultation.doctorId && consultation.date && consultation.time) {
+          await releaseSlotLock({
+            doctorId: consultation.doctorId,
+            date: consultation.date,
+            time: consultation.time,
+            consultationId: consultation._id
+          });
+        }
+      }
     }
 
     if (req.body.finalDiagnosis !== undefined) consultation.finalDiagnosis = req.body.finalDiagnosis;
@@ -345,11 +423,11 @@ const acceptConsultation = async (req, res) => {
   try {
     const consultation = await Consultation.findById(req.params.id);
     if (!consultation) return res.status(404).json({ message: 'Consultation not found' });
-    
+
     if (consultation.doctorId !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized to accept this consultation' });
     }
-    
+
     // Idempotency: If already accepted, return existing record safely without duplicate work
     if (consultation.status === 'Accepted') {
       return res.json(consultation);
@@ -367,7 +445,7 @@ const acceptConsultation = async (req, res) => {
         return res.status(403).json({ message: 'Your account must be approved by an Admin before accepting consultations.' });
       }
     }
-    
+
     consultation.status = 'Accepted';
     await consultation.save();
 
@@ -398,7 +476,7 @@ const acceptConsultation = async (req, res) => {
     } catch (sockErr) {
       console.error('Socket emission error in acceptConsultation:', sockErr.message);
     }
-    
+
     // Notify Patient via in-app and email
     try {
       if (consultation.patientId) {
@@ -410,7 +488,7 @@ const acceptConsultation = async (req, res) => {
           type: 'update',
           consultationId: consultation._id
         });
-        
+
         const patientUser = await User.findById(consultation.patientId);
         if (patientUser) {
           sendNotificationEmail({
@@ -459,11 +537,11 @@ const rejectConsultation = async (req, res) => {
   try {
     const consultation = await Consultation.findById(req.params.id);
     if (!consultation) return res.status(404).json({ message: 'Consultation not found' });
-    
+
     if (consultation.doctorId !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized to reject this consultation' });
     }
-    
+
     if (consultation.status === 'Completed' || consultation.status === 'Cancelled') {
       return res.status(400).json({ message: `Cannot reject an already ${consultation.status.toLowerCase()} consultation` });
     }
@@ -476,7 +554,17 @@ const rejectConsultation = async (req, res) => {
       consultation.rejectionReason = finalReason;
     }
     await consultation.save();
-    
+
+    // Release doctor slot lock so this slot becomes immediately available for other bookings
+    if (consultation.doctorId && consultation.date && consultation.time) {
+      await releaseSlotLock({
+        doctorId: consultation.doctorId,
+        date: consultation.date,
+        time: consultation.time,
+        consultationId: consultation._id
+      });
+    }
+
     // Notify Patient via in-app and email
     try {
       if (consultation.patientId) {
@@ -488,7 +576,7 @@ const rejectConsultation = async (req, res) => {
           type: 'update',
           consultationId: consultation._id.toString()
         });
-        
+
         const patientUser = await User.findById(consultation.patientId);
         if (patientUser) {
           sendNotificationEmail({
@@ -527,11 +615,11 @@ const startConsultation = async (req, res) => {
   try {
     const consultation = await Consultation.findById(req.params.id);
     if (!consultation) return res.status(404).json({ message: 'Consultation not found' });
-    
+
     if (consultation.doctorId !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized to start this consultation' });
     }
-    
+
     consultation.status = 'In Consultation';
     await consultation.save();
     res.json(consultation);
@@ -553,7 +641,7 @@ const completeConsultation = async (req, res) => {
       consultation = await Consultation.findOne({ id: req.params.id });
     }
     if (!consultation) return res.status(404).json({ message: 'Consultation not found' });
-    
+
     // Authorization: Only the assigned doctor can complete this consultation
     if (String(consultation.doctorId) !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized to complete this consultation' });
@@ -601,13 +689,13 @@ const completeConsultation = async (req, res) => {
     if (followUpNote !== undefined) {
       consultation.followUpNote = String(followUpNote).trim();
     }
-    
+
     consultation.status = 'Completed';
     consultation.finalDiagnosis = resolvedDiagnosis;
     consultation.treatmentPlan = resolvedTreatment;
-    
+
     await consultation.save();
-    
+
     // Notify Patient via in-app and email
     try {
       if (consultation.patientId) {
@@ -619,7 +707,7 @@ const completeConsultation = async (req, res) => {
           type: 'update',
           consultationId: consultation._id.toString()
         });
-        
+
         const patientUser = await User.findById(consultation.patientId);
         if (patientUser) {
           sendNotificationEmail({
@@ -661,6 +749,105 @@ const completeConsultation = async (req, res) => {
   }
 };
 
+// @desc    Cancel consultation and release appointment slot
+// @route   PUT /api/consultations/:id/cancel
+// @access  Private (Patient who booked, assigned Doctor, or Admin)
+const cancelConsultation = async (req, res) => {
+  try {
+    const consultation = await Consultation.findById(req.params.id);
+    if (!consultation) return res.status(404).json({ message: 'Consultation not found' });
+
+    const isPatient = consultation.patientId === req.user._id.toString();
+    const isDoctor = consultation.doctorId === req.user._id.toString();
+    const isAdmin = req.user.role === 'admin';
+
+    if (!isPatient && !isDoctor && !isAdmin) {
+      return res.status(403).json({ message: 'Not authorized to cancel this consultation' });
+    }
+
+    if (consultation.status === 'Completed') {
+      return res.status(400).json({ message: 'Cannot cancel a completed consultation' });
+    }
+
+    consultation.status = 'Cancelled';
+    if (req.body.reason) {
+      consultation.rejectionReason = req.body.reason;
+    }
+    await consultation.save();
+
+    // Release doctor slot lock so this slot becomes immediately available again
+    if (consultation.doctorId && consultation.date && consultation.time) {
+      await releaseSlotLock({
+        doctorId: consultation.doctorId,
+        date: consultation.date,
+        time: consultation.time,
+        consultationId: consultation._id
+      });
+    }
+
+    res.json({ message: 'Consultation cancelled successfully and slot released', consultation });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+// @desc    Get available and booked slots for a doctor on a specific date
+// @route   GET /api/consultations/doctor/:doctorId/slots?date=YYYY-MM-DD
+// @access  Public / Protected
+const getDoctorAvailableSlots = async (req, res) => {
+  try {
+    const { doctorId } = req.params;
+    const { date } = req.query;
+
+    if (!doctorId) {
+      return res.status(400).json({ message: 'Doctor ID is required' });
+    }
+    if (!date) {
+      return res.status(400).json({ message: 'Date parameter (YYYY-MM-DD) is required' });
+    }
+
+    const slotsInfo = await getDoctorSlots({ doctorId, date });
+    res.json(slotsInfo);
+  } catch (error) {
+    console.error('Error fetching doctor slots:', error);
+    res.status(500).json({ message: error.message || 'Error fetching doctor slots' });
+  }
+};
+
+// @desc    Check single slot availability
+// @route   GET /api/consultations/check-slot?doctorId=...&date=...&time=...
+// @access  Public / Protected
+const checkSlotAvailability = async (req, res) => {
+  try {
+    const { doctorId, date, time } = req.query;
+    if (!doctorId || !date || !time) {
+      return res.status(400).json({ message: 'doctorId, date, and time are required' });
+    }
+
+    const check = await isSlotOccupied(doctorId, date, time);
+    if (check.occupied) {
+      return res.status(409).json({
+        available: false,
+        doctorId,
+        date: normalizeDate(date),
+        time: normalizeTime(time),
+        message: 'This appointment slot has already been booked. Please choose another time slot.'
+      });
+    }
+
+    res.json({
+      available: true,
+      doctorId,
+      date: normalizeDate(date),
+      time: normalizeTime(time),
+      message: 'Slot is available for booking'
+    });
+  } catch (error) {
+    console.error('Error checking slot availability:', error);
+    res.status(500).json({ message: error.message || 'Error checking slot' });
+  }
+};
+
 module.exports = {
   createConsultation,
   getConsultations,
@@ -669,5 +856,8 @@ module.exports = {
   acceptConsultation,
   rejectConsultation,
   startConsultation,
-  completeConsultation
+  completeConsultation,
+  cancelConsultation,
+  getDoctorAvailableSlots,
+  checkSlotAvailability
 };

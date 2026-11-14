@@ -250,4 +250,28 @@
   100% { transform: translateY(-100px) translateX(20px); }
 }
 
+@media (max-width: 640px) {
+  .auth-form-container {
+    padding: 1.5rem 1rem;
+  }
+  .auth-form-wrapper {
+    padding: 2rem 1.25rem;
+    border-radius: 18px;
+  }
+  .auth-header {
+    margin-bottom: 1.75rem;
+  }
+  .auth-header h2 {
+    font-size: 1.85rem;
+  }
+  .form-input {
+    font-size: 16px !important; /* Prevents auto-zoom on iOS */
+    padding: 0.85rem 1rem;
+  }
+  .auth-submit {
+    padding: 0.85rem;
+    font-size: 1rem;
+  }
+}
+
 

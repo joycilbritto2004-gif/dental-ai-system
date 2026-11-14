@@ -3,6 +3,71 @@ const Prescription = require('../models/Prescription');
 const Consultation = require('../models/Consultation');
 const ScanHistory = require('../models/ScanHistory');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
+const sendEmail = require('../utils/emailService');
+
+// Helper to escape user-provided text before inserting it into HTML emails
+const escapeHtml = (text = '') => {
+  return String(text).replace(/[&<>"']/g, (char) => {
+    const entities = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+    };
+    return entities[char];
+  });
+};
+
+// Helper to format doctor title ensuring "Dr." appears exactly once
+const formatDoctorTitle = (doctorName = 'Doctor') => {
+  const cleanName = String(doctorName || 'Doctor').trim();
+  if (!cleanName || cleanName.toLowerCase() === 'doctor') {
+    return 'Dr. Specialist';
+  }
+  // Remove any redundant "Dr." or "Dr" prefixes (case-insensitive)
+  const stripped = cleanName.replace(/^(\s*dr\.?\s*)+/i, '').trim();
+  return `Dr. ${stripped}`;
+};
+
+// Helper to format recipient greeting dynamically
+// Patient recipient: Hello [Patient Name]
+// Admin recipient: Hello Admin ([Name])
+const formatRecipientGreeting = (user, fallbackName = 'Patient') => {
+  const role = user?.role || 'patient';
+  const rawName = String(user?.name || fallbackName || 'Patient').trim();
+
+  if (role === 'admin') {
+    // If name is already in the format "Admin (Name)" or "Admin(Name)", extract Name
+    const adminBracketMatch = rawName.match(/^Admin\s*\(([^)]+)\)$/i);
+    if (adminBracketMatch) {
+      return `Admin (${adminBracketMatch[1].trim()})`;
+    }
+    // If name starts with "Admin ", e.g. "Admin Joycil", extract "Joycil"
+    const adminPrefixMatch = rawName.match(/^Admin\s+(.+)$/i);
+    if (adminPrefixMatch) {
+      return `Admin (${adminPrefixMatch[1].trim()})`;
+    }
+    // If name is just "Admin"
+    if (/^admin$/i.test(rawName)) {
+      return 'Admin';
+    }
+    // Standard admin greeting
+    return `Admin (${rawName})`;
+  }
+
+  // Patient recipient (default)
+  return rawName;
+};
+
+const sendNotificationEmail = async (options) => {
+  try {
+    await sendEmail(options);
+  } catch (error) {
+    console.error('Email notification failed for prescription:', error.message);
+  }
+};
 
 // @desc    Create or update a prescription for a consultation
 // @route   POST /api/prescriptions
@@ -10,11 +75,19 @@ const User = require('../models/User');
 const createOrUpdatePrescription = async (req, res) => {
   try {
     const { 
-      consultationId, 
       medications, 
       additionalInstructions, 
       generalAdvice 
     } = req.body;
+    let consultationId = req.body.consultationId;
+
+    let existingPrescription = null;
+    if (req.params && req.params.id && mongoose.Types.ObjectId.isValid(req.params.id)) {
+      existingPrescription = await Prescription.findById(req.params.id);
+      if (existingPrescription && !consultationId) {
+        consultationId = existingPrescription.consultationId;
+      }
+    }
 
     if (!consultationId) {
       return res.status(400).json({ message: 'Consultation ID is required' });
@@ -68,7 +141,8 @@ const createOrUpdatePrescription = async (req, res) => {
     const doctorUser = await User.findById(req.user._id);
 
     // Look for existing prescription for this consultation
-    let prescription = await Prescription.findOne({ consultationId: consultation._id });
+    let prescription = existingPrescription || await Prescription.findOne({ consultationId: consultation._id });
+    const isUpdate = Boolean(prescription);
 
     if (prescription) {
       // Ensure only authoring doctor can modify
@@ -127,6 +201,81 @@ const createOrUpdatePrescription = async (req, res) => {
       } catch (scanErr) {
         console.warn('Could not link prescription to scanHistory:', scanErr.message);
       }
+    }
+
+    // Send email notification to the patient (Non-blocking: Requirement 6)
+    try {
+      if (consultation.patientId) {
+        const patientUser = await User.findById(consultation.patientId).select('name email role');
+        if (patientUser && patientUser.email) {
+          const recipientGreeting = formatRecipientGreeting(patientUser, consultation.patientName);
+          const rawDoctorName = doctorUser?.name || consultation.doctorName || req.user.name || 'Doctor';
+          const doctorDisplayName = formatDoctorTitle(rawDoctorName);
+          const consultationRef = consultation.id || (consultation._id ? consultation._id.toString().slice(-6).toUpperCase() : '');
+          const actionStatus = isUpdate ? 'Updated' : 'Issued';
+          const safeGreeting = escapeHtml(recipientGreeting);
+          const safeDoctorDisplayName = escapeHtml(doctorDisplayName);
+          const safeRef = escapeHtml(consultationRef);
+
+          const emailSubject = isUpdate 
+            ? `Prescription Updated by ${safeDoctorDisplayName} - DentaAI`
+            : `New Prescription Issued by ${safeDoctorDisplayName} - DentaAI`;
+
+          const plainMessage = `Hello ${recipientGreeting},\n\n${doctorDisplayName} has ${isUpdate ? 'updated' : 'issued'} your digital dental prescription for your consultation${consultationRef ? ` (Ref: ${consultationRef})` : ''}.\n\nStatus: Prescription ${actionStatus}\n\nTo view your full prescription, instructions, and dentist notes, please log in securely to your DentaAI Patient Portal:\nhttp://127.0.0.1:5173/dashboard/patient\n\nNote: For your privacy and security, specific medication names and dosages are not displayed in this email.\n\nRegards,\nDentaAI Team`;
+
+          const htmlBody = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 24px; color: #17324D; border: 1px solid #BFD4E5; border-radius: 16px;">
+              <h2 style="color: #00A6A6; margin-top: 0;">Prescription ${escapeHtml(actionStatus)}</h2>
+              <p>Hello ${safeGreeting},</p>
+              <p><strong>${safeDoctorDisplayName}</strong> has ${isUpdate ? 'updated' : 'issued'} your digital prescription${safeRef ? ` for consultation <strong>#${safeRef}</strong>` : ''}.</p>
+              <div style="background: #F0F7FF; border-left: 4px solid #1677FF; padding: 16px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0 0 6px 0;"><strong>Status:</strong> Prescription ${escapeHtml(actionStatus)}</p>
+                <p style="margin: 0 0 6px 0;"><strong>Doctor:</strong> ${safeDoctorDisplayName}</p>
+                ${safeRef ? `<p style="margin: 0;"><strong>Consultation Ref:</strong> #${safeRef}</p>` : ''}
+              </div>
+              <div style="background: #FFFBEB; border-left: 4px solid #F59E0B; padding: 14px; border-radius: 8px; margin: 16px 0; font-size: 0.9rem; color: #92400E;">
+                <strong>🔒 Privacy & Safety Notice:</strong> For patient privacy, specific medication names and dosages are never displayed in emails. Please log in to DentaAI to view your complete clinical prescription.
+              </div>
+              <p style="margin: 24px 0;">
+                <a href="http://127.0.0.1:5173/dashboard/patient" style="display: inline-block; background: #00A6A6; color: #FFFFFF; font-weight: bold; text-decoration: none; padding: 12px 24px; border-radius: 8px;">
+                  Log in to View Prescription &rarr;
+                </a>
+              </p>
+              <p style="font-size: 0.85rem; color: #52677A; margin-bottom: 0;">Regards,<br /><strong>DentaAI Team</strong></p>
+            </div>
+          `;
+
+          // Deduplication key: prevents duplicate email dispatches
+          const deduplicationKey = isUpdate
+            ? `rx_update_${prescription._id}_${prescription.updatedAt ? new Date(prescription.updatedAt).getTime() : Date.now()}_email`
+            : `rx_create_${prescription._id}_email`;
+
+          sendNotificationEmail({
+            email: patientUser.email,
+            subject: emailSubject,
+            message: plainMessage,
+            html: htmlBody,
+            deduplicationKey,
+            event: isUpdate ? 'prescription_updated' : 'prescription_issued'
+          });
+
+          // Also create an in-app notification for the patient dashboard
+          try {
+            await Notification.create({
+              recipientId: String(consultation.patientId),
+              recipientRole: 'patient',
+              title: isUpdate ? 'Prescription Updated' : 'New Prescription Issued',
+              message: `${doctorDisplayName} has ${isUpdate ? 'updated your' : 'issued a new'} digital prescription.`,
+              type: 'prescription',
+              consultationId: String(consultation._id)
+            });
+          } catch (notifErr) {
+            // Non-blocking
+          }
+        }
+      }
+    } catch (emailErr) {
+      console.error('Failed to dispatch prescription email notification:', emailErr.message);
     }
 
     res.status(201).json(prescription);
@@ -299,6 +448,8 @@ module.exports = {
   getPrescriptionsByPatient,
   getLatestPatientPrescription,
   getPrescriptionByScanId,
-  getPrescriptionById
+  getPrescriptionById,
+  formatDoctorTitle,
+  formatRecipientGreeting
 };
 

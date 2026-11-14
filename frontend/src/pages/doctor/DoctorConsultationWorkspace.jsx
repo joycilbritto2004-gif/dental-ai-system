@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UserCircle, BrainCircuit, Scan, CheckCircle2, Send, ChevronLeft, ShieldCheck, Zap, AlertCircle, MessageSquare, Clock, XCircle, X, Lock, Pill, Plus, Trash2, Printer } from 'lucide-react';
+import { 
+  UserCircle, BrainCircuit, Scan, CheckCircle2, ChevronLeft, 
+  ShieldCheck, Zap, AlertCircle, MessageSquare, Clock, XCircle, 
+  X, Pill, Plus, Trash2, Calendar, Stethoscope, Check, Hash, Activity, Building2 
+} from 'lucide-react';
 import { getCareSuggestions } from '../../utils/careSuggestions';
 import { getSocket, joinConsultationRoom, leaveConsultationRoom } from '../../utils/socket';
 import '../Dashboard.css';
@@ -261,26 +265,38 @@ const DoctorConsultationWorkspace = () => {
     }
   };
 
-  const stagger = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.1 } } };
-  const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
+  const getInitials = (name) => {
+    if (!name) return 'PT';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+
+  const stagger = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08 } } };
+  const item = { hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0 } };
 
   if (isLoading) {
     return (
-      <div className="dashboard-view flex-align-center justify-center" style={{ minHeight: '60vh' }}>
-        <div className="spin-anim" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+      <div className="screening-history-wrapper" style={{ maxWidth: '1400px', margin: '0 auto', padding: '60px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="spin-anim" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '16px' }}>
           <BrainCircuit size={48} color="#00A6A6" />
         </div>
+        <p style={{ color: '#52677A', fontWeight: 600 }}>Loading diagnostic workspace...</p>
       </div>
     );
   }
 
   if (!consultation) {
     return (
-      <div className="dashboard-view animate-fade-in flex-align-center justify-center" style={{ minHeight: '60vh', flexDirection: 'column' }}>
-        <AlertCircle size={48} className="text-warning mb-4" />
-        <h2 className="text-slate-900 font-bold mb-2" style={{ color: '#0f172a' }}>Record Not Found</h2>
-        <p className="text-slate-600 mb-4" style={{ color: '#475569' }}>The consultation record you are trying to access does not exist or has been removed.</p>
-        <Link to="/dashboard/doctor/consultations" className="btn btn-primary">Return to Dashboard</Link>
+      <div className="screening-history-wrapper" style={{ maxWidth: '800px', margin: '60px auto', padding: '0 16px', textAlign: 'center' }}>
+        <div className="workspace-card" style={{ padding: '48px 32px' }}>
+          <AlertCircle size={52} color="#D97706" style={{ margin: '0 auto 16px' }} />
+          <h2 style={{ color: '#17324D', fontWeight: 800, marginBottom: '8px' }}>Consultation Case Not Found</h2>
+          <p style={{ color: '#52677A', marginBottom: '24px' }}>The consultation record you are trying to access does not exist or has been removed.</p>
+          <Link to="/dashboard/doctor/consultations" className="btn btn-primary" style={{ padding: '10px 24px', borderRadius: '10px', fontWeight: 700 }}>
+            Return to Consultations Queue
+          </Link>
+        </div>
       </div>
     );
   }
@@ -294,314 +310,761 @@ const DoctorConsultationWorkspace = () => {
     "Request an intraoral scan or updated dental imaging from the patient."
   ];
 
+  const consStatus = consultation.status || 'Pending';
+  const isPending = consStatus === 'Pending' || consStatus === 'Booked';
+
+  const rawSymptoms = consultation?.message
+    ? consultation.message.split(',').map(s => s.trim()).filter(s => s.length > 0 && s.length < 40)
+    : [];
+  const symptomPills = rawSymptoms.length > 1 ? rawSymptoms : [];
+
   return (
-    <motion.div className="dashboard-view" initial="hidden" animate="show" variants={stagger}>
-      <motion.div variants={item} className="dashboard-header mb-6 flex-between flex-align-start bg-white border-slate-200" style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '16px', padding: '24px 32px' }}>
-        <div>
-          <div className="flex-align-center gap-2 mb-2">
-            <Link to="/dashboard/doctor/consultations" className="text-slate-600 hover:text-primary flex-align-center gap-1 transition-colors font-semibold" style={{ color: '#475569', fontWeight: 600 }}>
-              <ChevronLeft size={16} /> Dashboard
-            </Link>
-          </div>
-          <h2 className="text-slate-900 font-extrabold" style={{ color: '#0f172a', margin: '0 0 6px 0' }}>Diagnostic Workspace</h2>
-          <p className="text-slate-700 font-medium" style={{ color: '#334155', margin: 0 }}>Review AI imaging, verify diagnosis, and prescribe treatments.</p>
-        </div>
-
-        {/* Dynamic Consultation Chat Button */}
-        {consultation.status === 'Pending' || consultation.status === 'Booked' ? (
-          <Link 
-            to={`/dashboard/doctor/consultation/${consultation.id || consultation._id}/messages`} 
-            state={{ consultationId: consultation.id || consultation._id }} 
-            className="btn btn-outline flex-align-center gap-2 border-slate-300 text-slate-900 bg-white" 
-            style={{ background: '#ffffff', borderColor: '#cbd5e1', color: '#0f172a', fontWeight: 600 }}
-          >
-            <MessageSquare size={18} color="#1677FF" /> Open Chat (Pending)
-          </Link>
-        ) : consultation.status === 'Completed' || consultation.status === 'Verified' ? (
-          <Link to={`/dashboard/doctor/consultation/${consultation.id || consultation._id}/messages`} state={{ consultationId: consultation.id || consultation._id }} className="btn btn-outline flex-align-center gap-2 border-slate-300 text-slate-900 bg-white" style={{ background: '#ffffff', borderColor: '#cbd5e1', color: '#0f172a', fontWeight: 600 }}>
-            <MessageSquare size={18} color="#1677FF" /> View Chat History
-          </Link>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Link to={`/dashboard/doctor/consultation/${consultation.id || consultation._id}/messages`} state={{ consultationId: consultation.id || consultation._id }} className="btn btn-outline flex-align-center gap-2 border-slate-300 text-slate-900 bg-white" style={{ background: '#ffffff', borderColor: '#cbd5e1', color: '#0f172a', fontWeight: 600 }}>
-              <MessageSquare size={18} color="#1677FF" /> Chat with Patient
-            </Link>
-            <button
-              onClick={() => {
-                if (!finalDiagnosis || !treatmentPlan) {
-                  alert("Please enter both a final diagnosis and a treatment plan before completing.");
-                  return;
-                }
-                setShowCompleteModal(true);
-              }}
-              className="btn btn-success flex-align-center gap-1 font-bold"
-              style={{ padding: '10px 18px', borderRadius: '10px', boxShadow: '0 2px 8px rgba(22, 163, 74, 0.2)' }}
-            >
-              <CheckCircle2 size={16} /> Complete Consultation
-            </button>
-          </div>
-        )}
-      </motion.div>
-
-      {/* Pending Approval Alert Banner */}
-      {(consultation.status === 'Pending' || consultation.status === 'Booked') && (
-        <motion.div variants={item} className="card mb-6" style={{ padding: '1.25rem 1.75rem', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <Clock size={28} style={{ color: '#d97706', flexShrink: 0 }} />
+    <div className="screening-history-wrapper" style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 16px 48px' }}>
+      <motion.div initial="hidden" animate="show" variants={stagger}>
+        
+        {/* EXECUTIVE HEADER CARD */}
+        <motion.div variants={item} className="screening-header-card" style={{ marginBottom: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
             <div>
-              <h4 className="font-bold text-slate-900" style={{ fontSize: '1.1rem', color: '#92400e', margin: '0 0 2px 0' }}>
-                Consultation Request Pending Your Approval
-              </h4>
-              <p className="text-sm font-semibold" style={{ color: '#b45309', margin: 0 }}>
-                Accept this booking to confirm the patient appointment and unlock real-time direct messaging.
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(0, 166, 166, 0.08)', color: '#00A6A6', padding: '4px 10px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: '8px' }}>
+                <BrainCircuit size={13} /> Clinical Diagnostic Workspace
+              </div>
+              <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#17324D', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
+                Diagnostic &amp; Treatment Workspace
+              </h1>
+              <p style={{ color: '#52677A', margin: 0, fontSize: '0.92rem', fontWeight: 500 }}>
+                Review intraoral radiograph, compare neural net differential analysis with clinical findings, and issue prescriptions.
               </p>
             </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <button
-              onClick={handleAcceptConsultation}
-              disabled={isActionLoading}
-              className="btn btn-success font-bold flex-align-center gap-1"
-              style={{ padding: '8px 18px', borderRadius: '10px' }}
-            >
-              <CheckCircle2 size={16} /> Accept Consultation
-            </button>
-            <button
-              onClick={() => setShowRejectModal(true)}
-              disabled={isActionLoading}
-              className="btn btn-outline font-semibold flex-align-center gap-1"
-              style={{ padding: '8px 16px', borderRadius: '10px', color: '#dc2626', borderColor: '#fca5a5' }}
-            >
-              <XCircle size={16} /> Reject Request
-            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <Link
+                to="/dashboard/doctor/consultations"
+                className="btn btn-outline"
+                style={{ background: '#FFFFFF', borderColor: '#BFD4E5', color: '#17324D', fontWeight: 700, fontSize: '0.86rem', padding: '9px 16px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <ChevronLeft size={16} /> Consultations Queue
+              </Link>
+
+              {/* Chat action button: Only for Online Chat consultations */}
+              {String(consultation.consultationType || '').toLowerCase().includes('chat') ? (
+                <Link
+                  to={`/dashboard/doctor/consultation/${consultation.id || consultation._id}/messages`}
+                  state={{ consultationId: consultation.id || consultation._id }}
+                  className="btn btn-outline"
+                  style={{ background: '#FFFFFF', borderColor: '#1677FF', color: '#1677FF', fontWeight: 700, fontSize: '0.86rem', padding: '9px 16px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <MessageSquare size={16} /> {isPending ? 'Open Chat (Pending)' : isCompleted ? 'View Chat History' : 'Chat with Patient'}
+                </Link>
+              ) : (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#F0FDFA', color: '#0F766E', border: '1px solid #CCFBF1', padding: '8px 14px', borderRadius: '10px', fontSize: '0.82rem', fontWeight: 700 }}>
+                  <Building2 size={15} color="#00A6A6" /> In-Person Physical Clinic Case
+                </div>
+              )}
+
+              {!isCompleted && !isPending && (
+                <button
+                  onClick={() => {
+                    if (!finalDiagnosis || !treatmentPlan) {
+                      alert("Please enter both a final diagnosis and a treatment plan before completing.");
+                      return;
+                    }
+                    setShowCompleteModal(true);
+                  }}
+                  style={{
+                    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: '10px',
+                    padding: '9px 18px',
+                    fontWeight: 800,
+                    fontSize: '0.86rem',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.25)'
+                  }}
+                >
+                  <CheckCircle2 size={16} /> Complete Consultation
+                </button>
+              )}
+            </div>
           </div>
         </motion.div>
-      )}
 
-      {isCompleted && (
-        <motion.div variants={item} className="card mb-6 flex-align-center gap-3" style={{ padding: '1rem 1.5rem', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '14px' }}>
-          <CheckCircle2 size={28} className="text-success" style={{ color: '#16a34a' }} />
-          <div className="flex-1">
-            <h4 className="font-bold text-slate-900" style={{ fontSize: '1.1rem', color: '#15803d' }}>Clinical Assessment Completed</h4>
-            <p className="text-sm font-semibold" style={{ color: '#166534', margin: 0 }}>The final diagnostic report and prescription have been securely transmitted to the patient.</p>
-          </div>
-        </motion.div>
-      )}
+        {/* PENDING APPROVAL ALERT BANNER */}
+        {isPending && (
+          <motion.div variants={item} style={{
+            background: '#FFFBEB',
+            border: '1px solid #FDE68A',
+            borderLeft: '5px solid #F59E0B',
+            borderRadius: '16px',
+            padding: '18px 24px',
+            marginBottom: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '16px',
+            boxShadow: '0 4px 16px rgba(245, 158, 11, 0.08)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'rgba(245, 158, 11, 0.15)', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Clock size={24} />
+              </div>
+              <div>
+                <h4 style={{ margin: '0 0 2px 0', fontSize: '1.05rem', fontWeight: 800, color: '#92400E' }}>
+                  Consultation Request Pending Verification
+                </h4>
+                <p style={{ margin: 0, fontSize: '0.86rem', color: '#B45309', fontWeight: 500 }}>
+                  Accept this booking to confirm the patient appointment and unlock real-time direct consultation messaging.
+                </p>
+              </div>
+            </div>
 
-      <div className="dashboard-grid">
-        {/* LEFT SIDE: Patient Image & Info */}
-        <div className="dashboard-left-col">
-          <motion.div variants={item} className="patient-meta-box card bg-white border-slate-200 mb-6" style={{ background: '#ffffff', padding: '24px', borderRadius: '16px', border: '1px solid #cbd5e1', boxShadow: '0 4px 20px rgba(15, 23, 42, 0.05)', marginBottom: '24px' }}>
-            <div className="flex-between">
-              <div className="patient-id-group flex-align-center gap-4">
-                <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'linear-gradient(135deg, #1677FF, #00A6A6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0 }}>
-                  <UserCircle size={34} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button
+                onClick={handleAcceptConsultation}
+                disabled={isActionLoading}
+                style={{
+                  background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '10px',
+                  padding: '9px 18px',
+                  fontWeight: 800,
+                  fontSize: '0.86rem',
+                  cursor: isActionLoading ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.25)'
+                }}
+              >
+                <CheckCircle2 size={16} /> Accept Consultation
+              </button>
+              <button
+                onClick={() => setShowRejectModal(true)}
+                disabled={isActionLoading}
+                style={{
+                  background: '#FFFFFF',
+                  color: '#DC2626',
+                  border: '1px solid #FCA5A5',
+                  borderRadius: '10px',
+                  padding: '9px 16px',
+                  fontWeight: 700,
+                  fontSize: '0.86rem',
+                  cursor: isActionLoading ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <XCircle size={16} /> Decline Request
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* COMPLETED BANNER */}
+        {isCompleted && (
+          <motion.div variants={item} style={{
+            background: '#F0FDF4',
+            border: '1px solid #BBF7D0',
+            borderLeft: '5px solid #10B981',
+            borderRadius: '16px',
+            padding: '16px 22px',
+            marginBottom: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '14px',
+            boxShadow: '0 4px 16px rgba(16, 185, 129, 0.06)'
+          }}>
+            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <CheckCircle2 size={24} />
+            </div>
+            <div>
+              <h4 style={{ margin: '0 0 2px 0', fontSize: '1.02rem', fontWeight: 800, color: '#15803D' }}>
+                Clinical Assessment Completed &amp; Dispatched
+              </h4>
+              <p style={{ margin: 0, fontSize: '0.86rem', color: '#166534', fontWeight: 500 }}>
+                The final diagnostic report, recommendations, and prescription have been securely transmitted to the patient.
+              </p>
+            </div>
+          </motion.div>
+        )}
+
+        {/* SECTION 1: TOP PATIENT OVERVIEW & HIGH-RES SCAN */}
+        <div className="doctor-workspace-top-grid">
+
+          {/* Left: Scan Viewport Card (420px) */}
+          <motion.div variants={item} className="workspace-viewer-card" style={{ marginBottom: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '30px', height: '30px', borderRadius: '8px', background: 'rgba(0, 166, 166, 0.1)', color: '#00A6A6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Scan size={16} />
                 </div>
                 <div>
-                  <h4 className="font-bold text-slate-900" style={{ fontSize: '1.25rem', color: '#0f172a', margin: '0 0 4px 0' }}>{consultation.patientName || 'Unknown Patient'}</h4>
-                  <p className="text-sm font-semibold text-slate-600" style={{ color: '#475569', margin: 0 }}>Internal UID: P-{consultation.id ? consultation.id.toString().substring(0,6) : '98214X'}</p>
+                  <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#17324D' }}>
+                    Intraoral Radiograph Viewport
+                  </h4>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-sm font-bold text-slate-800 bg-slate-100 border-slate-300" style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#1e293b', padding: '6px 14px', borderRadius: '8px', display: 'inline-block', margin: 0 }}>
-                  {consultation.date} @ {consultation.time}
-                </p>
-                <p className="text-sm font-semibold text-slate-600 mt-2 flex-align-center gap-1 justify-end" style={{ color: '#475569', margin: '6px 0 0 0' }}>
-                  <ShieldCheck size={14} color="#1677FF" /> Secure Channel
-                </p>
-              </div>
-            </div>
-          </motion.div>
 
-          <motion.div variants={item} className="xray-preview-large mb-6" style={{ background: '#0F172A', borderRadius: '16px', overflow: 'hidden', border: '1px solid #cbd5e1', position: 'relative', boxShadow: '0 4px 20px rgba(15, 23, 42, 0.05)' }}>
-            {hasScanImage(scanRecord?.imagePath) ? (
-              <ScanImage
-                imagePath={scanRecord.imagePath}
-                alt="Patient Dental Scan"
-                style={{ width: '100%', maxHeight: '420px', objectFit: 'contain', background: '#0F172A', display: 'block' }}
-              />
-            ) : consultation.imageReference ? (
-              <img 
-                src={consultation.imageReference} 
-                alt="Patient Dental Scan" 
-                style={{ width: '100%', maxHeight: '420px', objectFit: 'contain', background: '#0F172A', display: 'block' }} 
-              />
-            ) : (
-              <div className="xray-placeholder-scan" style={{ padding: '3.5rem 2rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '300px', background: '#0F172A' }}>
-                <Scan size={52} color="#94A3B8" className="mb-3" />
-                <span style={{ color: '#F1F5F9', fontWeight: 800, fontSize: '1.05rem', letterSpacing: '0.5px' }}>
-                  Scan unavailable — select or link the correct scan
-                </span>
-                <p style={{ color: '#94A3B8', fontSize: '0.85rem', margin: '8px 0 0 0', maxWidth: '340px', lineHeight: 1.5 }}>
-                  No verified intraoral scan could be reliably associated with this consultation case.
-                </p>
-              </div>
-            )}
-          </motion.div>
-
-          <motion.div variants={item} className="card patient-complaint-card bg-white border-slate-200 mb-6" style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '16px', padding: '22px', boxShadow: '0 4px 20px rgba(15, 23, 42, 0.05)' }}>
-            <h4 className="font-bold text-slate-900 mb-3 flex-align-center gap-2" style={{ color: '#0f172a', fontSize: '1.1rem' }}>
-              <Zap size={18} color="#1677FF" /> Patient's Primary Complaint
-            </h4>
-            <div className="bg-slate-50 border-slate-200 text-slate-700" style={{ fontStyle: 'italic', lineHeight: 1.6, padding: '14px 16px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#334155', fontSize: '0.95rem' }}>
-              "{consultation.message || 'No additional concerns provided by the patient.'}"
-            </div>
-          </motion.div>
-        </div>
-
-        {/* RIGHT SIDE: AI & Verification */}
-        <div className="dashboard-right-col">
-          <motion.div 
-            variants={item} 
-            className="card ai-result-box bg-white border-slate-200 mb-6" 
-            style={{ 
-              background: '#ffffff', 
-              color: '#0f172a', 
-              borderRadius: '16px', 
-              border: '1px solid #cbd5e1', 
-              position: 'relative', 
-              boxShadow: '0 8px 30px rgba(15, 23, 42, 0.06)',
-              padding: '24px'
-            }}
-          >
-            <div className="result-header mb-4 flex-between flex-align-center border-b border-slate-200" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
-              <div className="flex-align-center gap-2" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <BrainCircuit size={24} color="#1677FF" />
-                <span className="font-extrabold text-slate-900" style={{ color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.8px', fontSize: '1.1rem', fontWeight: 800 }}>
-                  Neural Net Diagnosis
-                </span>
-              </div>
               {consultation.isSafelyResolvedScan && (
-                <span className="bg-sky-50 text-sky-800 border-sky-200 font-bold" style={{ fontSize: '11px', background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', padding: '4px 10px', borderRadius: '6px', fontWeight: 700, letterSpacing: '0.5px' }}>
-                  Associated Clinical Scan
+                <span style={{ fontSize: '0.72rem', background: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', padding: '3px 8px', borderRadius: '6px', fontWeight: 700 }}>
+                  Verified Clinical Scan
                 </span>
               )}
             </div>
-            
-            <div className="pathology-section bg-slate-50 border-slate-200" style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
-              <span className="text-slate-600 font-bold section-label" style={{ fontSize: '11px', color: '#475569', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', fontWeight: 700 }}>
-                Identified Pathology
-              </span>
-              <div className="text-slate-900 font-extrabold section-value disease-name" style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', marginTop: '6px', textTransform: 'capitalize' }}>
-                {aiCondition ? aiCondition.replace(/_/g, ' ') : 'Scan unavailable'}
+
+            {/* Viewport Box */}
+            <div className="workspace-scan-viewport" style={{ maxHeight: '280px', minHeight: '260px' }}>
+              {hasScanImage(scanRecord?.imagePath) ? (
+                <ScanImage
+                  imagePath={scanRecord.imagePath}
+                  alt="Patient Dental Scan"
+                  style={{ width: '100%', maxHeight: '280px', objectFit: 'contain', display: 'block' }}
+                />
+              ) : consultation.imageReference ? (
+                <img 
+                  src={consultation.imageReference} 
+                  alt="Patient Dental Scan" 
+                  style={{ width: '100%', maxHeight: '280px', objectFit: 'contain', display: 'block' }} 
+                />
+              ) : (
+                <div style={{ padding: '2.5rem 1.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <Scan size={40} color="#64748B" style={{ marginBottom: '10px' }} />
+                  <span style={{ color: '#F1F5F9', fontWeight: 800, fontSize: '0.94rem' }}>
+                    Scan unavailable — link correct scan
+                  </span>
+                  <p style={{ color: '#94A3B8', fontSize: '0.8rem', margin: '4px 0 0 0', maxWidth: '280px', lineHeight: 1.4 }}>
+                    No verified intraoral scan was reliably associated with this session.
+                  </p>
+                </div>
+              )}
+
+              {/* Overlay Badge */}
+              {aiCondition && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: '10px',
+                  left: '10px',
+                  background: 'rgba(11, 19, 43, 0.85)',
+                  backdropFilter: 'blur(8px)',
+                  border: '1px solid rgba(255, 255, 255, 0.18)',
+                  padding: '4px 10px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  color: '#FFFFFF',
+                  fontSize: '0.76rem',
+                  fontWeight: 700
+                }}>
+                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#00A6A6' }}></span>
+                  <span style={{ textTransform: 'capitalize' }}>{aiCondition.replace(/_/g, ' ')}</span>
+                  {scanRecord?.confidence && (
+                    <span style={{ color: '#00A6A6', fontWeight: 800 }}>({Number(scanRecord.confidence).toFixed(1)}%)</span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.76rem', color: '#64748B' }}>
+              <span>DICOM / High-Res Intraoral Scan</span>
+              <span style={{ fontWeight: 600 }}>Magnification 1.0x</span>
+            </div>
+          </motion.div>
+
+          {/* Right: Patient Case Summary & Chief Complaint (1fr) */}
+          <motion.div variants={item} className="workspace-card" style={{ marginBottom: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div>
+              {/* Header: Avatar, Name, UID, Status Pill & Direct Chat */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div style={{
+                    width: '54px',
+                    height: '54px',
+                    borderRadius: '16px',
+                    background: 'linear-gradient(135deg, #00A6A6 0%, #17324D 100%)',
+                    color: '#FFFFFF',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 900,
+                    fontSize: '1.25rem',
+                    letterSpacing: '0.5px',
+                    boxShadow: '0 4px 14px rgba(0, 166, 166, 0.22)',
+                    flexShrink: 0
+                  }}>
+                    {getInitials(consultation.patientName)}
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#17324D', letterSpacing: '-0.01em' }}>
+                        {consultation.patientName || 'Unknown Patient'}
+                      </h3>
+                      <span style={{
+                        background: '#F1F5F9',
+                        color: '#475569',
+                        border: '1px solid #CBD5E1',
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}>
+                        <Hash size={11} color="#00A6A6" /> UID: P-{consultation.id ? consultation.id.toString().substring(0, 6) : '6aec46'}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 500, display: 'block', marginTop: '2px' }}>
+                      Verified Patient Intake • Case #{consultation.id ? consultation.id.toString().substring(0, 6) : '6aec46'}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '5px 12px',
+                    borderRadius: '999px',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    background: isCompleted ? '#DCFCE7' : isPending ? '#FEF3C7' : '#EFF6FF',
+                    color: isCompleted ? '#15803D' : isPending ? '#B45309' : '#1D4ED8',
+                    border: isCompleted ? '1px solid #86EFAC' : isPending ? '1px solid #FDE68A' : '1px solid #BFDBFE'
+                  }}>
+                    <span style={{
+                      width: '7px',
+                      height: '7px',
+                      borderRadius: '50%',
+                      background: isCompleted ? '#16A34A' : isPending ? '#D97706' : '#2563EB',
+                      boxShadow: isCompleted ? '0 0 6px #16A34A' : isPending ? '0 0 6px #F59E0B' : '0 0 6px #3B82F6'
+                    }} />
+                    {consultation.status || 'In Consultation'}
+                  </span>
+
+                  <Link
+                    to={`/dashboard/doctor/consultation/${consultation.id || consultation._id}/messages`}
+                    state={{ consultationId: consultation.id || consultation._id }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      background: '#F0FDFA',
+                      color: '#00A6A6',
+                      border: '1px solid #99E3D8',
+                      padding: '5px 12px',
+                      borderRadius: '8px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      textDecoration: 'none',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <MessageSquare size={13} /> Chat
+                  </Link>
+                </div>
+              </div>
+
+              {/* 3 Clinical Info Tiles */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+                gap: '10px',
+                marginBottom: '14px'
+              }}>
+                <div style={{
+                  background: '#F8FAFC',
+                  border: '1px solid #E2E8F0',
+                  borderRadius: '12px',
+                  padding: '10px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: 'rgba(0, 166, 166, 0.1)',
+                    color: '#00A6A6',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <Calendar size={16} />
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: 800, textTransform: 'uppercase', display: 'block', letterSpacing: '0.5px' }}>
+                      Appointment Slot
+                    </span>
+                    <span style={{ fontSize: '0.84rem', color: '#17324D', fontWeight: 700 }}>
+                      {consultation.date} @ {consultation.time}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{
+                  background: '#F8FAFC',
+                  border: '1px solid #E2E8F0',
+                  borderRadius: '12px',
+                  padding: '10px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    color: '#059669',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <ShieldCheck size={16} />
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: 800, textTransform: 'uppercase', display: 'block', letterSpacing: '0.5px' }}>
+                      Data Security
+                    </span>
+                    <span style={{ fontSize: '0.84rem', color: '#059669', fontWeight: 700 }}>
+                      HIPAA End-to-End Secure
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{
+                  background: '#F8FAFC',
+                  border: '1px solid #E2E8F0',
+                  borderRadius: '12px',
+                  padding: '10px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: 'rgba(22, 119, 255, 0.1)',
+                    color: '#1677FF',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <Activity size={16} />
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: 800, textTransform: 'uppercase', display: 'block', letterSpacing: '0.5px' }}>
+                      Consultation Mode
+                    </span>
+                    <span style={{ fontSize: '0.84rem', color: '#1E40AF', fontWeight: 700 }}>
+                      Direct Clinical Triage
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Patient Chief Complaint & Reported Symptoms Box */}
+              <div style={{
+                background: '#F8FAFC',
+                border: '1px solid #E2E8F0',
+                borderLeft: '4px solid #00A6A6',
+                borderRadius: '12px',
+                padding: '12px 16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.74rem', color: '#475569', textTransform: 'uppercase', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px', letterSpacing: '0.6px' }}>
+                    <Zap size={14} color="#00A6A6" /> Patient Chief Complaint &amp; Intake Symptoms
+                  </span>
+                  <span style={{ fontSize: '0.68rem', color: '#64748B', background: '#FFFFFF', border: '1px solid #CBD5E1', padding: '1px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                    Self-Reported
+                  </span>
+                </div>
+
+                {/* Symptom Tags */}
+                {symptomPills.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '2px' }}>
+                    {symptomPills.map((symptom, idx) => (
+                      <span 
+                        key={idx}
+                        style={{
+                          background: '#FFFFFF',
+                          border: '1px solid #BFD4E5',
+                          borderRadius: '6px',
+                          padding: '3px 10px',
+                          fontSize: '0.76rem',
+                          fontWeight: 700,
+                          color: '#17324D',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          boxShadow: '0 1px 3px rgba(7, 26, 51, 0.04)'
+                        }}
+                      >
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00A6A6' }}></span>
+                        {symptom}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <p style={{
+                  margin: 0,
+                  fontStyle: 'italic',
+                  lineHeight: 1.5,
+                  color: '#334155',
+                  fontSize: '0.88rem'
+                }}>
+                  &ldquo;{consultation.message || 'No additional concerns or symptoms described by patient.'}&rdquo;
+                </p>
               </div>
             </div>
-            
-            <div className="confidence-section bg-slate-50 border-slate-200" style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
-              <span className="text-slate-600 font-bold section-label confidence-label" style={{ fontSize: '11px', color: '#475569', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', fontWeight: 700 }}>
-                Algorithmic Confidence
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px' }}>
-                <div className="text-slate-900 font-extrabold section-value" style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', minWidth: '85px' }}>
-                  {scanRecord?.confidence ? `${Number(scanRecord.confidence).toFixed(1)}%` : (consultation.confidence && consultation.confidence !== 'N/A' ? consultation.confidence : 'Unavailable')}
+          </motion.div>
+
+        </div>
+
+        {/* SECTION 2: SIDE-BY-SIDE OPPOSING DIAGNOSTIC PANELS */}
+        <div className="doctor-workspace-diagnostic-grid">
+
+          {/* LEFT COLUMN: NEURAL NET DIAGNOSTIC ANALYSIS (OPPOSITE OF PHYSICIAN VERIFICATION) */}
+          <motion.div variants={item} className="workspace-card" style={{ marginBottom: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #E2E8F0', paddingBottom: '14px', marginBottom: '18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: 'rgba(0, 166, 166, 0.1)', color: '#00A6A6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <BrainCircuit size={20} />
                 </div>
-                <div className="progress-bar" style={{ flex: 1, height: '8px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
-                  <motion.div 
-                    className="progress-fill"
-                    initial={{ width: 0 }} 
-                    animate={{ width: (scanRecord?.confidence ? `${Math.min(100, Math.max(0, Number(scanRecord.confidence)))}%` : (consultation.confidence && consultation.confidence !== 'N/A' ? `${parseFloat(consultation.confidence) || 0}%` : '0%')) }} 
-                    transition={{ duration: 1 }} 
-                    style={{ height: '100%', background: 'linear-gradient(90deg, #1677FF 0%, #00A6A6 100%)', borderRadius: '4px' }}
-                  />
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#17324D' }}>
+                    Neural Net Diagnostic Analysis
+                  </h3>
+                  <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 500 }}>
+                    Deep learning 6-class dental pathology inference engine
+                  </span>
+                </div>
+              </div>
+
+              <span style={{ fontSize: '0.74rem', background: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', padding: '4px 10px', borderRadius: '6px', fontWeight: 700 }}>
+                ResNet-Dental v2
+              </span>
+            </div>
+
+            {/* Identified Pathology & Algorithmic Confidence */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '18px' }}>
+              <div style={{ background: '#F8FAFC', padding: '16px', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
+                <span style={{ fontSize: '0.72rem', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.8px', display: 'block', fontWeight: 800, marginBottom: '4px' }}>
+                  Identified Primary Pathology
+                </span>
+                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#17324D', textTransform: 'capitalize' }}>
+                  {aiCondition ? aiCondition.replace(/_/g, ' ') : 'Scan unavailable'}
+                </div>
+              </div>
+
+              <div style={{ background: '#F8FAFC', padding: '16px', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
+                <span style={{ fontSize: '0.72rem', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.8px', display: 'block', fontWeight: 800, marginBottom: '4px' }}>
+                  Algorithmic Confidence
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#00A6A6' }}>
+                    {scanRecord?.confidence ? `${Number(scanRecord.confidence).toFixed(1)}%` : (consultation.confidence && consultation.confidence !== 'N/A' ? consultation.confidence : 'Unavailable')}
+                  </div>
+                  <div style={{ flex: 1, height: '8px', background: '#E2E8F0', borderRadius: '4px', overflow: 'hidden' }}>
+                    <motion.div 
+                      initial={{ width: 0 }} 
+                      animate={{ width: (scanRecord?.confidence ? `${Math.min(100, Math.max(0, Number(scanRecord.confidence)))}%` : (consultation.confidence && consultation.confidence !== 'N/A' ? `${parseFloat(consultation.confidence) || 0}%` : '0%')) }} 
+                      transition={{ duration: 1 }} 
+                      style={{ height: '100%', background: 'linear-gradient(90deg, #00A6A6 0%, #1677FF 100%)', borderRadius: '4px' }}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
 
+            {/* SIX-CLASS DIFFERENTIAL PROBABILITIES BREAKDOWN */}
+            {scanRecord?.classProbabilities && typeof scanRecord.classProbabilities === 'object' && Object.keys(scanRecord.classProbabilities).length > 0 ? (
+              <div style={{ background: '#F8FAFC', padding: '16px', borderRadius: '14px', border: '1px solid #E2E8F0', marginBottom: '18px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.8px', fontWeight: 800 }}>
+                    Neural Differential Probabilities (All 6 Classes)
+                  </span>
+                  <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600 }}>
+                    Sorted by probability
+                  </span>
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {Object.entries(scanRecord.classProbabilities)
+                    .sort(([, a], [, b]) => Number(b) - Number(a))
+                    .map(([name, prob]) => {
+                      const isTop = name.toLowerCase() === (aiCondition || '').replace(/_/g, ' ').toLowerCase() || name === aiCondition;
+                      const numProb = Number(prob) || 0;
+                      return (
+                        <div 
+                          key={name} 
+                          style={{ 
+                            background: isTop ? '#EFF6FF' : '#FFFFFF', 
+                            padding: '9px 14px', 
+                            borderRadius: '10px', 
+                            border: isTop ? '1.5px solid #1677FF' : '1px solid #E2E8F0' 
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                            <span style={{ fontSize: '0.88rem', fontWeight: isTop ? 800 : 600, color: isTop ? '#1E3A8A' : '#334155' }}>
+                              {name.replace(/_/g, ' ')} {isTop && <span style={{ fontSize: '0.68rem', background: '#1677FF', color: '#FFFFFF', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, marginLeft: '6px' }}>Highest</span>}
+                            </span>
+                            <span style={{ fontSize: '0.88rem', fontWeight: 800, color: isTop ? '#1677FF' : '#0F172A' }}>
+                              {numProb.toFixed(2)}%
+                            </span>
+                          </div>
+                          <div style={{ width: '100%', height: '5px', background: '#E2E8F0', borderRadius: '3px', overflow: 'hidden' }}>
+                            <motion.div 
+                              initial={{ width: 0 }} 
+                              animate={{ width: `${Math.min(100, Math.max(0, numProb))}%` }} 
+                              transition={{ duration: 0.8 }} 
+                              style={{ height: '100%', background: isTop ? '#1677FF' : '#94A3B8', borderRadius: '3px' }} 
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            ) : (
+              <div style={{ background: '#F8FAFC', padding: '12px 16px', borderRadius: '10px', border: '1px dashed #CBD5E1', marginBottom: '18px', fontSize: '0.84rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <AlertCircle size={16} color="#64748B" style={{ flexShrink: 0 }} />
+                <span>Detailed multi-class probability breakdown is unavailable for this historical scan.</span>
+              </div>
+            )}
+
+            {/* AI Recommendation */}
             {(scanRecord?.recommendation || consultation.recommendation) && (
-              <div className="recommendation-section bg-sky-50 border-sky-200" style={{ background: '#f0f9ff', padding: '16px', borderRadius: '12px', border: '1px solid #bae6fd', marginBottom: '16px' }}>
-                <span className="text-sky-800 font-extrabold recommendation-title" style={{ fontSize: '12px', color: '#0369a1', textTransform: 'uppercase', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', letterSpacing: '0.5px' }}>
-                  <ShieldCheck size={16} color="#0284c7" /> AI Clinical Recommendation
+              <div style={{ background: '#F0FDF9', padding: '16px', borderRadius: '14px', border: '1.5px solid #99E3D8', marginBottom: '16px' }}>
+                <span style={{ fontSize: '0.76rem', color: '#0D9488', textTransform: 'uppercase', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px', letterSpacing: '0.6px', marginBottom: '6px' }}>
+                  <ShieldCheck size={16} color="#0D9488" /> AI Clinical Recommendation
                 </span>
-                <p className="text-slate-700 font-medium recommendation-text" style={{ margin: '8px 0 0 0', fontSize: '14px', color: '#334155', lineHeight: '1.6', fontWeight: 500 }}>
+                <p style={{ margin: 0, fontSize: '0.92rem', color: '#134E4A', lineHeight: 1.6, fontWeight: 500 }}>
                   {scanRecord?.recommendation || consultation.recommendation}
                 </p>
               </div>
             )}
 
-            <div className="suggestions-section bg-slate-50 border-slate-200" style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '8px' }}>
-              <span className="text-teal-800 font-extrabold suggestions-title" style={{ fontSize: '12px', color: '#0f766e', textTransform: 'uppercase', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', letterSpacing: '0.5px' }}>
-                <AlertCircle size={16} color="#0d9488" /> AI Care Suggestions
+            {/* AI Care Suggestions */}
+            <div style={{ background: '#F8FAFC', padding: '16px', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
+              <span style={{ fontSize: '0.76rem', color: '#475569', textTransform: 'uppercase', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px', letterSpacing: '0.6px', marginBottom: '8px' }}>
+                <Check size={16} color="#00A6A6" /> Clinical Care Guidelines
               </span>
-              <ul className="text-slate-700 font-medium suggestions-list" style={{ margin: '8px 0 0 0', paddingLeft: '20px', fontSize: '14px', color: '#334155', lineHeight: '1.6', fontWeight: 500 }}>
+              <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '0.88rem', color: '#334155', lineHeight: 1.6, fontWeight: 500 }}>
                 {careSuggestions.map((sug, i) => (
-                  <li key={i} style={{ marginBottom: '6px', color: '#334155' }}>{sug}</li>
+                  <li key={i} style={{ marginBottom: '4px' }}>{sug}</li>
                 ))}
               </ul>
             </div>
           </motion.div>
 
-          {/* DOCTOR VERIFICATION */}
-          <motion.div variants={item} className="card verification-form bg-white border-slate-200" style={{ padding: '24px', borderRadius: '16px', background: '#ffffff', border: '1px solid #cbd5e1', boxShadow: '0 4px 20px rgba(15, 23, 42, 0.05)' }}>
-            <h4 className="form-section-title font-bold text-slate-900 mb-6" style={{ fontSize: '1.2rem', color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>Physician Verification</h4>
-            
-            <div className="form-group mb-5">
-              <label className="form-label font-semibold text-slate-700" style={{ color: '#334155', display: 'block', marginBottom: '6px' }}>Verification Status</label>
+          {/* RIGHT COLUMN: PHYSICIAN VERIFICATION & PRESCRIPTION (OPPOSITE OF NEURAL NET DIAGNOSTIC ANALYSIS) */}
+          <motion.div variants={item} className="workspace-card" style={{ marginBottom: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', borderBottom: '1px solid #E2E8F0', paddingBottom: '14px', marginBottom: '20px' }}>
+              <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: 'rgba(0, 166, 166, 0.1)', color: '#00A6A6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Stethoscope size={20} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#17324D' }}>
+                  Physician Verification &amp; Prescription
+                </h3>
+                <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 500 }}>
+                  Certify clinical diagnosis, issue medication protocols, and set follow-ups
+                </span>
+              </div>
+            </div>
+
+            {/* Verification Status */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#17324D', marginBottom: '6px' }}>
+                Verification Status
+              </label>
               <select 
-                className="form-input text-slate-900 bg-white border-slate-300" 
+                className="workspace-input" 
                 value={verificationStatus} 
                 onChange={(e) => setVerificationStatus(e.target.value)} 
-                disabled={isCompleted} 
-                style={{ background: isCompleted ? '#f8fafc' : '#ffffff', color: '#0f172a', borderColor: '#cbd5e1' }}
+                disabled={isCompleted}
               >
-                <option value="Pending">Pending</option>
-                <option value="Verified">Verified</option>
-                <option value="Requires further examination">Requires further examination</option>
+                <option value="Verified">Verified — Clinical Diagnosis Confirmed</option>
+                <option value="Pending">Pending — Under Further Clinical Review</option>
+                <option value="Requires further examination">Requires In-Person Clinical Oral Examination</option>
               </select>
             </div>
 
-            <div className="form-group mb-5">
-              <label className="form-label font-semibold text-slate-700" style={{ color: '#334155', display: 'block', marginBottom: '6px' }}>Final Diagnosis</label>
+            {/* Final Diagnosis */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#17324D', marginBottom: '6px' }}>
+                Doctor's Final Diagnosis
+              </label>
               <input 
                 type="text" 
-                className="form-input text-slate-900 bg-white border-slate-300" 
-                placeholder="e.g. Early stage caries" 
+                className="workspace-input" 
+                placeholder="e.g. Mild Marginal Gingivitis on Mandibular Anterior Region" 
                 value={finalDiagnosis} 
                 onChange={(e) => setFinalDiagnosis(e.target.value)} 
                 disabled={isCompleted} 
-                style={{ background: isCompleted ? '#f8fafc' : '#ffffff', color: '#0f172a', borderColor: '#cbd5e1' }} 
               />
             </div>
-            
-            <div className="form-group mb-5">
-              <label className="form-label font-semibold text-slate-700" style={{ color: '#334155', display: 'block', marginBottom: '6px' }}>Treatment Plan & Prescription</label>
+
+            {/* Treatment Plan */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#17324D', marginBottom: '6px' }}>
+                Comprehensive Treatment Plan &amp; Recommendations
+              </label>
               <textarea 
-                className="form-input text-slate-900 bg-white border-slate-300" 
-                rows="4" 
-                placeholder="Detail the clinical recommendations here..." 
+                className="workspace-input" 
+                rows={4} 
+                placeholder="Detail in-clinic procedures, cleaning regimens, hygiene instructions, and dietary recommendations..." 
                 value={treatmentPlan} 
                 onChange={(e) => setTreatmentPlan(e.target.value)} 
                 disabled={isCompleted} 
-                style={{ background: isCompleted ? '#f8fafc' : '#ffffff', color: '#0f172a', borderColor: '#cbd5e1', resize: 'vertical' }}
-              ></textarea>
+                style={{ resize: 'vertical' }}
+              />
             </div>
 
             {/* PRESCRIPTION MANAGEMENT SECTION */}
-            <div 
-              style={{
-                margin: '20px 0',
-                padding: '20px',
-                background: '#F0FDF9',
-                border: '1.5px solid #99E3D8',
-                borderRadius: '14px'
-              }}
-            >
+            <div style={{
+              background: '#F0FDF9',
+              border: '1.5px solid #99E3D8',
+              borderRadius: '16px',
+              padding: '20px',
+              marginBottom: '20px'
+            }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div style={{ background: 'rgba(0, 166, 166, 0.15)', color: '#00A6A6', padding: '6px', borderRadius: '8px', display: 'flex' }}>
                     <Pill size={18} />
                   </div>
                   <div>
-                    <h5 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#17324D' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#17324D' }}>
                       Personal Prescription (Rx)
-                    </h5>
-                    <span style={{ fontSize: '0.8rem', color: '#52677A', fontWeight: 500 }}>
-                      Add verified medications and specific dosage instructions
+                    </h4>
+                    <span style={{ fontSize: '0.78rem', color: '#52677A', fontWeight: 500 }}>
+                      Add verified medications, precise dosages, and schedules
                     </span>
                   </div>
                 </div>
 
                 {prescriptionId && (
-                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#15803D', background: '#DCFCE7', border: '1px solid #86EFAC', padding: '4px 10px', borderRadius: '999px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#15803D', background: '#DCFCE7', border: '1px solid #86EFAC', padding: '4px 10px', borderRadius: '999px' }}>
                     ✓ Active Prescription
                   </span>
                 )}
@@ -609,7 +1072,7 @@ const DoctorConsultationWorkspace = () => {
 
               {/* Success Notification */}
               {prescriptionMessage && (
-                <div style={{ background: '#DCFCE7', color: '#15803D', border: '1px solid #86EFAC', padding: '10px 14px', borderRadius: '10px', fontSize: '0.88rem', fontWeight: 700, marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ background: '#DCFCE7', color: '#15803D', border: '1px solid #86EFAC', padding: '10px 14px', borderRadius: '10px', fontSize: '0.86rem', fontWeight: 700, marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <CheckCircle2 size={16} /> {prescriptionMessage}
                 </div>
               )}
@@ -617,8 +1080,8 @@ const DoctorConsultationWorkspace = () => {
               {/* Medication List */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '14px' }}>
                 {medications.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '16px', background: '#FFFFFF', borderRadius: '10px', border: '1px dashed #CBD5E1', color: '#64748B', fontSize: '0.88rem' }}>
-                    No medications added yet. Click &quot;Add Medication&quot; below to prescribe.
+                  <div style={{ textAlign: 'center', padding: '20px', background: '#FFFFFF', borderRadius: '12px', border: '1px dashed #CBD5E1', color: '#64748B', fontSize: '0.86rem' }}>
+                    No medications added yet. Click &quot;Add Medication&quot; below to prescribe drugs for this case.
                   </div>
                 ) : (
                   medications.map((med, idx) => (
@@ -626,12 +1089,13 @@ const DoctorConsultationWorkspace = () => {
                       key={idx}
                       style={{
                         background: '#FFFFFF',
-                        border: '1px solid #E2E8F0',
-                        borderRadius: '10px',
-                        padding: '12px 14px',
+                        border: '1px solid #BFD4E5',
+                        borderRadius: '12px',
+                        padding: '14px 16px',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '8px'
+                        gap: '10px',
+                        boxShadow: '0 2px 8px rgba(7, 26, 51, 0.03)'
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -645,67 +1109,67 @@ const DoctorConsultationWorkspace = () => {
                             style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
                             title="Remove medication"
                           >
-                            <Trash2 size={15} />
+                            <Trash2 size={16} />
                           </button>
                         )}
                       </div>
 
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
                         <div>
-                          <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '2px' }}>Medicine Name</label>
+                          <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '2px' }}>Medicine Name</label>
                           <input 
                             type="text"
                             placeholder="e.g. Amoxicillin"
                             value={med.medicineName}
                             onChange={(e) => handleMedicationChange(idx, 'medicineName', e.target.value)}
                             disabled={isCompleted}
-                            style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
+                            style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
                           />
                         </div>
                         <div>
-                          <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '2px' }}>Dosage</label>
+                          <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '2px' }}>Dosage</label>
                           <input 
                             type="text"
                             placeholder="e.g. 500mg"
                             value={med.dosage}
                             onChange={(e) => handleMedicationChange(idx, 'dosage', e.target.value)}
                             disabled={isCompleted}
-                            style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
+                            style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
                           />
                         </div>
                         <div>
-                          <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '2px' }}>Frequency</label>
+                          <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '2px' }}>Frequency</label>
                           <input 
                             type="text"
-                            placeholder="e.g. Twice daily"
+                            placeholder="e.g. Twice daily after meals"
                             value={med.frequency}
                             onChange={(e) => handleMedicationChange(idx, 'frequency', e.target.value)}
                             disabled={isCompleted}
-                            style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
+                            style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
                           />
                         </div>
                         <div>
-                          <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '2px' }}>Duration</label>
+                          <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '2px' }}>Duration</label>
                           <input 
                             type="text"
                             placeholder="e.g. 5 days"
                             value={med.duration}
                             onChange={(e) => handleMedicationChange(idx, 'duration', e.target.value)}
                             disabled={isCompleted}
-                            style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
+                            style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '2px' }}>Instructions</label>
+                        <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '2px' }}>Instructions &amp; Warnings</label>
                         <input 
                           type="text"
-                          placeholder="e.g. Take after food with a full glass of water"
+                          placeholder="e.g. Take with a full glass of water. Do not skip doses."
                           value={med.instructions}
                           onChange={(e) => handleMedicationChange(idx, 'instructions', e.target.value)}
                           disabled={isCompleted}
-                          style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
+                          style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
                         />
                       </div>
                     </div>
@@ -722,49 +1186,49 @@ const DoctorConsultationWorkspace = () => {
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '4px',
+                      gap: '6px',
                       background: '#FFFFFF',
                       color: '#00A6A6',
-                      border: '1px dashed #00A6A6',
-                      padding: '7px 14px',
-                      borderRadius: '8px',
+                      border: '1.5px dashed #00A6A6',
+                      padding: '8px 16px',
+                      borderRadius: '10px',
                       fontWeight: 700,
-                      fontSize: '0.84rem',
+                      fontSize: '0.86rem',
                       cursor: 'pointer'
                     }}
                   >
-                    <Plus size={15} /> Add Medication
+                    <Plus size={16} /> Add Medication
                   </button>
 
-                  {medications.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={handleSavePrescription}
-                      disabled={isSavingPrescription}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        background: '#00A6A6',
-                        color: '#FFFFFF',
-                        border: 'none',
-                        padding: '7px 16px',
-                        borderRadius: '8px',
-                        fontWeight: 700,
-                        fontSize: '0.84rem',
-                        cursor: isSavingPrescription ? 'not-allowed' : 'pointer',
-                        boxShadow: '0 2px 8px rgba(0, 166, 166, 0.25)'
-                      }}
-                    >
-                      <Pill size={15} /> {isSavingPrescription ? 'Saving...' : 'Save & Issue Prescription'}
-                    </button>
-                  )}
+                    {medications.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleSavePrescription}
+                        disabled={isSavingPrescription}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          background: '#00A6A6',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          padding: '8px 18px',
+                          borderRadius: '10px',
+                          fontWeight: 700,
+                          fontSize: '0.86rem',
+                          cursor: isSavingPrescription ? 'not-allowed' : 'pointer',
+                          boxShadow: '0 2px 8px rgba(0, 166, 166, 0.25)'
+                        }}
+                      >
+                        <Pill size={16} /> {isSavingPrescription ? 'Saving...' : 'Save & Issue Prescription'}
+                      </button>
+                    )}
                 </div>
               )}
 
               {/* Additional Dental Care Instructions */}
               <div style={{ marginTop: '16px' }}>
-                <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 800, color: '#17324D', display: 'block', marginBottom: '4px' }}>
                   Additional Dental Care Instructions (Patient Advice)
                 </label>
                 <textarea
@@ -775,10 +1239,10 @@ const DoctorConsultationWorkspace = () => {
                   disabled={isCompleted}
                   style={{
                     width: '100%',
-                    padding: '8px 10px',
+                    padding: '8px 12px',
                     borderRadius: '8px',
                     border: '1px solid #CBD5E1',
-                    fontSize: '0.85rem',
+                    fontSize: '0.86rem',
                     background: isCompleted ? '#F8FAFC' : '#FFFFFF',
                     resize: 'vertical'
                   }}
@@ -786,51 +1250,71 @@ const DoctorConsultationWorkspace = () => {
               </div>
             </div>
 
-            <div className="form-group mb-5">
-              <label className="form-label font-semibold text-slate-700" style={{ color: '#334155', display: 'block', marginBottom: '6px' }}>Follow-up Date</label>
-              <input 
-                type="date" 
-                className="form-input text-slate-900 bg-white border-slate-300" 
-                value={followUpDate} 
-                onChange={(e) => setFollowUpDate(e.target.value)} 
-                disabled={isCompleted} 
-                style={{ background: isCompleted ? '#f8fafc' : '#ffffff', color: '#0f172a', borderColor: '#cbd5e1' }} 
-              />
-            </div>
-
-            <div className="form-group mb-6">
-              <label className="form-label font-semibold text-slate-700" style={{ color: '#334155', display: 'block', marginBottom: '6px' }}>Follow-up Note (Optional)</label>
-              <textarea 
-                className="form-input text-slate-900 bg-white border-slate-300" 
-                rows="2" 
-                placeholder="e.g. Schedule a dental check-up." 
-                value={followUpNote} 
-                onChange={(e) => setFollowUpNote(e.target.value)} 
-                disabled={isCompleted} 
-                style={{ background: isCompleted ? '#f8fafc' : '#ffffff', color: '#0f172a', borderColor: '#cbd5e1', resize: 'vertical' }}
-              ></textarea>
-            </div>
-
-            {!isCompleted && (
-              <div className="action-buttons-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
-                <button 
-                  className="btn btn-primary flex-align-center justify-center gap-2 pulse-glow" 
-                  style={{ padding: '14px', fontSize: '1.1rem' }} 
-                  onClick={() => {
-                    if (!finalDiagnosis || !treatmentPlan) {
-                      alert("Please enter both a final diagnosis and a treatment plan before completing.");
-                      return;
-                    }
-                    setShowCompleteModal(true);
-                  }}
-                >
-                  <CheckCircle2 size={20} /> Complete Consultation & Dispatch Report
-                </button>
+            {/* Follow-up Scheduling */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '24px' }}>
+              <div>
+                <label style={{ fontSize: '0.82rem', fontWeight: 800, color: '#17324D', display: 'block', marginBottom: '6px' }}>
+                  Follow-up Date
+                </label>
+                <input 
+                  type="date" 
+                  className="workspace-input" 
+                  value={followUpDate} 
+                  onChange={(e) => setFollowUpDate(e.target.value)} 
+                  disabled={isCompleted} 
+                />
               </div>
+              <div>
+                <label style={{ fontSize: '0.82rem', fontWeight: 800, color: '#17324D', display: 'block', marginBottom: '6px' }}>
+                  Follow-up Note (Optional)
+                </label>
+                <input 
+                  type="text" 
+                  className="workspace-input" 
+                  placeholder="e.g. Check gum healing progress" 
+                  value={followUpNote} 
+                  onChange={(e) => setFollowUpNote(e.target.value)} 
+                  disabled={isCompleted} 
+                />
+              </div>
+            </div>
+
+            {/* Bottom Action Bar */}
+            {!isCompleted && (
+              <button 
+                onClick={() => {
+                  if (!finalDiagnosis || !treatmentPlan) {
+                    alert("Please enter both a final diagnosis and a treatment plan before completing.");
+                    return;
+                  }
+                  setShowCompleteModal(true);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '14px 20px',
+                  background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontWeight: 800,
+                  fontSize: '1.05rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 16px rgba(16, 185, 129, 0.3)',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <CheckCircle2 size={20} /> Complete Consultation &amp; Dispatch Report
+              </button>
             )}
           </motion.div>
+
         </div>
-      </div>
+
+      </motion.div>
 
       {/* Decline Consultation Modal */}
       <AnimatePresence>
@@ -839,8 +1323,8 @@ const DoctorConsultationWorkspace = () => {
             style={{
               position: 'fixed',
               inset: 0,
-              background: 'rgba(15, 23, 42, 0.6)',
-              backdropFilter: 'blur(4px)',
+              background: 'rgba(15, 23, 42, 0.65)',
+              backdropFilter: 'blur(6px)',
               zIndex: 1000,
               display: 'flex',
               alignItems: 'center',
@@ -853,36 +1337,36 @@ const DoctorConsultationWorkspace = () => {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               style={{
-                background: '#ffffff',
-                border: '1px solid #cbd5e1',
-                borderRadius: '16px',
-                padding: '24px 28px',
+                background: '#FFFFFF',
+                border: '1px solid #BFD4E5',
+                borderRadius: '20px',
+                padding: '28px 32px',
                 maxWidth: '480px',
                 width: '100%',
-                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+                boxShadow: '0 20px 30px rgba(0, 0, 0, 0.15)'
               }}
             >
-              <div className="flex-between mb-3">
-                <div className="flex-align-center gap-2">
-                  <XCircle size={22} color="#dc2626" />
-                  <h3 className="font-extrabold text-slate-900" style={{ margin: 0, fontSize: '1.2rem', color: '#0f172a' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <XCircle size={22} color="#DC2626" />
+                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#17324D' }}>
                     Decline Consultation Request
                   </h3>
                 </div>
                 <button 
                   onClick={() => { setShowRejectModal(false); setRejectionReason(''); }}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B' }}
                 >
                   <X size={20} />
                 </button>
               </div>
 
-              <p style={{ fontSize: '0.9rem', color: '#475569', marginBottom: '14px', lineHeight: 1.5 }}>
+              <p style={{ fontSize: '0.9rem', color: '#52677A', marginBottom: '16px', lineHeight: 1.5 }}>
                 Are you sure you want to decline this consultation request for <strong>{consultation?.patientName || 'this patient'}</strong>?
               </p>
 
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#17324D', marginBottom: '6px' }}>
                   Reason for declining (Optional, sent to patient)
                 </label>
                 <textarea 
@@ -893,10 +1377,10 @@ const DoctorConsultationWorkspace = () => {
                   style={{
                     width: '100%',
                     padding: '10px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '0.9rem',
-                    color: '#0f172a',
+                    borderRadius: '10px',
+                    border: '1px solid #CBD5E1',
+                    fontSize: '0.88rem',
+                    color: '#17324D',
                     outline: 'none',
                     resize: 'none'
                   }}
@@ -906,16 +1390,31 @@ const DoctorConsultationWorkspace = () => {
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                 <button 
                   onClick={() => { setShowRejectModal(false); setRejectionReason(''); }}
-                  className="btn btn-outline font-semibold"
-                  style={{ color: '#475569', borderColor: '#cbd5e1' }}
+                  style={{
+                    background: '#FFFFFF',
+                    border: '1px solid #CBD5E1',
+                    borderRadius: '10px',
+                    padding: '9px 18px',
+                    fontWeight: 700,
+                    color: '#52677A',
+                    cursor: 'pointer'
+                  }}
                   disabled={isRejecting}
                 >
                   Cancel
                 </button>
                 <button 
                   onClick={handleRejectConsultation}
-                  className="btn btn-primary font-bold"
-                  style={{ background: '#dc2626', borderColor: '#dc2626', color: '#ffffff' }}
+                  style={{
+                    background: '#DC2626',
+                    border: 'none',
+                    borderRadius: '10px',
+                    padding: '9px 20px',
+                    fontWeight: 800,
+                    color: '#FFFFFF',
+                    cursor: isRejecting ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 2px 8px rgba(220, 38, 38, 0.25)'
+                  }}
                   disabled={isRejecting}
                 >
                   {isRejecting ? 'Declining...' : 'Confirm Decline'}
@@ -933,8 +1432,8 @@ const DoctorConsultationWorkspace = () => {
             style={{
               position: 'fixed',
               inset: 0,
-              background: 'rgba(15, 23, 42, 0.6)',
-              backdropFilter: 'blur(4px)',
+              background: 'rgba(15, 23, 42, 0.65)',
+              backdropFilter: 'blur(6px)',
               zIndex: 1000,
               display: 'flex',
               alignItems: 'center',
@@ -947,69 +1446,87 @@ const DoctorConsultationWorkspace = () => {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               style={{
-                background: '#ffffff',
-                border: '1px solid #cbd5e1',
-                borderRadius: '16px',
-                padding: '24px 28px',
-                maxWidth: '500px',
+                background: '#FFFFFF',
+                border: '1px solid #BFD4E5',
+                borderRadius: '20px',
+                padding: '28px 32px',
+                maxWidth: '520px',
                 width: '100%',
-                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+                boxShadow: '0 20px 30px rgba(0, 0, 0, 0.15)'
               }}
             >
-              <div className="flex-between mb-3">
-                <div className="flex-align-center gap-2">
-                  <CheckCircle2 size={22} color="#16a34a" />
-                  <h3 className="font-extrabold text-slate-900" style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle2 size={22} color="#10B981" />
+                  <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#17324D' }}>
                     Confirm Consultation Completion
                   </h3>
                 </div>
                 <button 
                   onClick={() => setShowCompleteModal(false)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B' }}
                 >
                   <X size={20} />
                 </button>
               </div>
 
-              <div style={{ background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '10px', padding: '12px 14px', marginBottom: '16px' }}>
-                <p style={{ margin: 0, fontSize: '0.88rem', color: '#991b1b', lineHeight: 1.5, fontWeight: 600 }}>
-                  Completing this consultation will finalize the clinical assessment and make the patient-doctor chat read-only. No further messages can be sent.
+              <div style={{ background: '#FEF2F2', border: '1px solid #FEE2E2', borderRadius: '12px', padding: '12px 16px', marginBottom: '16px' }}>
+                <p style={{ margin: 0, fontSize: '0.86rem', color: '#991B1B', lineHeight: 1.5, fontWeight: 600 }}>
+                  Completing this consultation will finalize the clinical assessment and conclude active doctor-patient messaging.
                 </p>
               </div>
 
-              <div style={{ marginBottom: '16px', background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '4px' }}>
-                  <strong>Patient:</strong> {consultation?.patientName}
+              <div style={{ marginBottom: '18px', background: '#F8FAFC', padding: '14px 16px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                <div style={{ fontSize: '0.86rem', color: '#475569', marginBottom: '6px' }}>
+                  <strong style={{ color: '#17324D' }}>Patient:</strong> {consultation?.patientName}
                 </div>
-                <div style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '4px' }}>
-                  <strong>Final Diagnosis:</strong> {finalDiagnosis}
+                <div style={{ fontSize: '0.86rem', color: '#475569', marginBottom: '6px' }}>
+                  <strong style={{ color: '#17324D' }}>Final Diagnosis:</strong> {finalDiagnosis}
                 </div>
-                <div style={{ fontSize: '0.85rem', color: '#475569' }}>
-                  <strong>Treatment Plan:</strong> {treatmentPlan}
+                <div style={{ fontSize: '0.86rem', color: '#475569' }}>
+                  <strong style={{ color: '#17324D' }}>Treatment Plan:</strong> {treatmentPlan}
                 </div>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                 <button 
                   onClick={() => setShowCompleteModal(false)}
-                  className="btn btn-outline font-semibold"
-                  style={{ color: '#475569', borderColor: '#cbd5e1' }}
+                  style={{
+                    background: '#FFFFFF',
+                    border: '1px solid #CBD5E1',
+                    borderRadius: '10px',
+                    padding: '9px 18px',
+                    fontWeight: 700,
+                    color: '#52677A',
+                    cursor: 'pointer'
+                  }}
                 >
                   Cancel
                 </button>
                 <button 
                   onClick={handleComplete}
-                  className="btn btn-success font-bold flex-align-center gap-1"
-                  style={{ padding: '8px 18px', borderRadius: '8px' }}
+                  style={{
+                    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                    border: 'none',
+                    borderRadius: '10px',
+                    padding: '9px 22px',
+                    fontWeight: 800,
+                    color: '#FFFFFF',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.25)'
+                  }}
                 >
-                  <CheckCircle2 size={16} /> Confirm & Complete
+                  <CheckCircle2 size={16} /> Confirm &amp; Complete
                 </button>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 };
 

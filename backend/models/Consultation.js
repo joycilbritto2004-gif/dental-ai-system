@@ -7,6 +7,8 @@ const consultationSchema = new mongoose.Schema({
   doctorId: { type: String, required: true },
   doctorName: { type: String, required: true },
   doctorSpecialization: { type: String },
+  clinic: { type: String },
+  location: { type: String },
   scanId: { type: mongoose.Schema.Types.ObjectId, ref: 'ScanHistory' },
   condition: { type: String },
   confidence: { type: String },

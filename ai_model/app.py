@@ -55,7 +55,11 @@ RECOMMENDATIONS = {
     'Gingivitis': 'Improved oral hygiene (brushing and flossing) and professional cleaning are recommended.',
     'Hypodontia': 'Consult an orthodontist or prosthodontist for comprehensive evaluation and treatment options.',
     'Mouth_Ulcer': 'If the ulcer persists for more than two weeks, consult a dentist. Use topical treatments for relief.',
-    'Tooth_Discoloration': 'Professional teeth whitening or cosmetic veneers may be considered. Consult a dentist.'
+    'Tooth_Discoloration': (
+        'Tooth discoloration observed. Discoloration can arise from various etiologies, including superficial stains, '
+        'enamel demineralization, or co-occurring calculus deposits. A comprehensive dental evaluation is recommended '
+        'to identify the underlying cause before considering any cosmetic treatment.'
+    )
 }
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
@@ -140,6 +144,11 @@ def predict():
                 name: round(float(score) * 100, 2)
                 for name, score in zip(CLASS_NAMES, predictions)
             },
+            "is_preliminary": True,
+            "disclaimer": (
+                "This is an automated preliminary screening result from an AI model and does not constitute "
+                "a clinical diagnosis. Please consult a qualified dental professional for definitive clinical evaluation."
+            ),
         }
         return jsonify(result), 200
 

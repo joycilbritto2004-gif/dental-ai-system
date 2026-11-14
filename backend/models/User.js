@@ -41,6 +41,9 @@ const userSchema = new mongoose.Schema({
   clinic: { type: String },
   location: { type: String },
   fee: { type: Number, default: 500 },
+  experience: { type: String, default: '10 Years' },
+  languages: { type: String, default: 'English, Hindi' },
+  bio: { type: String, default: '' },
 }, { timestamps: true });
 
 // Hash password before saving

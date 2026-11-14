@@ -314,6 +314,9 @@ const updateUserProfile = async (req, res) => {
         if (req.body.specialization !== undefined) user.specialization = String(req.body.specialization).trim();
         if (req.body.clinic !== undefined) user.clinic = String(req.body.clinic).trim();
         if (req.body.location !== undefined) user.location = String(req.body.location).trim();
+        if (req.body.experience !== undefined) user.experience = String(req.body.experience).trim();
+        if (req.body.languages !== undefined) user.languages = String(req.body.languages).trim();
+        if (req.body.bio !== undefined) user.bio = String(req.body.bio).trim();
         if (req.body.fee !== undefined) {
           const numFee = Number(req.body.fee);
           if (isNaN(numFee) || numFee < 0) {
@@ -337,6 +340,9 @@ const updateUserProfile = async (req, res) => {
         clinic: updatedUser.clinic,
         location: updatedUser.location,
         fee: updatedUser.fee,
+        experience: updatedUser.experience,
+        languages: updatedUser.languages,
+        bio: updatedUser.bio,
         token: generateToken(updatedUser._id),
       });
     } else {

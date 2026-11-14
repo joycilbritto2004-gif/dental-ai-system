@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
-import { Activity, UserCircle, LogOut, LayoutDashboard, HeartPulse, Stethoscope, BriefcaseMedical, Users, CheckCircle2, BrainCircuit, Settings, FileText, MessageSquare, CreditCard, History, Video, Bell, Menu, X } from 'lucide-react';
+import { Activity, UserCircle, LogOut, LayoutDashboard, HeartPulse, Stethoscope, BriefcaseMedical, Users, CheckCircle2, BrainCircuit, Settings, FileText, MessageSquare, CreditCard, History, Video, Bell, Menu, X, Calendar, ChevronDown, ShieldCheck } from 'lucide-react';
 import { getSocket, registerUserSocket } from '../utils/socket';
 import './DashboardLayout.css';
 import { API_BASE } from '../config';
@@ -17,9 +17,11 @@ const DashboardLayout = () => {
   const [userId, setUserId] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [acceptedToast, setAcceptedToast] = useState(null);
   const dropdownRef = useRef(null);
+  const userMenuRef = useRef(null);
   const navigate = useNavigate();
 
   // Close mobile navigation drawer on route change
@@ -38,12 +40,13 @@ const DashboardLayout = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [mobileMenuOpen]);
 
-  useEffect(() => {
+  const [badgeCounts, setBadgeCounts] = useState({ pending: 0, consultations: 0 });
+
+  const updateUserData = useCallback(() => {
     const userStr = localStorage.getItem('dentaai_user');
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
-        
         if (user) {
           let name = user.name || user.firstName || user.username || '';
           if (role === 'doctor' && name && !name.startsWith('Dr.')) {
@@ -51,7 +54,6 @@ const DashboardLayout = () => {
           }
           setUserName(name);
         }
-        
         if (user.role === role || role === 'doctor') {
           setUserId(user._id || user.id);
         }
@@ -60,6 +62,45 @@ const DashboardLayout = () => {
       }
     }
   }, [role]);
+
+  useEffect(() => {
+    updateUserData();
+    window.addEventListener('storage', updateUserData);
+    return () => window.removeEventListener('storage', updateUserData);
+  }, [updateUserData]);
+
+  // Live badge counts for doctors
+  useEffect(() => {
+    if (role !== 'doctor' || !userId) return;
+    const fetchBadges = async () => {
+      try {
+        const token = localStorage.getItem('dentaai_token') || localStorage.getItem('token');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        const [pendingRes, consultRes] = await Promise.all([
+          fetch(`${API_BASE}/api/ai/pending-reviews`, { headers }),
+          fetch(`${API_BASE}/api/consultations?doctorId=${userId}`, { headers })
+        ]);
+        let pCount = 0;
+        let cCount = 0;
+        if (pendingRes.ok) {
+          const pData = await pendingRes.json();
+          pCount = Array.isArray(pData) ? pData.length : 0;
+        }
+        if (consultRes.ok) {
+          const cData = await consultRes.json();
+          if (Array.isArray(cData)) {
+            cCount = cData.filter(c => c.status === 'In Progress' || c.status === 'Accepted' || c.status === 'Pending').length;
+          }
+        }
+        setBadgeCounts({ pending: pCount, consultations: cCount });
+      } catch (err) {
+        // Quiet fail
+      }
+    };
+    fetchBadges();
+    const interval = setInterval(fetchBadges, 12000);
+    return () => clearInterval(interval);
+  }, [role, userId]);
 
   const fetchNotifications = useCallback(async () => {
     if (!userId) return;
@@ -109,6 +150,9 @@ const DashboardLayout = () => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowNotifications(false);
       }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setShowUserMenu(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -137,6 +181,26 @@ const DashboardLayout = () => {
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
+  const todayFormatted = new Date().toLocaleDateString('en-US', { 
+    weekday: 'short', 
+    month: 'short', 
+    day: 'numeric' 
+  });
+
+  const getInitials = (name) => {
+    if (!name) return role === 'doctor' ? 'DR' : 'PT';
+    const clean = name.replace(/^Dr\.\s*/i, '').trim();
+    const parts = clean.split(/\s+/);
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('dentaai_token');
+    localStorage.removeItem('dentaai_user');
+    navigate('/');
+  };
+
   return (
     <div className={`dashboard-layout ${role === 'patient' ? 'patient-portal-theme' : ''} ${role === 'doctor' ? 'doctor-portal-theme' : ''} ${role === 'admin' ? 'admin-portal-theme' : ''}`}>
       {/* Mobile Backdrop Overlay */}
@@ -153,9 +217,43 @@ const DashboardLayout = () => {
         className={`dashboard-sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}
         aria-label={`${role} portal navigation`}
       >
-        <div className="sidebar-brand">
-          <BriefcaseMedical className="brand-icon" size={28} style={{ color: '#17324D' }} />
-          <span className="brand-text" style={{ color: '#17324D' }}>DentaAI</span>
+        <div className="sidebar-brand" style={{ padding: '20px 22px', height: 'auto', minHeight: '74px', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid rgba(255, 255, 255, 0.45)' }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, #00A6A6 0%, #06C6E8 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#FFFFFF',
+            boxShadow: '0 4px 12px rgba(0, 166, 166, 0.25)',
+            flexShrink: 0
+          }}>
+            <BriefcaseMedical size={22} color="#FFFFFF" />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#17324D', letterSpacing: '-0.4px', lineHeight: 1.1 }}>
+                DentaAI
+              </span>
+              <span style={{
+                fontSize: '0.62rem',
+                fontWeight: 800,
+                padding: '2px 5px',
+                borderRadius: '4px',
+                background: 'rgba(0, 166, 166, 0.1)',
+                color: '#00A6A6',
+                letterSpacing: '0.4px',
+                textTransform: 'uppercase'
+              }}>
+                PRO
+              </span>
+            </div>
+            <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748B', marginTop: '3px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              {role === 'doctor' ? 'Clinical Workspace' : role === 'patient' ? 'Patient Portal' : 'Admin Console'}
+            </span>
+          </div>
           <button
             type="button"
             className="mobile-sidebar-close"
@@ -168,135 +266,185 @@ const DashboardLayout = () => {
 
         <nav className="sidebar-nav">
           <Link to={`/dashboard/${role}`} className={`sidebar-link ${currentPath === `/dashboard/${role}` ? 'active' : ''}`}>
-            <LayoutDashboard size={20} />
+            <LayoutDashboard size={19} />
             <span>Dashboard</span>
           </Link>
           
-          {role === 'patient' && (
+          {role === 'doctor' && (
             <>
-              <Link to="/dashboard/patient/screening-history" className={`sidebar-link ${currentPath === '/dashboard/patient/screening-history' || currentPath === '/dashboard/patient/history' ? 'active' : ''}`}>
-                <History size={20} />
-                <span>Screening History</span>
+              <div className="sidebar-section-label">
+                <span>Clinical Triage</span>
+              </div>
+              <Link to="/dashboard/doctor/reviews" className={`sidebar-link ${currentPath === '/dashboard/doctor/reviews' ? 'active' : ''}`}>
+                <Stethoscope size={19} />
+                <span>Pending Reviews</span>
+                {badgeCounts.pending > 0 && (
+                  <span className={`sidebar-badge-counter ${currentPath === '/dashboard/doctor/reviews' ? 'sidebar-badge-active' : 'sidebar-badge-amber'}`}>
+                    {badgeCounts.pending}
+                  </span>
+                )}
               </Link>
-              <Link to="/dashboard/patient/reports" className={`sidebar-link ${currentPath === '/dashboard/patient/reports' ? 'active' : ''}`}>
-                <FileText size={20} />
-                <span>My Reports</span>
+              <Link to="/dashboard/doctor/cases" className={`sidebar-link ${currentPath === '/dashboard/doctor/cases' ? 'active' : ''}`}>
+                <Users size={19} />
+                <span>Patient Cases</span>
               </Link>
-              <Link to="/dashboard/patient/predictions" className={`sidebar-link ${currentPath === '/dashboard/patient/predictions' ? 'active' : ''}`}>
-                <Activity size={20} />
-                <span>My Predictions</span>
+              <Link to="/dashboard/doctor/verified" className={`sidebar-link ${currentPath === '/dashboard/doctor/verified' ? 'active' : ''}`}>
+                <CheckCircle2 size={19} />
+                <span>Verified Cases</span>
               </Link>
-              <Link to="/dashboard/patient/recommended-doctors" className={`sidebar-link ${currentPath === '/dashboard/patient/recommended-doctors' ? 'active' : ''}`}>
-                <Stethoscope size={20} />
-                <span>Find a Dentist</span>
+
+              <div className="sidebar-section-label">
+                <span>Consultations</span>
+              </div>
+              <Link to="/dashboard/doctor/consultations" className={`sidebar-link ${currentPath === '/dashboard/doctor/consultations' ? 'active' : ''}`}>
+                <Video size={19} />
+                <span>Consultation Requests</span>
+                {badgeCounts.consultations > 0 && (
+                  <span className={`sidebar-badge-counter ${currentPath === '/dashboard/doctor/consultations' ? 'sidebar-badge-active' : 'sidebar-badge-teal'}`}>
+                    {badgeCounts.consultations}
+                  </span>
+                )}
               </Link>
-              <Link to="/dashboard/patient/consultations" className={`sidebar-link ${currentPath === '/dashboard/patient/consultations' ? 'active' : ''}`}>
-                <Video size={20} />
-                <span>My Appointments</span>
+              <Link to="/dashboard/doctor/payments" className={`sidebar-link ${currentPath === '/dashboard/doctor/payments' ? 'active' : ''}`}>
+                <CreditCard size={19} />
+                <span>Payments & Earnings</span>
               </Link>
-              <Link to="/dashboard/patient/payments" className={`sidebar-link ${currentPath === '/dashboard/patient/payments' ? 'active' : ''}`}>
-                <CreditCard size={20} />
-                <span>Payments</span>
+              <Link to="/dashboard/doctor/history" className={`sidebar-link ${currentPath === '/dashboard/doctor/history' ? 'active' : ''}`}>
+                <History size={19} />
+                <span>Consultation History</span>
+              </Link>
+
+              <div className="sidebar-section-label">
+                <span>Account & Practice</span>
+              </div>
+              <Link to="/dashboard/doctor/profile" className={`sidebar-link ${currentPath === '/dashboard/doctor/profile' ? 'active' : ''}`}>
+                <UserCircle size={19} />
+                <span>My Profile</span>
               </Link>
             </>
           )}
 
-          {role === 'doctor' && (
+          {role === 'patient' && (
             <>
-              <Link to="/dashboard/doctor/reviews" className={`sidebar-link ${currentPath === '/dashboard/doctor/reviews' ? 'active' : ''}`}>
-                <Stethoscope size={20} />
-                <span>Pending Reviews</span>
+              <div className="sidebar-section-label">
+                <span>Diagnostic Care</span>
+              </div>
+              <Link to="/dashboard/patient/screening-history" className={`sidebar-link ${currentPath === '/dashboard/patient/screening-history' || currentPath === '/dashboard/patient/history' ? 'active' : ''}`}>
+                <History size={19} />
+                <span>Screening History</span>
               </Link>
-              <Link to="/dashboard/doctor/cases" className={`sidebar-link ${currentPath === '/dashboard/doctor/cases' ? 'active' : ''}`}>
-                <Users size={20} />
-                <span>Patient Cases</span>
+              <Link to="/dashboard/patient/reports" className={`sidebar-link ${currentPath === '/dashboard/patient/reports' ? 'active' : ''}`}>
+                <FileText size={19} />
+                <span>My Reports</span>
               </Link>
-              <Link to="/dashboard/doctor/verified" className={`sidebar-link ${currentPath === '/dashboard/doctor/verified' ? 'active' : ''}`}>
-                <CheckCircle2 size={20} />
-                <span>Verified Cases</span>
+              <Link to="/dashboard/patient/predictions" className={`sidebar-link ${currentPath === '/dashboard/patient/predictions' ? 'active' : ''}`}>
+                <Activity size={19} />
+                <span>My Predictions</span>
               </Link>
-              <Link to="/dashboard/doctor/consultations" className={`sidebar-link ${currentPath === '/dashboard/doctor/consultations' ? 'active' : ''}`}>
-                <Video size={20} />
-                <span>Consultation Requests</span>
+
+              <div className="sidebar-section-label">
+                <span>Clinical Services</span>
+              </div>
+              <Link to="/dashboard/patient/recommended-doctors" className={`sidebar-link ${currentPath === '/dashboard/patient/recommended-doctors' ? 'active' : ''}`}>
+                <Stethoscope size={19} />
+                <span>Find a Dentist</span>
               </Link>
-              <Link to="/dashboard/doctor/payments" className={`sidebar-link ${currentPath === '/dashboard/doctor/payments' ? 'active' : ''}`}>
-                <CreditCard size={20} />
+              <Link to="/dashboard/patient/consultations" className={`sidebar-link ${currentPath === '/dashboard/patient/consultations' ? 'active' : ''}`}>
+                <Video size={19} />
+                <span>My Appointments</span>
+              </Link>
+              <Link to="/dashboard/patient/payments" className={`sidebar-link ${currentPath === '/dashboard/patient/payments' ? 'active' : ''}`}>
+                <CreditCard size={19} />
                 <span>Payments</span>
               </Link>
-              <Link to="/dashboard/doctor/history" className={`sidebar-link ${currentPath === '/dashboard/doctor/history' ? 'active' : ''}`}>
-                <History size={20} />
-                <span>Consultation History</span>
+
+              <div className="sidebar-section-label">
+                <span>Wellness & Profile</span>
+              </div>
+              <Link to="/dashboard/patient/health-tips" className={`sidebar-link ${currentPath === '/dashboard/patient/health-tips' ? 'active' : ''}`}>
+                <HeartPulse size={19} />
+                <span>Health Tips</span>
+              </Link>
+              <Link to="/dashboard/patient/profile" className={`sidebar-link ${currentPath === '/dashboard/patient/profile' ? 'active' : ''}`}>
+                <UserCircle size={19} />
+                <span>My Profile</span>
               </Link>
             </>
           )}
 
           {role === 'admin' && (
             <>
+              <div className="sidebar-section-label">
+                <span>User Management</span>
+              </div>
               <Link to="/dashboard/admin/users" className={`sidebar-link ${currentPath === '/dashboard/admin/users' ? 'active' : ''}`}>
-                <Users size={20} />
+                <Users size={19} />
                 <span>User Management</span>
               </Link>
               <Link to="/dashboard/admin/doctors" className={`sidebar-link ${currentPath === '/dashboard/admin/doctors' ? 'active' : ''}`}>
-                <Stethoscope size={20} />
+                <Stethoscope size={19} />
                 <span>Doctors</span>
               </Link>
               <Link to="/dashboard/admin/patients" className={`sidebar-link ${currentPath === '/dashboard/admin/patients' ? 'active' : ''}`}>
-                <UserCircle size={20} />
+                <UserCircle size={19} />
                 <span>Patients</span>
               </Link>
+
+              <div className="sidebar-section-label">
+                <span>Intelligence & System</span>
+              </div>
               <Link to="/dashboard/admin/ai-model" className={`sidebar-link ${currentPath === '/dashboard/admin/ai-model' ? 'active' : ''}`}>
-                <BrainCircuit size={20} />
+                <BrainCircuit size={19} />
                 <span>AI Model</span>
               </Link>
               <Link to="/dashboard/admin/predictions" className={`sidebar-link ${currentPath === '/dashboard/admin/predictions' ? 'active' : ''}`}>
-                <Activity size={20} />
+                <Activity size={19} />
                 <span>Predictions</span>
               </Link>
               <Link to="/dashboard/admin/activity" className={`sidebar-link ${currentPath === '/dashboard/admin/activity' ? 'active' : ''}`}>
-                <Activity size={20} />
+                <Activity size={19} />
                 <span>System Activity</span>
               </Link>
               <Link to="/dashboard/admin/settings" className={`sidebar-link ${currentPath === '/dashboard/admin/settings' ? 'active' : ''}`}>
-                <Settings size={20} />
+                <Settings size={19} />
                 <span>Settings</span>
               </Link>
             </>
           )}
-
-          {role === 'patient' && (
-            <Link to="/dashboard/patient/health-tips" className={`sidebar-link ${currentPath === '/dashboard/patient/health-tips' ? 'active' : ''}`}>
-              <HeartPulse size={20} />
-              <span>Health Tips</span>
-            </Link>
-          )}
-
-          {role !== 'admin' && (
-            <Link to={role === 'doctor' ? '/dashboard/doctor/profile' : '/dashboard/patient/profile'} className={`sidebar-link ${currentPath === (role === 'doctor' ? '/dashboard/doctor/profile' : '/dashboard/patient/profile') ? 'active' : ''}`}>
-              <UserCircle size={20} />
-              <span>My Profile</span>
-            </Link>
-          )}
         </nav>
 
         <div className="sidebar-footer">
-          <Link 
-            to="/" 
-            className="sidebar-link text-logout"
-            onClick={() => {
-              localStorage.removeItem('dentaai_token');
-              localStorage.removeItem('dentaai_user');
-            }}
-          >
-            <LogOut size={20} />
-            <span>Logout</span>
-          </Link>
+          <div className="sidebar-user-dossier">
+            <div className="sidebar-user-avatar">
+              {getInitials(userName)}
+              <span className="sidebar-user-status-dot" title="Active & Online" />
+            </div>
+            <div className="sidebar-user-info">
+              <span className="sidebar-user-name" title={userName || (role === 'doctor' ? 'Dr. Doctor' : 'Patient')}>
+                {userName || (role === 'doctor' ? 'Dr. Doctor' : 'Patient')}
+              </span>
+              <span className="sidebar-user-role">
+                {role === 'doctor' ? 'Verified Specialist' : role === 'patient' ? 'Active Patient' : 'Portal Administrator'}
+              </span>
+            </div>
+            <button 
+              type="button"
+              className="sidebar-logout-btn"
+              onClick={handleLogout}
+              title="Logout from portal"
+              aria-label="Logout"
+            >
+              <LogOut size={17} />
+            </button>
+          </div>
         </div>
       </aside>
 
       {/* Main Content */}
       <main className={`dashboard-main ${(role === 'patient' || role === 'doctor' || role === 'admin') ? 'patient-dashboard-main' : ''}`}>
         <header className="dashboard-header-top">
-          <div className="header-left-group" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Left: Mobile hamburger + Portal Title + Status Badge */}
+          <div className="header-left-group" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <button
               type="button"
               className="mobile-hamburger-btn"
@@ -306,53 +454,91 @@ const DashboardLayout = () => {
             >
               {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
-            <div className="header-title">
-              <h3>{role.charAt(0).toUpperCase() + role.slice(1)} Portal</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#17324D', letterSpacing: '-0.3px' }}>
+                {role.charAt(0).toUpperCase() + role.slice(1)} Portal
+              </h3>
+              
+              <div className="topbar-live-status-chip">
+                <span className="topbar-live-dot" />
+                <span>{role === 'doctor' ? 'Clinical Triage Active' : role === 'patient' ? 'HIPAA Secured' : 'System Operational'}</span>
+              </div>
+
+              <div className="topbar-date-chip">
+                <Calendar size={13} color="#00A6A6" />
+                <span>{todayFormatted}</span>
+              </div>
             </div>
           </div>
-          <div className="header-user">
+
+          {/* Right: Notifications + User Account Dropdown */}
+          <div className="header-user" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             
+            {/* System Status Pill */}
+            <div className="topbar-shield-badge">
+              <ShieldCheck size={14} color="#059669" />
+              <span>HIPAA Compliant</span>
+            </div>
+
             {/* Notification Bell */}
-            <div className="notification-bell-container" ref={dropdownRef} style={{ position: 'relative', marginRight: '1rem' }}>
+            <div className="notification-bell-container" ref={dropdownRef} style={{ position: 'relative' }}>
               <button 
                 onClick={() => setShowNotifications(!showNotifications)}
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', borderRadius: '50%', color: 'var(--text-primary)', transition: 'background 0.2s' }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(6, 198, 232, 0.1)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                className="topbar-bell-btn"
+                title="Notifications"
+                aria-label="View notifications"
               >
-                <Bell size={20} />
+                <Bell size={18} />
                 {unreadCount > 0 && (
-                  <span style={{ position: 'absolute', top: '5px', right: '5px', background: 'var(--danger)', color: 'white', fontSize: '10px', fontWeight: 'bold', minWidth: '16px', height: '16px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+                  <span className="topbar-bell-badge">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
               </button>
               
               {showNotifications && (
-                <div style={{ position: 'absolute', top: '50px', right: '0', width: '320px', background: 'white', borderRadius: '12px', boxShadow: 'var(--shadow-lg)', border: '1px solid var(--border-glass)', zIndex: 100, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ padding: '16px', borderBottom: '1px solid var(--border-glass)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-main)' }}>
-                    <h4 style={{ margin: 0, fontSize: '16px', color: 'var(--primary)' }}>Notifications</h4>
-                    {unreadCount > 0 && <span style={{ fontSize: '12px', color: 'var(--secondary)', fontWeight: 'bold' }}>{unreadCount} New</span>}
+                <div className="topbar-notifications-dropdown">
+                  <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Bell size={16} color="#00A6A6" />
+                      <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 800, color: '#17324D' }}>Notifications</h4>
+                    </div>
+                    {unreadCount > 0 && (
+                      <span style={{ fontSize: '0.74rem', background: 'rgba(0, 166, 166, 0.1)', color: '#00A6A6', fontWeight: 700, padding: '2px 8px', borderRadius: '6px' }}>
+                        {unreadCount} Unread
+                      </span>
+                    )}
                   </div>
                   
-                  <div style={{ maxHeight: '360px', overflowY: 'auto' }}>
+                  <div style={{ maxHeight: '340px', overflowY: 'auto' }}>
                     {notifications.length === 0 ? (
-                      <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                        <p style={{ margin: 0 }}>No notifications yet</p>
+                      <div style={{ padding: '36px 16px', textAlign: 'center', color: '#64748B' }}>
+                        <Bell size={28} color="#CBD5E1" style={{ margin: '0 auto 8px' }} />
+                        <p style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600 }}>All caught up! No notifications.</p>
                       </div>
                     ) : (
                       notifications.map(notif => (
                         <div 
                           key={notif._id || notif.id}
                           onClick={() => handleNotificationClick(notif)}
-                          style={{ padding: '16px', borderBottom: '1px solid var(--border-light)', cursor: 'pointer', background: notif.isRead ? 'transparent' : 'rgba(6, 198, 232, 0.05)', transition: 'background 0.2s' }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(6, 198, 232, 0.1)'}
-                          onMouseLeave={(e) => e.currentTarget.style.background = notif.isRead ? 'transparent' : 'rgba(6, 198, 232, 0.05)'}
+                          style={{ 
+                            padding: '14px 18px', 
+                            borderBottom: '1px solid #F1F5F9', 
+                            cursor: 'pointer', 
+                            background: notif.isRead ? '#FFFFFF' : '#F0FDFA', 
+                            transition: 'background 0.15s ease' 
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = '#F8FAFC'}
+                          onMouseLeave={(e) => e.currentTarget.style.background = notif.isRead ? '#FFFFFF' : '#F0FDFA'}
                         >
-                          <h5 style={{ margin: '0 0 4px 0', fontSize: '14px', color: notif.isRead ? 'var(--text-primary)' : 'var(--primary)' }}>{notif.title}</h5>
-                          <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.4' }}>{notif.message}</p>
-                          <span style={{ display: 'block', marginTop: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
-                            {new Date(notif.createdAt).toLocaleString()}
+                          <h5 style={{ margin: '0 0 4px 0', fontSize: '0.86rem', fontWeight: 700, color: notif.isRead ? '#17324D' : '#00A6A6' }}>
+                            {notif.title}
+                          </h5>
+                          <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748B', lineHeight: '1.4' }}>
+                            {notif.message}
+                          </p>
+                          <span style={{ display: 'block', marginTop: '6px', fontSize: '0.72rem', color: '#94A3B8' }}>
+                            {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(notif.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                           </span>
                         </div>
                       ))
@@ -362,12 +548,112 @@ const DashboardLayout = () => {
               )}
             </div>
 
-            <div className="user-info">
-              <span className="user-name">Welcome, {userName || 'User'}</span>
+            {/* Interactive User Account Pill & Dropdown */}
+            <div className="topbar-user-menu-container" ref={userMenuRef} style={{ position: 'relative' }}>
+              <button
+                type="button"
+                onClick={() => setShowUserMenu(prev => !prev)}
+                className="topbar-user-pill-btn"
+                aria-expanded={showUserMenu}
+                aria-label="User account menu"
+              >
+                <div className="topbar-user-avatar">
+                  {getInitials(userName)}
+                  <span className="topbar-user-online-dot" />
+                </div>
+                <div className="topbar-user-text-stack">
+                  <span className="topbar-user-name">
+                    {userName || (role === 'doctor' ? 'Dr. Doctor' : 'Patient')}
+                  </span>
+                  <span className="topbar-user-role">
+                    {role === 'doctor' ? 'Verified Specialist' : role === 'patient' ? 'Care Member' : 'Admin'}
+                  </span>
+                </div>
+                <ChevronDown size={14} color="#64748B" style={{ transition: 'transform 0.2s', transform: showUserMenu ? 'rotate(180deg)' : 'none' }} />
+              </button>
+
+              {/* User Dropdown Menu */}
+              {showUserMenu && (
+                <div className="topbar-user-dropdown">
+                  <div style={{ padding: '14px 16px', borderBottom: '1px solid #F1F5F9', background: '#F8FAFC' }}>
+                    <p style={{ margin: '0 0 2px 0', fontSize: '0.88rem', fontWeight: 800, color: '#17324D' }}>
+                      {userName || 'User'}
+                    </p>
+                    <span style={{ fontSize: '0.74rem', color: '#64748B', display: 'block', textTransform: 'capitalize' }}>
+                      {role} Account • Active
+                    </span>
+                  </div>
+
+                  <div style={{ padding: '6px' }}>
+                    <Link
+                      to={role === 'doctor' ? '/dashboard/doctor/profile' : '/dashboard/patient/profile'}
+                      onClick={() => setShowUserMenu(false)}
+                      className="topbar-dropdown-item"
+                    >
+                      <UserCircle size={16} color="#00A6A6" />
+                      <span>My Profile & Practice</span>
+                    </Link>
+
+                    {role === 'doctor' && (
+                      <>
+                        <Link
+                          to="/dashboard/doctor/consultations"
+                          onClick={() => setShowUserMenu(false)}
+                          className="topbar-dropdown-item"
+                        >
+                          <Video size={16} color="#00A6A6" />
+                          <span>Consultation Requests</span>
+                        </Link>
+                        <Link
+                          to="/dashboard/doctor/payments"
+                          onClick={() => setShowUserMenu(false)}
+                          className="topbar-dropdown-item"
+                        >
+                          <CreditCard size={16} color="#00A6A6" />
+                          <span>Payments & Earnings</span>
+                        </Link>
+                      </>
+                    )}
+
+                    {role === 'patient' && (
+                      <>
+                        <Link
+                          to="/dashboard/patient/consultations"
+                          onClick={() => setShowUserMenu(false)}
+                          className="topbar-dropdown-item"
+                        >
+                          <Video size={16} color="#00A6A6" />
+                          <span>My Appointments</span>
+                        </Link>
+                        <Link
+                          to="/dashboard/patient/reports"
+                          onClick={() => setShowUserMenu(false)}
+                          className="topbar-dropdown-item"
+                        >
+                          <FileText size={16} color="#00A6A6" />
+                          <span>Clinical Reports</span>
+                        </Link>
+                      </>
+                    )}
+
+                    <div style={{ height: '1px', background: '#F1F5F9', margin: '4px 0' }} />
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        handleLogout();
+                      }}
+                      className="topbar-dropdown-item topbar-dropdown-logout"
+                    >
+                      <LogOut size={16} color="#DC2626" />
+                      <span>Logout from Session</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="user-avatar-circle">
-              <UserCircle size={24} />
-            </div>
+
           </div>
         </header>
 
@@ -429,6 +715,84 @@ const DashboardLayout = () => {
         <div className="dashboard-content">
           <Outlet />
         </div>
+
+        {/* Mobile Bottom Navigation Bar for Native-like App Feel */}
+        <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
+          {role === 'patient' && (
+            <>
+              <Link to="/dashboard/patient" className={`bottom-nav-item ${currentPath === '/dashboard/patient' ? 'active' : ''}`}>
+                <LayoutDashboard size={20} />
+                <span>Home</span>
+              </Link>
+              <Link to="/dashboard/patient/screening-history" className={`bottom-nav-item ${currentPath.includes('history') ? 'active' : ''}`}>
+                <History size={20} />
+                <span>History</span>
+              </Link>
+              <Link to="/dashboard/patient/recommended-doctors" className={`bottom-nav-item ${currentPath.includes('doctors') ? 'active' : ''}`}>
+                <Stethoscope size={20} />
+                <span>Dentists</span>
+              </Link>
+              <Link to="/dashboard/patient/consultations" className={`bottom-nav-item ${currentPath.includes('consultations') ? 'active' : ''}`}>
+                <Video size={20} />
+                <span>Appts</span>
+              </Link>
+              <Link to="/dashboard/patient/profile" className={`bottom-nav-item ${currentPath.includes('profile') ? 'active' : ''}`}>
+                <UserCircle size={20} />
+                <span>Profile</span>
+              </Link>
+            </>
+          )}
+
+          {role === 'doctor' && (
+            <>
+              <Link to="/dashboard/doctor" className={`bottom-nav-item ${currentPath === '/dashboard/doctor' ? 'active' : ''}`}>
+                <LayoutDashboard size={20} />
+                <span>Home</span>
+              </Link>
+              <Link to="/dashboard/doctor/reviews" className={`bottom-nav-item ${currentPath.includes('reviews') ? 'active' : ''}`}>
+                <Stethoscope size={20} />
+                <span>Reviews</span>
+              </Link>
+              <Link to="/dashboard/doctor/cases" className={`bottom-nav-item ${currentPath.includes('cases') ? 'active' : ''}`}>
+                <Users size={20} />
+                <span>Cases</span>
+              </Link>
+              <Link to="/dashboard/doctor/consultations" className={`bottom-nav-item ${currentPath.includes('consultations') ? 'active' : ''}`}>
+                <Video size={20} />
+                <span>Requests</span>
+              </Link>
+              <Link to="/dashboard/doctor/profile" className={`bottom-nav-item ${currentPath.includes('profile') ? 'active' : ''}`}>
+                <UserCircle size={20} />
+                <span>Profile</span>
+              </Link>
+            </>
+          )}
+
+          {role === 'admin' && (
+            <>
+              <Link to="/dashboard/admin" className={`bottom-nav-item ${currentPath === '/dashboard/admin' ? 'active' : ''}`}>
+                <LayoutDashboard size={20} />
+                <span>Home</span>
+              </Link>
+              <Link to="/dashboard/admin/users" className={`bottom-nav-item ${currentPath.includes('users') ? 'active' : ''}`}>
+                <Users size={20} />
+                <span>Users</span>
+              </Link>
+              <Link to="/dashboard/admin/doctors" className={`bottom-nav-item ${currentPath.includes('doctors') ? 'active' : ''}`}>
+                <Stethoscope size={20} />
+                <span>Doctors</span>
+              </Link>
+              <Link to="/dashboard/admin/ai-model" className={`bottom-nav-item ${currentPath.includes('ai-model') ? 'active' : ''}`}>
+                <BrainCircuit size={20} />
+                <span>AI Model</span>
+              </Link>
+              <Link to="/dashboard/admin/settings" className={`bottom-nav-item ${currentPath.includes('settings') ? 'active' : ''}`}>
+                <Settings size={20} />
+                <span>Settings</span>
+              </Link>
+            </>
+          )}
+        </nav>
       </main>
     </div>
   );

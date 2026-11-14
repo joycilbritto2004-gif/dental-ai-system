@@ -9,14 +9,22 @@ const {
   acceptConsultation,
   rejectConsultation,
   startConsultation,
-  completeConsultation
+  completeConsultation,
+  cancelConsultation,
+  getDoctorAvailableSlots,
+  checkSlotAvailability
 } = require('../controllers/consultationController');
+
+// Doctor slot availability endpoints (must precede /:id)
+router.get('/check-slot', checkSlotAvailability);
+router.get('/doctor/:doctorId/slots', getDoctorAvailableSlots);
 
 router.route('/').get(protect, getConsultations).post(protect, restrictTo('patient'), createConsultation);
 router.route('/:id').get(protect, getConsultationById).put(protect, updateConsultation).patch(protect, updateConsultation);
 
 router.route('/:id/accept').put(protect, restrictTo('doctor'), acceptConsultation).patch(protect, restrictTo('doctor'), acceptConsultation);
 router.route('/:id/reject').put(protect, restrictTo('doctor'), rejectConsultation).patch(protect, restrictTo('doctor'), rejectConsultation);
+router.route('/:id/cancel').put(protect, cancelConsultation).patch(protect, cancelConsultation);
 router.route('/:id/start').put(protect, restrictTo('doctor'), startConsultation).patch(protect, restrictTo('doctor'), startConsultation);
 router.route('/:id/complete').put(protect, restrictTo('doctor'), completeConsultation).patch(protect, restrictTo('doctor'), completeConsultation);
 

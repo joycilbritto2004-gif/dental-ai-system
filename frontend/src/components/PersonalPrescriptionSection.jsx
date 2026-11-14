@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { 
   Pill, 
   Calendar, 
@@ -8,13 +7,8 @@ import {
   ShieldCheck, 
   AlertCircle, 
   Clock, 
-  CheckCircle2, 
-  Info,
-  Sparkles,
-  Stethoscope,
-  ChevronRight
+  CheckCircle2
 } from 'lucide-react';
-import { getCareSuggestions } from '../utils/careSuggestions';
 import '../pages/Dashboard.css';
 import { API_BASE } from '../config';
 
@@ -33,7 +27,8 @@ const PersonalPrescriptionSection = ({
   consultationId = null,
   existingPrescription = null,
   doctorVerification = null,
-  onRefresh = null
+  onRefresh = null,
+  style = {}
 }) => {
   const [prescription, setPrescription] = useState(existingPrescription);
   const [isLoading, setIsLoading] = useState(!existingPrescription && Boolean(consultationId || scanId));
@@ -95,8 +90,6 @@ const PersonalPrescriptionSection = ({
     prescription.status !== 'Awaiting Dentist Review'
   );
 
-  const careData = getCareSuggestions(condition || prescription?.condition || 'Dental Condition');
-
   const prescriptionDateFormatted = prescription?.prescriptionDate
     ? new Date(prescription.prescriptionDate).toLocaleDateString('en-US', {
         year: 'numeric',
@@ -124,7 +117,10 @@ const PersonalPrescriptionSection = ({
         padding: '28px',
         boxShadow: '0 8px 30px rgba(0, 166, 166, 0.07)',
         position: 'relative',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        boxSizing: 'border-box',
+        width: '100%',
+        ...style
       }}
     >
       {/* Decorative top-right ambient glow */}
@@ -142,6 +138,7 @@ const PersonalPrescriptionSection = ({
 
       {/* HEADER SECTION */}
       <div 
+        className="prescription-header-row"
         style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -153,7 +150,7 @@ const PersonalPrescriptionSection = ({
           marginBottom: '24px'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <div className="prescription-header-left" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div 
             style={{
               width: '48px',
@@ -210,7 +207,7 @@ const PersonalPrescriptionSection = ({
         </div>
 
         {/* STATUS BADGE & ACTIONS */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div className="prescription-header-right" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {isVerified ? (
             <span 
               style={{
@@ -277,38 +274,92 @@ const PersonalPrescriptionSection = ({
         </div>
       </div>
 
-      {/* TWO-COLUMN GRID (Medications Left, Additional Care Right) */}
-      <div 
-        className="prescription-grid-two-col"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: '24px'
-        }}
-      >
-        {/* COLUMN 1: MEDICATIONS / PHARMACEUTICAL SECTION */}
+      {/* CONTENT AREA: UNVERIFIED SAFE NOTICE VS VERIFIED PRESCRIPTION */}
+      {!isVerified ? (
+        /* PRE-VERIFICATION SAFE NOTICE & CALL TO ACTION (Full width, focused on prescription review) */
         <div 
+          className="prescription-verification-notice"
           style={{
             background: '#FFFFFF',
             borderRadius: '16px',
             border: '1px solid rgba(0, 166, 166, 0.18)',
-            padding: '22px',
+            padding: '24px 20px',
             boxShadow: '0 4px 16px rgba(0, 0, 0, 0.02)',
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+            width: '100%',
+            boxSizing: 'border-box'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-            <div style={{ background: 'rgba(0, 166, 166, 0.1)', color: '#00A6A6', borderRadius: '8px', padding: '6px' }}>
-              <Pill size={18} />
-            </div>
-            <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#17324D' }}>
-              {isVerified ? 'Prescribed Medications' : 'Medications'}
-            </h4>
+          <div 
+            style={{
+              width: '46px',
+              height: '46px',
+              borderRadius: '50%',
+              background: 'rgba(217, 119, 6, 0.12)',
+              color: '#D97706',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '14px'
+            }}
+          >
+            <AlertCircle size={24} />
           </div>
+          <h4 style={{ margin: '0 0 8px 0', fontSize: '1.15rem', fontWeight: 800, color: '#92400E' }}>
+            Dentist Verification Required
+          </h4>
+          <p style={{ margin: '0 0 14px 0', fontSize: '0.92rem', color: '#78350F', lineHeight: 1.5, fontWeight: 500, maxWidth: '620px' }}>
+            Your AI screening is complete. A dentist must review your results before an official personal prescription can be issued.
+          </p>
+          <div 
+            style={{
+              fontSize: '0.82rem',
+              color: '#A16207',
+              background: '#FEF9C3',
+              border: '1px solid #FDE047',
+              padding: '10px 18px',
+              borderRadius: '10px',
+              lineHeight: 1.45,
+              maxWidth: '620px'
+            }}
+          >
+            Specific pharmaceuticals, therapeutic dosages, and treatment durations are only prescribed following professional clinical evaluation.
+          </div>
+        </div>
+      ) : (
+        /* VERIFIED STATE: MEDICATIONS & OPTIONAL SPECIALIST INSTRUCTIONS */
+        <div 
+          className="prescription-grid-two-col"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: prescription?.additionalInstructions ? 'repeat(auto-fit, minmax(320px, 1fr))' : '1fr',
+            gap: '24px'
+          }}
+        >
+          {/* COLUMN 1: PRESCRIBED MEDICATIONS */}
+          <div 
+            style={{
+              background: '#FFFFFF',
+              borderRadius: '16px',
+              border: '1px solid rgba(0, 166, 166, 0.18)',
+              padding: '22px',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.02)',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+              <div style={{ background: 'rgba(0, 166, 166, 0.1)', color: '#00A6A6', borderRadius: '8px', padding: '6px' }}>
+                <Pill size={18} />
+              </div>
+              <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#17324D' }}>
+                Prescribed Medications
+              </h4>
+            </div>
 
-          {isVerified ? (
-            /* VERIFIED MEDICATIONS LIST */
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
               {prescription.medications.map((med, idx) => (
                 <div 
@@ -359,82 +410,30 @@ const PersonalPrescriptionSection = ({
                 </div>
               ))}
             </div>
-          ) : (
-            /* PRE-VERIFICATION SAFE NOTICE */
-            <div 
-              style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                background: '#FEFCE8',
-                border: '1px dashed #FDE047',
-                borderRadius: '12px',
-                padding: '20px',
-                textAlign: 'center'
-              }}
-            >
-              <div 
-                style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '50%',
-                  background: 'rgba(217, 119, 6, 0.12)',
-                  color: '#D97706',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 12px'
-                }}
-              >
-                <AlertCircle size={22} />
-              </div>
-              <h5 style={{ margin: '0 0 6px 0', fontSize: '0.96rem', fontWeight: 800, color: '#92400E' }}>
-                Dentist Verification Required
-              </h5>
-              <p style={{ margin: '0 0 14px 0', fontSize: '0.88rem', color: '#78350F', lineHeight: 1.45, fontWeight: 500 }}>
-                Your AI screening is complete. A dentist must review your results before a personal prescription can be issued.
-              </p>
-              <div 
-                style={{
-                  fontSize: '0.78rem',
-                  color: '#A16207',
-                  background: '#FEF9C3',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  lineHeight: 1.4
-                }}
-              >
-                Specific pharmaceuticals, therapeutic dosages, and treatment durations are only prescribed following professional clinical evaluation.
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* COLUMN 2: ADDITIONAL CARE INSTRUCTIONS SECTION */}
-        <div 
-          style={{
-            background: '#FFFFFF',
-            borderRadius: '16px',
-            border: '1px solid rgba(0, 166, 166, 0.18)',
-            padding: '22px',
-            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.02)',
-            display: 'flex',
-            flexDirection: 'column'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-            <div style={{ background: 'rgba(0, 166, 166, 0.1)', color: '#00A6A6', borderRadius: '8px', padding: '6px' }}>
-              <ShieldCheck size={18} />
-            </div>
-            <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#17324D' }}>
-              Additional Care Instructions
-            </h4>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
-            {isVerified && prescription?.additionalInstructions ? (
-              /* DENTIST'S SPECIFIC INSTRUCTIONS */
+          {/* COLUMN 2 (ONLY IF DENTIST PROVIDED SPECIALIST INSTRUCTIONS) */}
+          {prescription?.additionalInstructions && (
+            <div 
+              style={{
+                background: '#FFFFFF',
+                borderRadius: '16px',
+                border: '1px solid rgba(0, 166, 166, 0.18)',
+                padding: '22px',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.02)',
+                display: 'flex',
+                flexDirection: 'column'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                <div style={{ background: 'rgba(0, 166, 166, 0.1)', color: '#00A6A6', borderRadius: '8px', padding: '6px' }}>
+                  <ShieldCheck size={18} />
+                </div>
+                <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#17324D' }}>
+                  Dentist Instructions
+                </h4>
+              </div>
+
               <div 
                 style={{
                   background: '#F0FDF4',
@@ -454,79 +453,10 @@ const PersonalPrescriptionSection = ({
                   {prescription.additionalInstructions}
                 </p>
               </div>
-            ) : null}
-
-            {/* SAFE ORAL-CARE GUIDANCE (Safe for both pending and verified states) */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {(careData.precautions || [
-                'Brush twice daily using a soft-bristled toothbrush and fluoride toothpaste.',
-                'Floss gently between teeth once daily to remove plaque.',
-                'Rinse with warm saline water to soothe sensitive oral tissues.',
-                'Avoid excessively hot, acidic, or sugary foods.'
-              ]).slice(0, 4).map((tip, idx) => (
-                <div 
-                  key={idx}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '10px',
-                    fontSize: '0.86rem',
-                    color: '#334155',
-                    lineHeight: 1.45
-                  }}
-                >
-                  <div 
-                    style={{
-                      background: 'rgba(0, 166, 166, 0.1)',
-                      color: '#00A6A6',
-                      borderRadius: '50%',
-                      width: '18px',
-                      height: '18px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      marginTop: '2px',
-                      fontSize: '11px',
-                      fontWeight: 800
-                    }}
-                  >
-                    ✓
-                  </div>
-                  <span>{tip}</span>
-                </div>
-              ))}
             </div>
-
-            {/* CALL TO ACTION (When unverified) */}
-            {!isVerified && (
-              <div style={{ marginTop: 'auto', paddingTop: '14px' }}>
-                <Link
-                  to="/dashboard/patient/recommended-doctors"
-                  state={{ condition }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    background: 'linear-gradient(135deg, #00A6A6 0%, #06C6E8 100%)',
-                    color: '#FFFFFF',
-                    padding: '12px 18px',
-                    borderRadius: '12px',
-                    fontWeight: 700,
-                    fontSize: '0.9rem',
-                    textDecoration: 'none',
-                    boxShadow: '0 4px 14px rgba(0, 166, 166, 0.25)',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <Stethoscope size={16} /> Connect with Dentist for Prescription <ChevronRight size={16} />
-                </Link>
-              </div>
-            )}
-          </div>
+          )}
         </div>
-      </div>
+      )}
 
       {/* PRINT-ONLY FORMAL PRESCRIPTION SHEET (Visible only during window.print) */}
       <div className="print-prescription-sheet" style={{ display: 'none' }}>
