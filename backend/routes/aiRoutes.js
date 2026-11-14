@@ -10,7 +10,14 @@ const crypto = require('crypto');
 const ScanHistory = require('../models/ScanHistory');
 const { verifyScan, getPendingScans } = require('../controllers/scanHistoryController');
 
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://127.0.0.1:5002';
+const getAiServiceUrl = () => {
+  let url = (process.env.AI_SERVICE_URL || 'http://127.0.0.1:5002').trim();
+  if (!url) return 'http://127.0.0.1:5002';
+  if (!/^https?:\/\//i.test(url)) {
+    url = url.includes('.onrender.com') ? `https://${url}` : `http://${url}`;
+  }
+  return url.replace(/\/+$/, '');
+};
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png'];
@@ -44,13 +51,14 @@ const handleUploadErrors = (req, res, next) => {
 // @route   GET /api/ai/health
 // @access  Public
 router.get('/health', async (req, res) => {
+  const aiUrl = getAiServiceUrl();
   try {
-    const aiResponse = await axios.get(`${AI_SERVICE_URL}/api/ai/health`, { timeout: 4000 });
+    const aiResponse = await axios.get(`${aiUrl}/api/ai/health`, { timeout: 4000 });
     res.json(aiResponse.data);
   } catch (error) {
     res.status(503).json({ 
       status: 'error', 
-      message: `Python AI service unreachable at ${AI_SERVICE_URL}` 
+      message: `Python AI service unreachable at ${aiUrl}` 
     });
   }
 });
@@ -79,22 +87,31 @@ router.post('/predict', protect, restrictTo('patient'), handleUploadErrors, asyn
     formData.append('image', fs.createReadStream(req.file.path), req.file.originalname);
 
     // Forward the request to Python AI backend running on configured port
-    const aiResponse = await axios.post(`${AI_SERVICE_URL}/api/ai/predict`, formData, {
+    const aiUrl = getAiServiceUrl();
+    const aiResponse = await axios.post(`${aiUrl}/api/ai/predict`, formData, {
       headers: {
         ...formData.getHeaders(),
       },
-      timeout: 30000,
-    });
-
-    // Clean up temporary file
-    fs.unlink(req.file.path, (err) => {
-      if (err) console.error('Error deleting temp file:', err);
+      timeout: 120000,
     });
 
     const prediction = aiResponse.data || {};
     if (!prediction.condition || prediction.confidence === undefined) {
+      if (req.file && req.file.path) fs.unlink(req.file.path, () => {});
       return res.status(502).json({ error: 'AI service returned an incomplete prediction' });
     }
+
+    // Persist scan image to permanent upload directory on the backend server
+    const UPLOAD_PERM_DIR = path.join(__dirname, '..', 'uploads');
+    fs.mkdirSync(UPLOAD_PERM_DIR, { recursive: true });
+    const permFileName = prediction.imagePath ? path.basename(prediction.imagePath) : path.basename(req.file.path);
+    const permPath = path.join(UPLOAD_PERM_DIR, permFileName);
+    try {
+      fs.copyFileSync(req.file.path, permPath);
+    } catch (e) {
+      console.warn('Could not copy image to permanent upload directory:', e.message);
+    }
+    fs.unlink(req.file.path, () => {});
 
     // Persist the result here, from the model's own response, rather than trusting the
     // browser to post it back afterwards — otherwise a patient can substitute any

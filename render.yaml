@@ -36,7 +36,7 @@ services:
     plan: free
     rootDir: ai_model
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn -w 1 --bind 0.0.0.0:$PORT app:app
+    startCommand: gunicorn -w 1 --threads 2 --timeout 120 --bind 0.0.0.0:$PORT app:app
     healthCheckPath: /api/ai/health
     envVars:
       - key: PYTHON_VERSION

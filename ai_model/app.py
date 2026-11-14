@@ -1,6 +1,13 @@
 import os
 import uuid
 import logging
+
+# Limit memory and threads for cloud container stability
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['TF_NUM_INTRAOP_THREADS'] = '1'
+os.environ['TF_NUM_INTEROP_THREADS'] = '1'
+
 # pyrefly: ignore [missing-import]
 import numpy as np
 try:
@@ -27,9 +34,7 @@ logger = logging.getLogger(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, 'best_dental_model.keras')
 
-# Save uploads to the backend folder; the Node API serves them from there through an
-# authenticated, ownership-checked route (GET /api/scans/image/:filename).
-UPLOAD_FOLDER = os.path.abspath(os.path.join(BASE_DIR, '..', 'backend', 'uploads'))
+UPLOAD_FOLDER = os.path.abspath(os.path.join(BASE_DIR, 'uploads'))
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
