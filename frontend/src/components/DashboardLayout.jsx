@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
-import { Activity, UserCircle, LogOut, LayoutDashboard, HeartPulse, Stethoscope, BriefcaseMedical, Users, CheckCircle2, BrainCircuit, Settings, FileText, MessageSquare, CreditCard, History, Video, Bell, Menu, X, Calendar, ChevronDown, ShieldCheck } from 'lucide-react';
+import { Activity, UserCircle, LogOut, LayoutDashboard, HeartPulse, Stethoscope, BriefcaseMedical, Users, CheckCircle2, BrainCircuit, Settings, FileText, MessageSquare, CreditCard, History, Video, Bell, Menu, X, Calendar, ChevronDown } from 'lucide-react';
 import { getSocket, registerUserSocket } from '../utils/socket';
 import './DashboardLayout.css';
 import { API_BASE } from '../config';
@@ -455,12 +455,6 @@ const DashboardLayout = () => {
           {/* Right: Notifications + User Account Dropdown */}
           <div className="header-user" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             
-            {/* System Status Pill */}
-            <div className="topbar-shield-badge">
-              <ShieldCheck size={14} color="#059669" />
-              <span>HIPAA Compliant</span>
-            </div>
-
             {/* Notification Bell */}
             <div className="notification-bell-container" ref={dropdownRef} style={{ position: 'relative' }}>
               <button 
