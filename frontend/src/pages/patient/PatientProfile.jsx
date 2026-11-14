@@ -1,20 +1,20 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-  UserCircle, 
-  Save, 
-  Phone, 
-  Mail, 
-  Lock, 
-  User as UserIcon, 
-  ShieldCheck, 
+import {
+  UserCircle,
+  Save,
+  Phone,
+  Mail,
+  Lock,
+  User as UserIcon,
+  ShieldCheck,
   ShieldAlert,
-  Sparkles, 
-  Calendar, 
-  KeyRound, 
-  CheckCircle2, 
-  Eye, 
+  Sparkles,
+  Calendar,
+  KeyRound,
+  CheckCircle2,
+  Eye,
   EyeOff,
   ArrowLeft,
   Activity,
@@ -33,6 +33,10 @@ const PatientProfile = () => {
     phone: '',
     password: '',
     confirmPassword: ''
+  });
+  const [initialData, setInitialData] = useState({
+    name: '',
+    phone: ''
   });
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -54,10 +58,16 @@ const PatientProfile = () => {
       if (res.ok) {
         const data = await res.json();
         setUserData(data);
+        const initialName = data.name || '';
+        const initialPhone = data.phone || '';
+        setInitialData({
+          name: initialName,
+          phone: initialPhone
+        });
         setFormData({
-          name: data.name || '',
+          name: initialName,
           email: data.email || '',
-          phone: data.phone || '',
+          phone: initialPhone,
           password: '',
           confirmPassword: ''
         });
@@ -75,19 +85,75 @@ const PatientProfile = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // Change detection: compare trimmed current values against the initial snapshot
+  const currentName = (formData.name || '').trim();
+  const currentPhone = (formData.phone || '').trim();
+  const initialName = (initialData.name || '').trim();
+  const initialPhone = (initialData.phone || '').trim();
+
+  const isNameChanged = currentName !== initialName;
+  const isPhoneChanged = currentPhone !== initialPhone;
+  const isPasswordEntered = Boolean(formData.password && formData.password.length > 0);
+  const isConfirmEntered = Boolean(formData.confirmPassword && formData.confirmPassword.length > 0);
+
+  // Enable Save Changes only when at least one editable field has genuinely changed
+  const isModified = isNameChanged || isPhoneChanged || isPasswordEntered || isConfirmEntered;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (formData.password && formData.password !== formData.confirmPassword) {
-      return setMessage({ type: 'error', text: 'Passwords do not match. Please verify your new password.' });
+
+    // 1. No-Change Protection
+    if (!isModified) {
+      setMessage({ type: 'info', text: 'No changes to save.' });
+      return;
     }
 
-    if (formData.password && formData.password.length < 6) {
-      return setMessage({ type: 'error', text: 'New password must be at least 6 characters long.' });
+    // 2. Validate Name
+    if (isNameChanged && !currentName) {
+      setMessage({ type: 'error', text: 'Full name cannot be empty.' });
+      return;
     }
-    
+
+    // 3. Password Validation
+    if (isPasswordEntered || isConfirmEntered) {
+      if (!formData.password) {
+        setMessage({ type: 'error', text: 'Please enter a new password.' });
+        return;
+      }
+      if (!formData.confirmPassword) {
+        setMessage({ type: 'error', text: 'Please confirm your new password.' });
+        return;
+      }
+      if (formData.password !== formData.confirmPassword) {
+        setMessage({ type: 'error', text: 'Passwords do not match. Please verify your new password.' });
+        return;
+      }
+      if (formData.password.length < 6) {
+        setMessage({ type: 'error', text: 'New password must be at least 6 characters long.' });
+        return;
+      }
+    }
+
+    // 4. Submit ONLY the fields that have actually changed
+    const payload = {};
+    if (isNameChanged) {
+      payload.name = currentName;
+    }
+    if (isPhoneChanged) {
+      payload.phone = currentPhone;
+    }
+    if (isPasswordEntered) {
+      payload.password = formData.password;
+    }
+
+    if (Object.keys(payload).length === 0) {
+      setMessage({ type: 'info', text: 'No changes to save.' });
+      return;
+    }
+
     setSaving(true);
     setMessage({ type: '', text: '' });
-    
+
     try {
       const token = localStorage.getItem('dentaai_token');
       const res = await fetch(`${API_BASE}/api/auth/profile`, {
@@ -96,28 +162,47 @@ const PatientProfile = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          name: formData.name,
-          phone: formData.phone,
-          ...(formData.password ? { password: formData.password } : {})
-        })
+        body: JSON.stringify(payload)
       });
-      
+
       const data = await res.json();
-      
+
       if (res.ok) {
-        setMessage({ type: 'success', text: 'Your profile and security credentials have been updated successfully!' });
-        setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
+        const updatedName = data.name !== undefined ? data.name : (payload.name !== undefined ? payload.name : initialData.name);
+        const updatedPhone = data.phone !== undefined ? data.phone : (payload.phone !== undefined ? payload.phone : initialData.phone);
+
+        // Update snapshot of original values only after backend confirms successful save
+        setInitialData({
+          name: updatedName,
+          phone: updatedPhone
+        });
+
+        // Reset password fields and synchronize form data
+        setFormData(prev => ({
+          ...prev,
+          name: updatedName,
+          phone: updatedPhone,
+          password: '',
+          confirmPassword: ''
+        }));
+
         setUserData(prev => ({ ...prev, ...data }));
-        
-        // Update local storage user profile name
+
+        // Display success message only after successful database update
+        setMessage({ type: 'success', text: 'Changes saved successfully.' });
+
+        // Update local storage user profile name & phone if present
         const userStr = localStorage.getItem('dentaai_user');
         if (userStr) {
-           const user = JSON.parse(userStr);
-           user.name = data.name;
-           if (data.phone) user.phone = data.phone;
-           localStorage.setItem('dentaai_user', JSON.stringify(user));
-           window.dispatchEvent(new Event('storage'));
+          try {
+            const user = JSON.parse(userStr);
+            if (payload.name) user.name = updatedName;
+            if (payload.phone !== undefined) user.phone = updatedPhone;
+            localStorage.setItem('dentaai_user', JSON.stringify(user));
+            window.dispatchEvent(new Event('storage'));
+          } catch (e) {
+            console.warn('Could not update dentaai_user in localStorage:', e);
+          }
         }
       } else {
         setMessage({ type: 'error', text: data.message || 'Failed to update profile settings.' });
@@ -136,27 +221,27 @@ const PatientProfile = () => {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   };
 
-  const formattedJoinDate = userData?.createdAt 
+  const formattedJoinDate = userData?.createdAt
     ? new Date(userData.createdAt).toLocaleDateString(undefined, {
-        month: 'long',
-        year: 'numeric'
-      })
+      month: 'long',
+      year: 'numeric'
+    })
     : 'Recent Member';
 
   if (loading) {
     return (
       <div className="screening-history-wrapper">
-        <div 
-          style={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            padding: '80px 20px', 
-            background: '#FFFFFF', 
-            borderRadius: '24px', 
-            border: '1px solid #BFD4E5', 
-            boxShadow: '0 6px 24px rgba(7, 26, 51, 0.04)' 
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '80px 20px',
+            background: '#FFFFFF',
+            borderRadius: '24px',
+            border: '1px solid #BFD4E5',
+            boxShadow: '0 6px 24px rgba(7, 26, 51, 0.04)'
           }}
         >
           <Activity className="spin-anim" size={38} color="#00A6A6" style={{ marginBottom: '16px' }} />
@@ -170,7 +255,7 @@ const PatientProfile = () => {
 
   return (
     <div className="screening-history-wrapper">
-      
+
       {/* 1. CLINICAL HEADER CARD */}
       <div className="screening-header-card">
         <div className="screening-header-stripe"></div>
@@ -186,24 +271,24 @@ const PatientProfile = () => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <div 
-              style={{ 
-                display: 'inline-flex', 
-                alignItems: 'center', 
-                gap: '6px', 
-                padding: '9px 16px', 
-                borderRadius: '999px', 
-                background: '#ECFDF5', 
-                color: '#059669', 
-                border: '1px solid #A7F3D0', 
-                fontSize: '0.8rem', 
-                fontWeight: 700 
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '9px 16px',
+                borderRadius: '999px',
+                background: '#ECFDF5',
+                color: '#059669',
+                border: '1px solid #A7F3D0',
+                fontSize: '0.8rem',
+                fontWeight: 700
               }}
             >
               <ShieldCheck size={15} /> 256-Bit SSL Encrypted
             </div>
-            <Link 
-              to="/dashboard/patient" 
+            <Link
+              to="/dashboard/patient"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -228,10 +313,10 @@ const PatientProfile = () => {
 
       {/* 2. TWO-COLUMN BALANCED CLINICAL LAYOUT */}
       <div className="patient-profile-layout">
-        
+
         {/* LEFT COLUMN: PATIENT IDENTITY & CREDENTIALS CARD */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          
+
           <div className="patient-profile-card" style={{ textAlign: 'center' }}>
             {/* Avatar Circle with Initials */}
             <div className="patient-avatar-large">
@@ -274,27 +359,29 @@ const PatientProfile = () => {
 
         {/* RIGHT COLUMN: PROFILE DETAILS & SECURITY UPDATE FORMS */}
         <div>
-          
+
           {/* Notification Alert Toast */}
           {message.text && (
-            <div 
-              style={{ 
-                padding: '16px 20px', 
-                borderRadius: '16px', 
-                marginBottom: '24px', 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '12px', 
-                fontWeight: 600, 
+            <div
+              style={{
+                padding: '16px 20px',
+                borderRadius: '16px',
+                marginBottom: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                fontWeight: 600,
                 fontSize: '0.9rem',
-                background: message.type === 'error' ? '#FEF2F2' : '#ECFDF5', 
-                color: message.type === 'error' ? '#991B1B' : '#065F46', 
-                border: `1px solid ${message.type === 'error' ? '#FCA5A5' : '#A7F3D0'}`,
+                background: message.type === 'error' ? '#FEF2F2' : message.type === 'info' ? '#F0F9FF' : '#ECFDF5',
+                color: message.type === 'error' ? '#991B1B' : message.type === 'info' ? '#0369A1' : '#065F46',
+                border: `1px solid ${message.type === 'error' ? '#FCA5A5' : message.type === 'info' ? '#BAE6FD' : '#A7F3D0'}`,
                 boxShadow: '0 4px 14px rgba(0, 0, 0, 0.03)'
               }}
             >
               {message.type === 'success' ? (
                 <CheckCircle2 size={20} color="#059669" style={{ flexShrink: 0 }} />
+              ) : message.type === 'info' ? (
+                <Sparkles size={20} color="#0284C7" style={{ flexShrink: 0 }} />
               ) : (
                 <AlertTriangle size={20} color="#DC2626" style={{ flexShrink: 0 }} />
               )}
@@ -303,7 +390,7 @@ const PatientProfile = () => {
           )}
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            
+
             {/* SECTION 1: PERSONAL INFORMATION */}
             <div className="patient-profile-card">
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '22px' }}>
@@ -321,19 +408,19 @@ const PatientProfile = () => {
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
-                
+
                 {/* Full Name */}
                 <div>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#17324D', fontWeight: 700, marginBottom: '8px', fontSize: '0.86rem' }}>
                     <UserIcon size={15} color="#00A6A6" /> Full Name
                   </label>
-                  <input 
-                    type="text" 
-                    name="name" 
-                    value={formData.name} 
-                    onChange={handleChange} 
-                    required 
-                    className="patient-input-field" 
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                    className="patient-input-field"
                     placeholder="Enter your full name"
                   />
                 </div>
@@ -343,13 +430,13 @@ const PatientProfile = () => {
                   <label style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#17324D', fontWeight: 700, marginBottom: '8px', fontSize: '0.86rem' }}>
                     <Phone size={15} color="#00A6A6" /> Phone Number
                   </label>
-                  <input 
-                    type="tel" 
-                    name="phone" 
-                    value={formData.phone} 
-                    onChange={handleChange} 
-                    className="patient-input-field" 
-                    placeholder="+91 98765 43210" 
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className="patient-input-field"
+                    placeholder="+91 98765 43210"
                   />
                 </div>
 
@@ -363,12 +450,30 @@ const PatientProfile = () => {
                       Locked & Verified
                     </span>
                   </div>
-                  <input 
-                    type="email" 
-                    value={formData.email} 
-                    disabled 
-                    className="patient-input-field" 
+                  <input
+                    type="email"
+                    value={formData.email}
+                    disabled
+                    className="patient-input-field"
                     title="Email is verified and cannot be changed"
+                  />
+                </div>
+
+                {/* Account Role */}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#17324D', fontWeight: 700, fontSize: '0.86rem' }}>
+                      <ShieldCheck size={15} color="#00A6A6" /> Access Role
+                    </label>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, background: '#ECFDF5', color: '#059669', padding: '2px 8px', borderRadius: '6px' }}>
+                      Verified
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    value="Patient (Self-Care Portal)"
+                    disabled
+                    className="patient-input-field"
                   />
                 </div>
 
@@ -392,19 +497,19 @@ const PatientProfile = () => {
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
-                
+
                 {/* New Password */}
                 <div>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#17324D', fontWeight: 700, marginBottom: '8px', fontSize: '0.86rem' }}>
                     <Lock size={15} color="#00A6A6" /> New Password
                   </label>
                   <div style={{ position: 'relative' }}>
-                    <input 
-                      type={showPassword ? 'text' : 'password'} 
-                      name="password" 
-                      value={formData.password} 
-                      onChange={handleChange} 
-                      className="patient-input-field" 
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      name="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      className="patient-input-field"
                       placeholder="Enter minimum 6 characters"
                       style={{ paddingRight: '40px' }}
                     />
@@ -436,12 +541,12 @@ const PatientProfile = () => {
                     <Lock size={15} color="#00A6A6" /> Confirm New Password
                   </label>
                   <div style={{ position: 'relative' }}>
-                    <input 
-                      type={showConfirmPassword ? 'text' : 'password'} 
-                      name="confirmPassword" 
-                      value={formData.confirmPassword} 
-                      onChange={handleChange} 
-                      className="patient-input-field" 
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      className="patient-input-field"
                       placeholder="Re-enter your new password"
                       style={{ paddingRight: '40px' }}
                     />
@@ -470,16 +575,16 @@ const PatientProfile = () => {
               </div>
 
               {/* Password Requirement Hint */}
-              <div 
-                style={{ 
-                  marginTop: '18px', 
-                  background: '#F8FAFC', 
-                  border: '1px solid #E2E8F0', 
-                  borderRadius: '12px', 
-                  padding: '12px 16px', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '10px' 
+              <div
+                style={{
+                  marginTop: '18px',
+                  background: '#F8FAFC',
+                  border: '1px solid #E2E8F0',
+                  borderRadius: '12px',
+                  padding: '12px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
                 }}
               >
                 <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00A6A6', flexShrink: 0 }}></div>
@@ -490,12 +595,12 @@ const PatientProfile = () => {
             </div>
 
             {/* ACTION BAR CARD */}
-            <div 
-              style={{ 
-                background: '#FFFFFF', 
-                border: '1px solid #BFD4E5', 
-                borderRadius: '20px', 
-                padding: '20px 28px', 
+            <div
+              style={{
+                background: '#FFFFFF',
+                border: '1px solid #BFD4E5',
+                borderRadius: '20px',
+                padding: '20px 28px',
                 boxShadow: '0 4px 18px rgba(7, 26, 51, 0.03)',
                 display: 'flex',
                 alignItems: 'center',
@@ -505,35 +610,37 @@ const PatientProfile = () => {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <CheckCircle2 size={16} color="#059669" />
-                <span style={{ fontSize: '0.84rem', color: '#64748B', fontWeight: 600 }}>
-                  Changes will be saved immediately to your DentaAI account
+                <CheckCircle2 size={16} color={isModified ? "#059669" : "#94A3B8"} />
+                <span style={{ fontSize: '0.84rem', color: isModified ? '#17324D' : '#94A3B8', fontWeight: 600 }}>
+                  {isModified 
+                    ? 'Unsaved changes ready to submit' 
+                    : 'All information is up to date'}
                 </span>
               </div>
 
-              <button 
-                type="submit" 
-                disabled={saving} 
-                style={{ 
-                  padding: '12px 32px', 
-                  borderRadius: '12px', 
-                  fontWeight: 800, 
+              <button
+                type="submit"
+                disabled={!isModified || saving}
+                style={{
+                  padding: '12px 32px',
+                  borderRadius: '12px',
+                  fontWeight: 800,
                   fontSize: '0.92rem',
-                  display: 'inline-flex', 
-                  alignItems: 'center', 
-                  gap: '8px', 
-                  background: '#00A6A6', 
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: (!isModified || saving) ? '#94A3B8' : '#00A6A6',
                   color: '#FFFFFF',
                   border: 'none',
-                  cursor: saving ? 'not-allowed' : 'pointer',
-                  boxShadow: '0 4px 16px rgba(0, 166, 166, 0.3)',
+                  cursor: (!isModified || saving) ? 'not-allowed' : 'pointer',
+                  boxShadow: (!isModified || saving) ? 'none' : '0 4px 16px rgba(0, 166, 166, 0.3)',
                   transition: 'all 0.2s ease',
-                  opacity: saving ? 0.75 : 1
+                  opacity: (!isModified || saving) ? 0.6 : 1
                 }}
               >
                 {saving ? (
                   <>
-                    <Activity className="spin-anim" size={18} /> Saving Changes...
+                    <Activity className="spin-anim" size={18} /> Saving...
                   </>
                 ) : (
                   <>

@@ -301,29 +301,96 @@ const updateUserProfile = async (req, res) => {
       if (req.body.accountStatus && req.body.accountStatus !== user.accountStatus) {
         return res.status(403).json({ message: 'Modifying account status is not permitted' });
       }
+      if (req.body.email && req.body.email.toLowerCase() !== user.email.toLowerCase()) {
+        return res.status(403).json({ message: 'Modifying verified email address is not permitted' });
+      }
 
-      if (req.body.name) user.name = req.body.name.trim();
-      if (req.body.phone !== undefined) user.phone = req.body.phone.trim();
+      let hasModifications = false;
+
+      if (req.body.name !== undefined) {
+        const trimmedName = String(req.body.name).trim();
+        if (!trimmedName) {
+          return res.status(400).json({ message: 'Full name cannot be empty' });
+        }
+        if (trimmedName !== user.name) {
+          user.name = trimmedName;
+          hasModifications = true;
+        }
+      }
+
+      if (req.body.phone !== undefined) {
+        const trimmedPhone = String(req.body.phone).trim();
+        if (trimmedPhone !== (user.phone || '')) {
+          user.phone = trimmedPhone;
+          hasModifications = true;
+        }
+      }
       
-      if (req.body.password) {
-        user.password = req.body.password;
+      if (req.body.password !== undefined && String(req.body.password).trim() !== '') {
+        const pwd = String(req.body.password);
+        if (pwd.length < 6) {
+          return res.status(400).json({ message: 'New password must be at least 6 characters long' });
+        }
+        user.password = pwd;
+        hasModifications = true;
       }
 
       // Doctor-specific profile fields
       if (user.role === 'doctor') {
-        if (req.body.specialization !== undefined) user.specialization = String(req.body.specialization).trim();
-        if (req.body.clinic !== undefined) user.clinic = String(req.body.clinic).trim();
-        if (req.body.location !== undefined) user.location = String(req.body.location).trim();
-        if (req.body.experience !== undefined) user.experience = String(req.body.experience).trim();
-        if (req.body.languages !== undefined) user.languages = String(req.body.languages).trim();
-        if (req.body.bio !== undefined) user.bio = String(req.body.bio).trim();
+        if (req.body.specialization !== undefined) {
+          const val = String(req.body.specialization).trim();
+          if (val !== (user.specialization || '')) { user.specialization = val; hasModifications = true; }
+        }
+        if (req.body.clinic !== undefined) {
+          const val = String(req.body.clinic).trim();
+          if (val !== (user.clinic || '')) { user.clinic = val; hasModifications = true; }
+        }
+        if (req.body.location !== undefined) {
+          const val = String(req.body.location).trim();
+          if (val !== (user.location || '')) { user.location = val; hasModifications = true; }
+        }
+        if (req.body.experience !== undefined) {
+          const val = String(req.body.experience).trim();
+          if (val !== (user.experience || '')) { user.experience = val; hasModifications = true; }
+        }
+        if (req.body.languages !== undefined) {
+          const val = String(req.body.languages).trim();
+          if (val !== (user.languages || '')) { user.languages = val; hasModifications = true; }
+        }
+        if (req.body.bio !== undefined) {
+          const val = String(req.body.bio).trim();
+          if (val !== (user.bio || '')) { user.bio = val; hasModifications = true; }
+        }
         if (req.body.fee !== undefined) {
           const numFee = Number(req.body.fee);
           if (isNaN(numFee) || numFee < 0) {
             return res.status(400).json({ message: 'Consultation fee must be a valid non-negative number' });
           }
-          user.fee = numFee;
+          if (numFee !== user.fee) {
+            user.fee = numFee;
+            hasModifications = true;
+          }
         }
+      }
+
+      if (!hasModifications) {
+        return res.json({
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          role: user.role,
+          verificationStatus: user.verificationStatus,
+          accountStatus: user.accountStatus,
+          specialization: user.specialization,
+          clinic: user.clinic,
+          location: user.location,
+          fee: user.fee,
+          experience: user.experience,
+          languages: user.languages,
+          bio: user.bio,
+          message: 'No changes detected.'
+        });
       }
 
       const updatedUser = await user.save();
