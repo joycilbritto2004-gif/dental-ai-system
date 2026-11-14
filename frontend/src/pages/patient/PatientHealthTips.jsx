@@ -15,7 +15,6 @@ import {
   Sparkles, 
   Info, 
   Upload, 
-  ShieldAlert,
   RefreshCw,
   Stethoscope,
   ChevronRight,
@@ -954,24 +953,6 @@ const PatientHealthTips = () => {
       )}
 
       {/* 8. CLINICAL & MEDICAL DISCLAIMER BANNER (BOTTOM) */}
-      {!loading && (
-        <div className="tips-disclaimer-card">
-          <ShieldAlert size={28} color="#00A6A6" style={{ flexShrink: 0, marginTop: '2px' }} />
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px', flexWrap: 'wrap' }}>
-              <h5 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#17324D' }}>
-                Medical & Educational Disclaimer
-              </h5>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, background: 'rgba(0, 166, 166, 0.1)', color: '#00A6A6', padding: '2px 8px', borderRadius: '999px' }}>
-                Clinical Advisory
-              </span>
-            </div>
-            <p style={{ margin: 0, fontSize: '0.88rem', color: '#334155', lineHeight: 1.6, fontWeight: 500 }}>
-              {MEDICAL_DISCLAIMER_TEXT}
-            </p>
-          </div>
-        </div>
-      )}
 
     </div>
   );
