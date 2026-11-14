@@ -301,46 +301,6 @@ const PatientDashboard = () => {
         </div>
       </motion.div>
 
-      {/* KPI Cards */}
-      <motion.div variants={stagger} className="patient-kpi-grid">
-        <KPICard 
-          icon={<ImageIcon size={22} />} 
-          value={totalScans.toString()} 
-          label="Total Scans" 
-          color="#1677FF" 
-          bg="#EBF5FF" 
-          borderColor="#1677FF" 
-          tag="Neural AI"
-        />
-        <KPICard 
-          icon={<Clock size={22} />} 
-          value={pendingScans.toString()} 
-          label="Pending Reviews" 
-          color="#D97706" 
-          bg="#FEF3C7" 
-          borderColor="#F59E0B" 
-          tag="Queue"
-        />
-        <KPICard 
-          icon={<CheckCircle2 size={22} />} 
-          value={verifiedScans.toString()} 
-          label="Verified Results" 
-          color="#10B981" 
-          bg="#DCFCE7" 
-          borderColor="#10B981" 
-          tag="Validated"
-        />
-        <KPICard 
-          icon={<HeartPulse size={22} />} 
-          value={healthStatus} 
-          label="Health Status" 
-          color="#00A6A6" 
-          bg="#E6FFFA" 
-          borderColor="#00A6A6" 
-          tag="Optimal"
-        />
-      </motion.div>
-
       <div className="patient-dashboard-grid">
         
         {/* LEFT COLUMN */}
