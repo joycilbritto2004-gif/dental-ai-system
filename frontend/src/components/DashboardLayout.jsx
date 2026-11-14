@@ -444,11 +444,6 @@ const DashboardLayout = () => {
               <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#17324D', letterSpacing: '-0.3px' }}>
                 {role.charAt(0).toUpperCase() + role.slice(1)} Portal
               </h3>
-              
-              <div className="topbar-live-status-chip">
-                <span className="topbar-live-dot" />
-                <span>{role === 'doctor' ? 'Clinical Triage Active' : role === 'patient' ? 'HIPAA Secured' : 'System Operational'}</span>
-              </div>
 
               <div className="topbar-date-chip">
                 <Calendar size={13} color="#00A6A6" />
