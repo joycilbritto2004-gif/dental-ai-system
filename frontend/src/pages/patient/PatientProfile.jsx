@@ -263,20 +263,6 @@ const PatientProfile = () => {
               </div>
 
               <div className="patient-meta-row">
-                <span style={{ color: '#64748B', fontWeight: 600 }}>Account Status</span>
-                <span style={{ color: '#059669', fontWeight: 800, background: '#ECFDF5', padding: '2px 8px', borderRadius: '6px', fontSize: '0.76rem', border: '1px solid #A7F3D0' }}>
-                  Active & Verified
-                </span>
-              </div>
-
-              <div className="patient-meta-row">
-                <span style={{ color: '#64748B', fontWeight: 600 }}>Portal Role</span>
-                <span style={{ color: '#00A6A6', fontWeight: 700 }}>
-                  Patient (Self-Care)
-                </span>
-              </div>
-
-              <div className="patient-meta-row">
                 <span style={{ color: '#64748B', fontWeight: 600 }}>Member Since</span>
                 <span style={{ color: '#17324D', fontWeight: 700 }}>
                   {formattedJoinDate}
