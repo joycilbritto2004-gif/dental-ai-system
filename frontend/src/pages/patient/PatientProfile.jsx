@@ -372,24 +372,6 @@ const PatientProfile = () => {
                   />
                 </div>
 
-                {/* Account Role */}
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#17324D', fontWeight: 700, fontSize: '0.86rem' }}>
-                      <ShieldCheck size={15} color="#00A6A6" /> Access Role
-                    </label>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 700, background: '#ECFDF5', color: '#059669', padding: '2px 8px', borderRadius: '6px' }}>
-                      Verified
-                    </span>
-                  </div>
-                  <input 
-                    type="text" 
-                    value="Patient (Self-Care Portal)" 
-                    disabled 
-                    className="patient-input-field" 
-                  />
-                </div>
-
               </div>
             </div>
 
