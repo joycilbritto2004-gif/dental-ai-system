@@ -853,9 +853,6 @@ const PatientHealthTips = () => {
                 </p>
               </div>
             </div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#F0FDFA', color: '#00A6A6', padding: '6px 14px', borderRadius: '999px', fontSize: '0.78rem', fontWeight: 800, border: '1px solid #99F6E4' }}>
-              <Sparkles size={14} /> Universal Daily Protocols
-            </div>
           </div>
 
           <div className="tips-general-grid">
