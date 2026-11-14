@@ -540,9 +540,6 @@ const DashboardLayout = () => {
                   <span className="topbar-user-name">
                     {userName || (role === 'doctor' ? 'Dr. Doctor' : 'Patient')}
                   </span>
-                  <span className="topbar-user-role">
-                    {role === 'doctor' ? 'Verified Specialist' : role === 'patient' ? 'Care Member' : 'Admin'}
-                  </span>
                 </div>
                 <ChevronDown size={14} color="#64748B" style={{ transition: 'transform 0.2s', transform: showUserMenu ? 'rotate(180deg)' : 'none' }} />
               </button>
