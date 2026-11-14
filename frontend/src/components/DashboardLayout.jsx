@@ -233,23 +233,9 @@ const DashboardLayout = () => {
             <BriefcaseMedical size={22} color="#FFFFFF" />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#17324D', letterSpacing: '-0.4px', lineHeight: 1.1 }}>
-                DentaAI
-              </span>
-              <span style={{
-                fontSize: '0.62rem',
-                fontWeight: 800,
-                padding: '2px 5px',
-                borderRadius: '4px',
-                background: 'rgba(0, 166, 166, 0.1)',
-                color: '#00A6A6',
-                letterSpacing: '0.4px',
-                textTransform: 'uppercase'
-              }}>
-                PRO
-              </span>
-            </div>
+            <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#17324D', letterSpacing: '-0.4px', lineHeight: 1.1 }}>
+              DentaAI
+            </span>
             <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748B', marginTop: '3px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               {role === 'doctor' ? 'Clinical Workspace' : role === 'patient' ? 'Patient Portal' : 'Admin Console'}
             </span>

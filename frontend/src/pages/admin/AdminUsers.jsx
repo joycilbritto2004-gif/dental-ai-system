@@ -846,7 +846,7 @@ const AdminUsers = () => {
               <p style={{ fontSize: '0.88rem', color: '#475569', lineHeight: 1.5, margin: '0 0 24px 0' }}>
                 {confirmModal.targetStatus === 'Blocked' ? (
                   <>
-                    Are you sure you want to block this user? Their active sessions will be revoked and they will be prevented from logging into the <strong>DentaAI PRO</strong> system until restored.
+                    Are you sure you want to block this user? Their active sessions will be revoked and they will be prevented from logging into the <strong>DentaAI</strong> system until restored.
                   </>
                 ) : (
                   <>
