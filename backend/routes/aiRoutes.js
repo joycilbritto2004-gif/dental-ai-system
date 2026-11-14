@@ -13,6 +13,18 @@ const { verifyScan, getPendingScans } = require('../controllers/scanHistoryContr
 const getAiServiceUrl = () => {
   let url = (process.env.AI_SERVICE_URL || 'http://127.0.0.1:5002').trim();
   if (!url) return 'http://127.0.0.1:5002';
+
+  // Render Free tier fix: internal service DNS (e.g. 'dentaai-ai-service') is not supported on Free tier.
+  // Automatically rewrite to the public HTTPS URL if it targets the Render AI service.
+  if (
+    url === 'dentaai-ai-service' ||
+    url.startsWith('http://dentaai-ai-service') ||
+    url.startsWith('https://dentaai-ai-service') ||
+    (url.includes('dentaai-ai-service') && !url.includes('.onrender.com'))
+  ) {
+    return 'https://dentaai-ai-service.onrender.com';
+  }
+
   if (!/^https?:\/\//i.test(url)) {
     url = url.includes('.onrender.com') ? `https://${url}` : `http://${url}`;
   }
@@ -166,7 +178,7 @@ router.post('/predict', protect, restrictTo('patient'), handleUploadErrors, asyn
 
     if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
       return res.status(503).json({ 
-        error: `AI analysis service is currently unavailable. Please ensure the Python service is running on port 5002 (${AI_SERVICE_URL}).` 
+        error: `AI analysis service is currently unavailable. Please ensure the Python service is reachable at ${getAiServiceUrl()}.` 
       });
     }
 
