@@ -37,7 +37,7 @@ services:
     healthCheckPath: /api/ai/health
     envVars:
       - key: PYTHON_VERSION
-        value: 3.12.8
+        value: 3.11.9
       - key: AI_SERVICE_HOST
         value: 0.0.0.0
 

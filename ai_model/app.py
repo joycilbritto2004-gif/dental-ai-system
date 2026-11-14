@@ -41,15 +41,64 @@ MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 app.config['MAX_CONTENT_LENGTH'] = MAX_UPLOAD_BYTES
 
 model = None
-if tf is not None and os.path.exists(MODEL_PATH):
+model_load_error = None
+
+def load_dental_model():
+    global model_load_error
+    if not os.path.exists(MODEL_PATH):
+        model_load_error = f"Model file not found at {MODEL_PATH}"
+        logger.error(model_load_error)
+        return None
+
+    if tf is None:
+        model_load_error = "TensorFlow is not installed on this system."
+        logger.error(model_load_error)
+        return None
+
+    errors = []
+
+    # Attempt 1: Standard tf.keras load without compiling (avoids optimizer mismatch)
     try:
-        model = tf.keras.models.load_model(MODEL_PATH)
-    except Exception as e:
-        logger.warning("Failed to load model from %s: %s", MODEL_PATH, e)
-elif tf is None:
-    logger.warning("TensorFlow is not installed. AI service running in degraded mode.")
-else:
-    logger.warning("Model not found at %s", MODEL_PATH)
+        loaded = tf.keras.models.load_model(MODEL_PATH, compile=False)
+        logger.info("Dental model loaded successfully with tf.keras (compile=False)")
+        return loaded
+    except Exception as e1:
+        errors.append(f"tf.keras compile=False: {e1}")
+        logger.warning("Attempt 1 (tf.keras compile=False) failed: %s", e1)
+
+    # Attempt 2: Keras 3 with safe_mode=False
+    try:
+        loaded = tf.keras.models.load_model(MODEL_PATH, compile=False, safe_mode=False)
+        logger.info("Dental model loaded successfully with tf.keras (safe_mode=False)")
+        return loaded
+    except Exception as e2:
+        errors.append(f"tf.keras safe_mode=False: {e2}")
+        logger.warning("Attempt 2 (tf.keras safe_mode=False) failed: %s", e2)
+
+    # Attempt 3: Try tf_keras (legacy Keras package for TF 2.16+)
+    try:
+        import tf_keras  # type: ignore
+        loaded = tf_keras.models.load_model(MODEL_PATH, compile=False)
+        logger.info("Dental model loaded successfully with tf_keras")
+        return loaded
+    except Exception as e3:
+        errors.append(f"tf_keras: {e3}")
+        logger.warning("Attempt 3 (tf_keras) failed: %s", e3)
+
+    # Attempt 4: Default load_model
+    try:
+        loaded = tf.keras.models.load_model(MODEL_PATH)
+        logger.info("Dental model loaded successfully with default load_model")
+        return loaded
+    except Exception as e4:
+        errors.append(f"default load_model: {e4}")
+        logger.warning("Attempt 4 (default) failed: %s", e4)
+
+    model_load_error = " | ".join(errors)
+    logger.error("All dental model load attempts failed: %s", model_load_error)
+    return None
+
+model = load_dental_model()
 
 # Index order must match the class order used when the checkpoint was trained.
 CLASS_NAMES = ['Calculus', 'Caries', 'Gingivitis', 'Hypodontia', 'Mouth_Ulcer', 'Tooth_Discoloration']
@@ -82,11 +131,18 @@ def payload_too_large(_error):
 
 @app.route('/api/ai/health', methods=['GET'])
 def health_check():
+    import sys
     return jsonify({
         "status": "ok" if model is not None else "degraded",
         "message": "AI Prediction service is running" if model is not None
                    else "Service is up but the model checkpoint is not loaded",
-        "model_loaded": model is not None
+        "model_loaded": model is not None,
+        "model_path": MODEL_PATH,
+        "model_file_exists": os.path.exists(MODEL_PATH),
+        "model_file_size": os.path.getsize(MODEL_PATH) if os.path.exists(MODEL_PATH) else None,
+        "tf_version": getattr(tf, '__version__', None) if tf is not None else None,
+        "python_version": sys.version,
+        "error_detail": model_load_error
     }), 200
 
 
