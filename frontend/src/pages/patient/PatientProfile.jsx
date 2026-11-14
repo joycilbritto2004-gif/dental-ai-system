@@ -18,7 +18,6 @@ import {
   EyeOff,
   ArrowLeft,
   Activity,
-  Fingerprint,
   FileCheck,
   Stethoscope,
   AlertTriangle,
@@ -268,37 +267,7 @@ const PatientProfile = () => {
                   {formattedJoinDate}
                 </span>
               </div>
-
-              <div className="patient-meta-row">
-                <span style={{ color: '#64748B', fontWeight: 600 }}>Data Security</span>
-                <span style={{ color: '#059669', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  <ShieldCheck size={14} /> End-to-End
-                </span>
-              </div>
             </div>
-          </div>
-
-          {/* Quick Trust & Privacy Box */}
-          <div 
-            style={{ 
-              background: '#F8FAFC', 
-              border: '1px solid #E2E8F0', 
-              borderRadius: '20px', 
-              padding: '22px 24px', 
-              boxShadow: '0 4px 16px rgba(7, 26, 51, 0.02)' 
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-              <div style={{ background: 'rgba(0, 166, 166, 0.12)', padding: '8px', borderRadius: '10px', color: '#00A6A6' }}>
-                <Fingerprint size={20} />
-              </div>
-              <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#17324D' }}>
-                HIPAA & Medical Privacy
-              </h4>
-            </div>
-            <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748B', lineHeight: 1.55, fontWeight: 500 }}>
-              Your dental scans, diagnostic predictions, and personal clinical history are encrypted and strictly accessible only by you and licensed doctors you consult.
-            </p>
           </div>
 
         </div>
