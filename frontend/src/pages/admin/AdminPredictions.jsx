@@ -111,16 +111,17 @@ const AdminPredictions = () => {
         </motion.div>
 
         {/* Title Header Card */}
-        <motion.div variants={item} className="screening-header-card" style={{ marginBottom: '24px', background: 'linear-gradient(135deg, #0F2942 0%, #17324D 100%)', color: '#FFFFFF', padding: '28px', borderRadius: '20px' }}>
+        <motion.div variants={item} className="screening-header-card" style={{ marginBottom: '24px' }}>
+          <div className="screening-header-stripe"></div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', justifyContent: 'space-between' }}>
             <div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.12)', padding: '5px 12px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '8px' }}>
-                <BrainCircuit size={13} color="#38BDF8" /> AI Inferences & Clinical Triage Log
+              <div className="screening-badge">
+                <BrainCircuit size={14} /> AI Inferences & Clinical Triage Log
               </div>
-              <h2 style={{ fontSize: '1.8rem', fontWeight: 900, margin: '4px 0 6px', color: '#FFFFFF' }}>
+              <h1 className="screening-title">
                 Dental Scan Management
-              </h2>
-              <p style={{ color: '#93C5FD', margin: 0, fontSize: '0.92rem', maxWidth: '680px' }}>
+              </h1>
+              <p className="screening-subtitle">
                 Audit oral scans, MobileNetV2 classification scores, and doctor clinical verification assessments.
               </p>
             </div>
