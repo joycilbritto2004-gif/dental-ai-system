@@ -28,7 +28,7 @@ const userSchema = new mongoose.Schema({
   },
   verificationStatus: {
     type: String,
-    enum: ['Pending', 'Approved', 'Rejected'],
+    enum: ['Pending', 'Under Review', 'Approved', 'Rejected', 'Requires Resubmission'],
     default: 'Pending',
   },
   accountStatus: {
@@ -44,6 +44,28 @@ const userSchema = new mongoose.Schema({
   experience: { type: String, default: '10 Years' },
   languages: { type: String, default: 'English, Hindi' },
   bio: { type: String, default: '' },
+  qualifications: { type: String, default: 'BDS' },
+  dentalCouncilNumber: { type: String },
+  stateDentalCouncil: { type: String },
+  clinicAddress: { type: String },
+  certificates: [{
+    title: { type: String },
+    url: { type: String },
+    uploadedAt: { type: Date, default: Date.now }
+  }],
+  rejectionReason: { type: String, default: '' },
+  verificationNotes: { type: String, default: '' },
+  verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  verifiedByName: { type: String },
+  verifiedAt: { type: Date },
+  verificationHistory: [{
+    status: { type: String },
+    adminId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    adminName: { type: String },
+    notes: { type: String },
+    reason: { type: String },
+    date: { type: Date, default: Date.now }
+  }],
 }, { timestamps: true });
 
 // Hash password before saving

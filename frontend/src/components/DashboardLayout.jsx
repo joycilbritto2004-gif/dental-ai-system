@@ -361,35 +361,55 @@ const DashboardLayout = () => {
           {role === 'admin' && (
             <>
               <div className="sidebar-section-label">
-                <span>User Management</span>
+                <span>Management</span>
               </div>
-              <Link to="/dashboard/admin/users" className={`sidebar-link ${currentPath === '/dashboard/admin/users' ? 'active' : ''}`}>
-                <Users size={19} />
-                <span>User Management</span>
+              <Link to="/dashboard/admin" className={`sidebar-link ${currentPath === '/dashboard/admin' ? 'active' : ''}`}>
+                <LayoutDashboard size={19} />
+                <span>Overview</span>
               </Link>
               <Link to="/dashboard/admin/doctors" className={`sidebar-link ${currentPath === '/dashboard/admin/doctors' ? 'active' : ''}`}>
                 <Stethoscope size={19} />
-                <span>Doctors</span>
+                <span>Doctor Verification</span>
               </Link>
               <Link to="/dashboard/admin/patients" className={`sidebar-link ${currentPath === '/dashboard/admin/patients' ? 'active' : ''}`}>
                 <UserCircle size={19} />
                 <span>Patients</span>
               </Link>
+              <Link to="/dashboard/admin/appointments" className={`sidebar-link ${currentPath === '/dashboard/admin/appointments' ? 'active' : ''}`}>
+                <Calendar size={19} />
+                <span>Appointments</span>
+              </Link>
+              <Link to="/dashboard/admin/payments" className={`sidebar-link ${currentPath === '/dashboard/admin/payments' ? 'active' : ''}`}>
+                <CreditCard size={19} />
+                <span>Payments & Revenue</span>
+              </Link>
 
               <div className="sidebar-section-label">
-                <span>Intelligence & System</span>
+                <span>Clinical & Intelligence</span>
               </div>
-              <Link to="/dashboard/admin/ai-model" className={`sidebar-link ${currentPath === '/dashboard/admin/ai-model' ? 'active' : ''}`}>
-                <BrainCircuit size={19} />
-                <span>AI Model</span>
-              </Link>
               <Link to="/dashboard/admin/predictions" className={`sidebar-link ${currentPath === '/dashboard/admin/predictions' ? 'active' : ''}`}>
                 <Activity size={19} />
-                <span>Predictions</span>
+                <span>Dental Scans</span>
+              </Link>
+              <Link to="/dashboard/admin/ai-model" className={`sidebar-link ${currentPath === '/dashboard/admin/ai-model' ? 'active' : ''}`}>
+                <BrainCircuit size={19} />
+                <span>AI Diagnostics</span>
+              </Link>
+
+              <div className="sidebar-section-label">
+                <span>Governance & Alerts</span>
+              </div>
+              <Link to="/dashboard/admin/notifications" className={`sidebar-link ${currentPath === '/dashboard/admin/notifications' ? 'active' : ''}`}>
+                <Bell size={19} />
+                <span>Notifications</span>
               </Link>
               <Link to="/dashboard/admin/activity" className={`sidebar-link ${currentPath === '/dashboard/admin/activity' ? 'active' : ''}`}>
-                <Activity size={19} />
-                <span>System Activity</span>
+                <ShieldCheck size={19} />
+                <span>Audit Logs</span>
+              </Link>
+              <Link to="/dashboard/admin/users" className={`sidebar-link ${currentPath === '/dashboard/admin/users' ? 'active' : ''}`}>
+                <Users size={19} />
+                <span>All Users</span>
               </Link>
               <Link to="/dashboard/admin/settings" className={`sidebar-link ${currentPath === '/dashboard/admin/settings' ? 'active' : ''}`}>
                 <Settings size={19} />
@@ -746,17 +766,21 @@ const DashboardLayout = () => {
                 <LayoutDashboard size={20} />
                 <span>Home</span>
               </Link>
-              <Link to="/dashboard/admin/users" className={`bottom-nav-item ${currentPath.includes('users') ? 'active' : ''}`}>
-                <Users size={20} />
-                <span>Users</span>
-              </Link>
               <Link to="/dashboard/admin/doctors" className={`bottom-nav-item ${currentPath.includes('doctors') ? 'active' : ''}`}>
                 <Stethoscope size={20} />
                 <span>Doctors</span>
               </Link>
-              <Link to="/dashboard/admin/ai-model" className={`bottom-nav-item ${currentPath.includes('ai-model') ? 'active' : ''}`}>
-                <BrainCircuit size={20} />
-                <span>AI Model</span>
+              <Link to="/dashboard/admin/patients" className={`bottom-nav-item ${currentPath.includes('patients') ? 'active' : ''}`}>
+                <UserCircle size={20} />
+                <span>Patients</span>
+              </Link>
+              <Link to="/dashboard/admin/appointments" className={`bottom-nav-item ${currentPath.includes('appointments') ? 'active' : ''}`}>
+                <Calendar size={20} />
+                <span>Appts</span>
+              </Link>
+              <Link to="/dashboard/admin/payments" className={`bottom-nav-item ${currentPath.includes('payments') ? 'active' : ''}`}>
+                <CreditCard size={20} />
+                <span>Pay</span>
               </Link>
               <Link to="/dashboard/admin/settings" className={`bottom-nav-item ${currentPath.includes('settings') ? 'active' : ''}`}>
                 <Settings size={20} />

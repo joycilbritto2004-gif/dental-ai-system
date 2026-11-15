@@ -1,84 +1,114 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { 
   Stethoscope, ShieldCheck, Search, ArrowLeft, X, 
   CheckCircle2, XCircle, Clock, Award, FileText, 
-  Building, Phone, Mail, Activity, AlertTriangle, Users
+  Building, Phone, Mail, Activity, AlertTriangle, Users,
+  ExternalLink, Check, AlertCircle, RefreshCw, Eye, MapPin,
+  ChevronRight, HelpCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import '../Dashboard.css';
 import { API_BASE } from '../../config';
 
 const AdminDoctors = () => {
+  const [searchParams] = useSearchParams();
+  const initialStatus = searchParams.get('status') || 'All';
+
   const [doctors, setDoctors] = useState([]);
+  const [metrics, setMetrics] = useState({
+    total: 0,
+    pending: 0,
+    underReview: 0,
+    approved: 0,
+    rejected: 0,
+    requiresResubmission: 0
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All'); // 'All' | 'Approved' | 'Pending' | 'Rejected'
-  const [confirmModal, setConfirmModal] = useState(null); // { doctor, targetStatus }
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
+  const [selectedDoctor, setSelectedDoctor] = useState(null); // Full dossier modal
+  const [actionModal, setActionModal] = useState(null); // { doctor, targetStatus }
+  const [actionReason, setActionReason] = useState('');
+  const [actionNotes, setActionNotes] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
-  const fetchDoctors = async () => {
+  const fetchDoctors = useCallback(async () => {
+    setIsLoading(true);
     try {
-      const userStr = localStorage.getItem('dentaai_user');
-      if (!userStr) return;
-      const user = JSON.parse(userStr);
-      const userId = user._id || user.id;
-
       const token = localStorage.getItem('dentaai_token');
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
-      const res = await fetch(`${API_BASE}/api/admin/users?userId=${userId}`, { headers });
+      const params = new URLSearchParams({
+        search,
+        status: statusFilter,
+        limit: 50
+      });
+
+      const res = await fetch(`${API_BASE}/api/admin/doctors?${params.toString()}`, { headers });
       if (res.ok) {
         const data = await res.json();
-        setDoctors((Array.isArray(data) ? data : []).filter(u => u.role === 'doctor'));
+        setDoctors(data.doctors || []);
+        if (data.metrics) setMetrics(data.metrics);
       }
     } catch (err) {
       console.error("Failed to fetch doctors", err);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [search, statusFilter]);
 
   useEffect(() => {
     fetchDoctors();
-  }, []);
+  }, [fetchDoctors]);
 
   const showToast = (msg, type = 'success') => {
     setToastMessage({ text: msg, type });
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  const handleStatusUpdate = async (doctorId, newStatus) => {
+  const handleStatusSubmit = async () => {
+    if (!actionModal) return;
+    const { doctor, targetStatus } = actionModal;
+
+    if (['Rejected', 'Requires Resubmission'].includes(targetStatus) && !actionReason.trim()) {
+      showToast('A clear clinical or regulatory reason must be provided.', 'error');
+      return;
+    }
+
     setIsUpdating(true);
     try {
-      const userStr = localStorage.getItem('dentaai_user');
-      const user = JSON.parse(userStr);
-      const adminId = user._id || user.id;
-
       const token = localStorage.getItem('dentaai_token');
       const headers = { 
         'Content-Type': 'application/json',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       };
 
-      const res = await fetch(`${API_BASE}/api/admin/users/${doctorId}/doctor-status?userId=${adminId}`, {
+      const res = await fetch(`${API_BASE}/api/admin/doctors/${doctor._id || doctor.id}/verify`, {
         method: 'PUT',
         headers,
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({
+          status: targetStatus,
+          reason: actionReason.trim(),
+          notes: actionNotes.trim()
+        })
       });
 
       if (res.ok) {
-        showToast(`Practitioner verification status set to ${newStatus}.`, 'success');
-        setConfirmModal(null);
+        showToast(`Practitioner status set to ${targetStatus} successfully.`, 'success');
+        setActionModal(null);
+        setSelectedDoctor(null);
+        setActionReason('');
+        setActionNotes('');
         await fetchDoctors();
       } else {
         const data = await res.json();
-        showToast(`Failed: ${data.message || 'Unknown error'}`, 'error');
+        showToast(`Failed: ${data.message || 'Verification error'}`, 'error');
       }
     } catch (err) {
-      console.error("Error updating doctor status:", err);
-      showToast("Error updating doctor status.", 'error');
+      console.error("Error updating doctor verification status:", err);
+      showToast("Network error updating verification status.", 'error');
     } finally {
       setIsUpdating(false);
     }
@@ -92,716 +122,540 @@ const AdminDoctors = () => {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   };
 
-  const stats = useMemo(() => {
-    let approved = 0;
-    let pending = 0;
-    let rejected = 0;
-
-    doctors.forEach(d => {
-      const st = d.verificationStatus || (d.isVerifiedDoctor ? 'Approved' : 'Pending');
-      if (st === 'Approved') approved++;
-      else if (st === 'Rejected') rejected++;
-      else pending++;
-    });
-
-    return {
-      total: doctors.length,
-      approved,
-      pending,
-      rejected
-    };
-  }, [doctors]);
-
-  const filteredDoctors = useMemo(() => {
-    return doctors.filter(u => {
-      const q = search.toLowerCase().trim();
-      const name = (u.name || '').toLowerCase();
-      const email = (u.email || '').toLowerCase();
-      const license = (u.licenseNumber || '').toLowerCase();
-      const spec = (u.specialization || '').toLowerCase();
-
-      const matchesSearch = !q || name.includes(q) || email.includes(q) || license.includes(q) || spec.includes(q);
-      const docStatus = u.verificationStatus || (u.isVerifiedDoctor ? 'Approved' : 'Pending');
-      const matchesStatus = statusFilter === 'All' || docStatus === statusFilter;
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [doctors, search, statusFilter]);
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'Approved':
+        return { bg: '#DCFCE7', text: '#15803D', border: '#86EFAC', icon: <CheckCircle2 size={13} />, label: 'Verified Dentist' };
+      case 'Under Review':
+        return { bg: '#DBEAFE', text: '#1D4ED8', border: '#93C5FD', icon: <Activity size={13} />, label: 'Under Review' };
+      case 'Pending':
+        return { bg: '#FEF3C7', text: '#B45309', border: '#FCD34D', icon: <Clock size={13} />, label: 'Pending Review' };
+      case 'Rejected':
+        return { bg: '#FEE2E2', text: '#B91C1C', border: '#FCA5A5', icon: <XCircle size={13} />, label: 'Application Rejected' };
+      case 'Requires Resubmission':
+        return { bg: '#FFEDD5', text: '#C2410C', border: '#FDBA74', icon: <AlertTriangle size={13} />, label: 'Resubmission Requested' };
+      default:
+        return { bg: '#F1F5F9', text: '#475569', border: '#CBD5E1', icon: <Clock size={13} />, label: status || 'Pending' };
+    }
+  };
 
   const stagger = {
     hidden: { opacity: 0 },
-    show: { opacity: 1, transition: { staggerChildren: 0.08 } }
+    show: { opacity: 1, transition: { staggerChildren: 0.06 } }
   };
-  const item = { hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0 } };
+  const item = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } };
 
   return (
-    <div className="screening-history-wrapper" style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 16px 48px' }}>
+    <div className="screening-history-wrapper" style={{ maxWidth: '1440px', margin: '0 auto', padding: '0 16px 48px' }}>
       <motion.div initial="hidden" animate="show" variants={stagger}>
         
-        {/* 1. CLINICAL HEADER CARD */}
-        <motion.div variants={item} className="screening-header-card" style={{ marginBottom: '24px' }}>
-          <div className="screening-header-stripe"></div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
-            <div>
-              <div className="screening-badge">
-                <Award size={14} /> Medical Board Credentials
-              </div>
-              <h1 className="screening-title">Doctor Verification Management</h1>
-              <p className="screening-subtitle">
-                Review dental credentials, state license numbers, and approve or reject clinical practitioner credentials.
-              </p>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-              <Link 
-                to="/dashboard/admin" 
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '10px 18px',
-                  borderRadius: '12px',
-                  background: '#FFFFFF',
-                  border: '1px solid #BFD4E5',
-                  color: '#17324D',
-                  fontWeight: 700,
-                  fontSize: '0.86rem',
-                  textDecoration: 'none',
-                  boxShadow: '0 2px 8px rgba(7, 26, 51, 0.04)',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <ArrowLeft size={16} /> Back to Dashboard
-              </Link>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#F0FDFA', border: '1px solid #99E3D8', padding: '8px 14px', borderRadius: '12px', color: '#0F766E', fontSize: '0.82rem', fontWeight: 700 }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10B981', boxShadow: '0 0 6px #10B981' }} />
-                DCI Licensing Active
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* 2. TOP 4 MASTER KPI SUMMARY STRIP (100% EQUAL & BALANCED) */}
-        <motion.div variants={item} className="doctor-kpi-grid" style={{ marginBottom: '24px' }}>
-          
-          {/* Card 1: Total Doctors */}
-          <div 
-            className="doctor-kpi-card"
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'flex-start', 
-              gap: '16px',
-              borderLeft: '4px solid #2563EB',
-              padding: '20px 22px'
-            }}
-          >
-            <div style={{ width: '52px', height: '52px', borderRadius: '16px', background: 'rgba(37, 99, 235, 0.12)', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Stethoscope size={26} />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '1.9rem', fontWeight: 900, color: '#17324D', lineHeight: 1.1 }}>
-                {stats.total}
-              </div>
-              <div style={{ fontSize: '0.84rem', color: '#64748B', fontWeight: 700, marginTop: '4px' }}>
-                Practitioner Roster
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2: Approved / Verified Doctors */}
-          <div 
-            className="doctor-kpi-card"
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'flex-start', 
-              gap: '16px',
-              borderLeft: '4px solid #10B981',
-              padding: '20px 22px'
-            }}
-          >
-            <div style={{ width: '52px', height: '52px', borderRadius: '16px', background: 'rgba(16, 185, 129, 0.12)', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <CheckCircle2 size={26} />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '1.9rem', fontWeight: 900, color: '#17324D', lineHeight: 1.1 }}>
-                {stats.approved}
-              </div>
-              <div style={{ fontSize: '0.84rem', color: '#64748B', fontWeight: 700, marginTop: '4px' }}>
-                Board Certified
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3: Pending Applications */}
-          <div 
-            className="doctor-kpi-card"
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'flex-start', 
-              gap: '16px',
-              borderLeft: '4px solid #F59E0B',
-              padding: '20px 22px'
-            }}
-          >
-            <div style={{ width: '52px', height: '52px', borderRadius: '16px', background: 'rgba(245, 158, 11, 0.12)', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Clock size={26} />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '1.9rem', fontWeight: 900, color: '#17324D', lineHeight: 1.1 }}>
-                {stats.pending}
-              </div>
-              <div style={{ fontSize: '0.84rem', color: '#64748B', fontWeight: 700, marginTop: '4px' }}>
-                Awaiting Verification
-              </div>
-            </div>
-          </div>
-
-          {/* Card 4: Rejected / Revoked */}
-          <div 
-            className="doctor-kpi-card"
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'flex-start', 
-              gap: '16px',
-              borderLeft: `4px solid ${stats.rejected > 0 ? '#DC2626' : '#94A3B8'}`,
-              padding: '20px 22px'
-            }}
-          >
-            <div 
-              style={{ 
-                width: '52px', 
-                height: '52px', 
-                borderRadius: '16px', 
-                background: stats.rejected > 0 ? 'rgba(220, 38, 38, 0.12)' : 'rgba(148, 163, 184, 0.12)', 
-                color: stats.rejected > 0 ? '#DC2626' : '#64748B', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                flexShrink: 0 
-              }}
-            >
-              <XCircle size={26} />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '1.9rem', fontWeight: 900, color: '#17324D', lineHeight: 1.1 }}>
-                {stats.rejected}
-              </div>
-              <div style={{ fontSize: '0.84rem', color: '#64748B', fontWeight: 700, marginTop: '4px' }}>
-                Rejected / Inactive
-              </div>
-            </div>
-          </div>
-
-        </motion.div>
-
-        {/* 3. TOAST NOTIFICATION BANNER */}
+        {/* Toast Alert */}
         <AnimatePresence>
           {toastMessage && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
+              initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
+              exit={{ opacity: 0, y: -20 }}
               style={{
-                marginBottom: '20px',
-                padding: '14px 20px',
-                borderRadius: '14px',
-                background: toastMessage.type === 'error' ? '#FEF2F2' : '#ECFDF5',
-                border: `1px solid ${toastMessage.type === 'error' ? '#FECACA' : '#A7F3D0'}`,
-                color: toastMessage.type === 'error' ? '#DC2626' : '#065F46',
+                position: 'fixed',
+                top: '24px',
+                right: '24px',
+                zIndex: 2000,
+                background: toastMessage.type === 'error' ? '#EF4444' : '#10B981',
+                color: '#FFFFFF',
+                padding: '12px 22px',
+                borderRadius: '12px',
+                boxShadow: '0 8px 24px rgba(7, 26, 51, 0.2)',
                 fontWeight: 700,
-                fontSize: '0.88rem',
+                fontSize: '0.9rem',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px',
-                boxShadow: '0 4px 14px rgba(7, 26, 51, 0.05)'
+                gap: '8px'
               }}
             >
-              {toastMessage.type === 'error' ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}
-              <span>{toastMessage.text}</span>
+              {toastMessage.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
+              {toastMessage.text}
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* 4. MASTER DOCTOR DIRECTORY CARD */}
-        <motion.div 
-          variants={item}
-          style={{
-            background: '#FFFFFF',
-            borderRadius: '24px',
-            border: '1px solid #BFD4E5',
-            padding: '28px',
-            boxShadow: '0 6px 24px rgba(7, 26, 51, 0.04)'
-          }}
-        >
-          {/* Filter Bar */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
-            
-            {/* Search Input */}
-            <div style={{ position: 'relative', width: '100%', maxWidth: '380px' }}>
-              <Search size={18} color="#94A3B8" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
-              <input 
+        {/* Top Breadcrumb */}
+        <motion.div variants={item} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Link to="/dashboard/admin" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748B', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 600 }}>
+              <ArrowLeft size={16} /> Admin Console
+            </Link>
+            <span style={{ color: '#CBD5E1' }}>/</span>
+            <span style={{ color: '#17324D', fontWeight: 800, fontSize: '0.95rem' }}>Doctor Verification & Credentialing</span>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <a
+              href="https://dciindia.gov.in/DentistCouncil.aspx"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#F0FDFA', color: '#0F766E', border: '1px solid #99E3D8', padding: '7px 14px', borderRadius: '10px', fontSize: '0.82rem', fontWeight: 700, textDecoration: 'none' }}
+            >
+              <ExternalLink size={13} /> Official DCI Register
+            </a>
+            <button 
+              onClick={fetchDoctors} 
+              disabled={isLoading}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#FFFFFF', border: '1px solid #BFD4E5', padding: '7px 14px', borderRadius: '10px', fontSize: '0.84rem', fontWeight: 700, color: '#17324D', cursor: 'pointer' }}
+            >
+              <RefreshCw size={14} className={isLoading ? 'spin-icon' : ''} /> Refresh
+            </button>
+          </div>
+        </motion.div>
+
+        {/* Title Header Card */}
+        <motion.div variants={item} className="screening-header-card" style={{ marginBottom: '24px', background: 'linear-gradient(135deg, #0F2942 0%, #17324D 100%)', color: '#FFFFFF', padding: '28px', borderRadius: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.12)', padding: '5px 12px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '8px' }}>
+                <Award size={13} color="#38BDF8" /> Statutory Credential Verification
+              </div>
+              <h2 style={{ fontSize: '1.8rem', fontWeight: 900, margin: '4px 0 6px', color: '#FFFFFF' }}>
+                Doctor Management & Credential Verification
+              </h2>
+              <p style={{ color: '#93C5FD', margin: 0, fontSize: '0.92rem', maxWidth: '680px' }}>
+                Review dental degrees, BDS/MDS qualifications, State Dental Council registration numbers, and certificates. Only genuine, verified dentists gain clinical access.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Metrics Row */}
+        <motion.div variants={item} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+          <div className="card" style={{ padding: '18px', borderRadius: '16px', border: '1px solid #BFD4E5' }}>
+            <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>Total Registered</div>
+            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#17324D' }}>{metrics.total}</div>
+            <span style={{ fontSize: '0.76rem', color: '#64748B', fontWeight: 600 }}>All doctor accounts</span>
+          </div>
+
+          <div className="card" style={{ padding: '18px', borderRadius: '16px', border: '1px solid #FCD34D', background: '#FFFBEB' }}>
+            <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#92400E', textTransform: 'uppercase', marginBottom: '6px' }}>Pending Review</div>
+            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#B45309' }}>{metrics.pending}</div>
+            <span style={{ fontSize: '0.76rem', color: '#92400E', fontWeight: 600 }}>Awaiting verification</span>
+          </div>
+
+          <div className="card" style={{ padding: '18px', borderRadius: '16px', border: '1px solid #93C5FD', background: '#EFF6FF' }}>
+            <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#1E40AF', textTransform: 'uppercase', marginBottom: '6px' }}>Under Review</div>
+            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#1D4ED8' }}>{metrics.underReview}</div>
+            <span style={{ fontSize: '0.76rem', color: '#1E40AF', fontWeight: 600 }}>Council lookup in progress</span>
+          </div>
+
+          <div className="card" style={{ padding: '18px', borderRadius: '16px', border: '1px solid #86EFAC', background: '#F0FDF4' }}>
+            <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#166534', textTransform: 'uppercase', marginBottom: '6px' }}>Approved & Active</div>
+            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#15803D' }}>{metrics.approved}</div>
+            <span style={{ fontSize: '0.76rem', color: '#166534', fontWeight: 600 }}>Verified Dentist Badge</span>
+          </div>
+
+          <div className="card" style={{ padding: '18px', borderRadius: '16px', border: '1px solid #FECACA', background: '#FEF2F2' }}>
+            <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#991B1B', textTransform: 'uppercase', marginBottom: '6px' }}>Rejected</div>
+            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#B91C1C' }}>{metrics.rejected}</div>
+            <span style={{ fontSize: '0.76rem', color: '#991B1B', fontWeight: 600 }}>Invalid credentials</span>
+          </div>
+        </motion.div>
+
+        {/* Search & Status Filter Strip */}
+        <motion.div variants={item} className="card" style={{ padding: '18px 20px', borderRadius: '16px', border: '1px solid #BFD4E5', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '1 1 320px', background: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: '12px', padding: '8px 14px' }}>
+              <Search size={16} color="#64748B" />
+              <input
                 type="text"
-                placeholder="Search by doctor name, email, or license..."
+                placeholder="Search by doctor name, email, dental council number, or clinic..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '11px 40px 11px 42px',
-                  background: '#F8FAFC',
-                  border: '1px solid #CBD5E1',
-                  borderRadius: '14px',
-                  fontSize: '0.88rem',
-                  fontWeight: 600,
-                  color: '#17324D',
-                  outline: 'none',
-                  boxSizing: 'border-box'
-                }}
+                style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: '0.88rem', color: '#17324D', fontWeight: 500 }}
               />
               {search && (
-                <button 
-                  onClick={() => setSearch('')}
-                  style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    color: '#94A3B8',
-                    cursor: 'pointer',
-                    padding: '4px',
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}
-                  title="Clear search"
-                >
-                  <X size={16} />
+                <button onClick={() => setSearch('')} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94A3B8' }}>
+                  <X size={14} />
                 </button>
               )}
             </div>
 
-            {/* Status Tabs */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Status:
-              </span>
-              {[
-                { id: 'All', label: 'All Doctors', count: stats.total },
-                { id: 'Approved', label: 'Approved', count: stats.approved },
-                { id: 'Pending', label: 'Pending', count: stats.pending },
-                { id: 'Rejected', label: 'Rejected', count: stats.rejected }
-              ].map(st => {
-                const isActive = statusFilter === st.id;
-                return (
-                  <button
-                    key={st.id}
-                    onClick={() => setStatusFilter(st.id)}
-                    style={{
-                      padding: '7px 14px',
-                      borderRadius: '10px',
-                      fontSize: '0.8rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      border: '1px solid',
-                      background: isActive 
-                        ? (st.id === 'Approved' ? '#ECFDF5' : st.id === 'Rejected' ? '#FEF2F2' : st.id === 'Pending' ? '#FFFBEB' : '#17324D')
-                        : '#FFFFFF',
-                      color: isActive 
-                        ? (st.id === 'Approved' ? '#059669' : st.id === 'Rejected' ? '#DC2626' : st.id === 'Pending' ? '#B45309' : '#FFFFFF')
-                        : '#64748B',
-                      borderColor: isActive 
-                        ? (st.id === 'Approved' ? '#A7F3D0' : st.id === 'Rejected' ? '#FECACA' : st.id === 'Pending' ? '#FDE68A' : '#17324D')
-                        : '#CBD5E1',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    {st.label} ({st.count})
-                  </button>
-                );
-              })}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {['All', 'Pending', 'Under Review', 'Approved', 'Rejected', 'Requires Resubmission'].map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setStatusFilter(tab)}
+                  style={{
+                    background: statusFilter === tab ? '#17324D' : '#FFFFFF',
+                    color: statusFilter === tab ? '#FFFFFF' : '#475569',
+                    border: statusFilter === tab ? '1px solid #17324D' : '1px solid #CBD5E1',
+                    padding: '6px 14px',
+                    borderRadius: '999px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {tab}
+                </button>
+              ))}
             </div>
-
           </div>
-
-          {/* Table Container */}
-          {isLoading ? (
-            <div style={{ padding: '80px 20px', textAlign: 'center' }}>
-              <Activity className="spin-anim" size={38} color="#00A6A6" style={{ margin: '0 auto 16px' }} />
-              <p style={{ margin: 0, color: '#64748B', fontWeight: 600, fontSize: '0.95rem' }}>
-                Loading verified clinician roster...
-              </p>
-            </div>
-          ) : (
-            <div className="table-scroll-container" style={{ maxHeight: '620px', overflowY: 'auto', border: '1px solid #E2E8F0', borderRadius: '16px' }}>
-              <table className="modern-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead>
-                  <tr style={{ background: '#F8FAFC' }}>
-                    <th style={{ padding: '14px 18px', fontSize: '0.78rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #E2E8F0', position: 'sticky', top: 0, background: '#F8FAFC', zIndex: 2 }}>
-                      Practitioner
-                    </th>
-                    <th style={{ padding: '14px 18px', fontSize: '0.78rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #E2E8F0', position: 'sticky', top: 0, background: '#F8FAFC', zIndex: 2 }}>
-                      License ID
-                    </th>
-                    <th style={{ padding: '14px 18px', fontSize: '0.78rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #E2E8F0', position: 'sticky', top: 0, background: '#F8FAFC', zIndex: 2 }}>
-                      Specialization
-                    </th>
-                    <th style={{ padding: '14px 18px', fontSize: '0.78rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #E2E8F0', position: 'sticky', top: 0, background: '#F8FAFC', zIndex: 2 }}>
-                      Experience
-                    </th>
-                    <th style={{ padding: '14px 18px', fontSize: '0.78rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #E2E8F0', position: 'sticky', top: 0, background: '#F8FAFC', zIndex: 2 }}>
-                      Verification
-                    </th>
-                    <th style={{ padding: '14px 18px', fontSize: '0.78rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #E2E8F0', position: 'sticky', top: 0, background: '#F8FAFC', zIndex: 2, textAlign: 'right' }}>
-                      Audit Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredDoctors.length > 0 ? (
-                    filteredDoctors.map(u => {
-                      const docStatus = u.verificationStatus || (u.isVerifiedDoctor ? 'Approved' : 'Pending');
-                      const isApproved = docStatus === 'Approved';
-                      const isRejected = docStatus === 'Rejected';
-
-                      return (
-                        <tr 
-                          key={u._id} 
-                          style={{ 
-                            borderBottom: '1px solid #F1F5F9',
-                            transition: 'background 0.15s ease'
-                          }}
-                        >
-                          {/* Practitioner */}
-                          <td style={{ padding: '14px 18px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                              <div 
-                                style={{
-                                  width: '42px',
-                                  height: '42px',
-                                  borderRadius: '50%',
-                                  background: 'linear-gradient(135deg, #2563EB 0%, #06C6E8 100%)',
-                                  color: '#FFFFFF',
-                                  fontWeight: 800,
-                                  fontSize: '0.88rem',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  flexShrink: 0,
-                                  boxShadow: '0 2px 8px rgba(37, 99, 235, 0.15)'
-                                }}
-                              >
-                                {getInitials(u.name)}
-                              </div>
-                              <div style={{ minWidth: 0 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  <span style={{ fontWeight: 800, color: '#17324D', fontSize: '0.92rem' }}>
-                                    {u.name.startsWith('Dr.') ? u.name : `Dr. ${u.name}`}
-                                  </span>
-                                  {isApproved && (
-                                    <span title="Board Certified" style={{ color: '#00A6A6', display: 'inline-flex' }}>
-                                      <CheckCircle2 size={14} />
-                                    </span>
-                                  )}
-                                </div>
-                                <div style={{ fontSize: '0.78rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                                  <Mail size={12} color="#94A3B8" /> {u.email}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-
-                          {/* License */}
-                          <td style={{ padding: '14px 18px' }}>
-                            <span 
-                              style={{
-                                fontFamily: 'monospace',
-                                fontSize: '0.82rem',
-                                fontWeight: 700,
-                                color: '#1E40AF',
-                                background: '#EFF6FF',
-                                border: '1px solid #BFDBFE',
-                                padding: '3px 8px',
-                                borderRadius: '6px'
-                              }}
-                            >
-                              {u.licenseNumber || 'PENDING-LIC'}
-                            </span>
-                          </td>
-
-                          {/* Specialization */}
-                          <td style={{ padding: '14px 18px' }}>
-                            <span style={{ fontSize: '0.86rem', fontWeight: 700, color: '#17324D' }}>
-                              {u.specialization || 'General Dentistry'}
-                            </span>
-                            {u.clinicName && (
-                              <div style={{ fontSize: '0.74rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                                <Building size={11} color="#94A3B8" /> {u.clinicName}
-                              </div>
-                            )}
-                          </td>
-
-                          {/* Experience */}
-                          <td style={{ padding: '14px 18px' }}>
-                            <span style={{ fontSize: '0.86rem', color: '#475569', fontWeight: 600 }}>
-                              {u.experience ? (u.experience.toString().includes('Year') ? u.experience : `${u.experience} Years`) : '10 Years'}
-                            </span>
-                          </td>
-
-                          {/* Verification Status */}
-                          <td style={{ padding: '14px 18px' }}>
-                            <span 
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                background: isApproved ? '#ECFDF5' : isRejected ? '#FEF2F2' : '#FFFBEB',
-                                color: isApproved ? '#059669' : isRejected ? '#DC2626' : '#B45309',
-                                border: `1px solid ${isApproved ? '#A7F3D0' : isRejected ? '#FECACA' : '#FDE68A'}`,
-                                borderRadius: '8px',
-                                padding: '4px 10px',
-                                fontSize: '0.78rem',
-                                fontWeight: 700
-                              }}
-                            >
-                              <div 
-                                style={{ 
-                                  width: '7px', 
-                                  height: '7px', 
-                                  borderRadius: '50%', 
-                                  background: isApproved ? '#10B981' : isRejected ? '#DC2626' : '#F59E0B',
-                                  boxShadow: isApproved ? '0 0 6px #10B981' : 'none'
-                                }} 
-                              />
-                              {docStatus}
-                            </span>
-                          </td>
-
-                          {/* Actions */}
-                          <td style={{ padding: '14px 18px', textAlign: 'right' }}>
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                              {!isApproved && (
-                                <button
-                                  onClick={() => setConfirmModal({ doctor: u, targetStatus: 'Approved' })}
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '5px',
-                                    padding: '6px 12px',
-                                    borderRadius: '8px',
-                                    background: '#ECFDF5',
-                                    color: '#059669',
-                                    border: '1px solid #A7F3D0',
-                                    fontWeight: 700,
-                                    fontSize: '0.78rem',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.15s ease'
-                                  }}
-                                  onMouseEnter={(e) => e.currentTarget.style.background = '#D1FAE5'}
-                                  onMouseLeave={(e) => e.currentTarget.style.background = '#ECFDF5'}
-                                >
-                                  <CheckCircle2 size={13} /> Approve
-                                </button>
-                              )}
-
-                              {!isRejected && (
-                                <button
-                                  onClick={() => setConfirmModal({ doctor: u, targetStatus: 'Rejected' })}
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '5px',
-                                    padding: '6px 12px',
-                                    borderRadius: '8px',
-                                    background: '#FEF2F2',
-                                    color: '#DC2626',
-                                    border: '1px solid #FECACA',
-                                    fontWeight: 700,
-                                    fontSize: '0.78rem',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.15s ease'
-                                  }}
-                                  onMouseEnter={(e) => e.currentTarget.style.background = '#FEE2E2'}
-                                  onMouseLeave={(e) => e.currentTarget.style.background = '#FEF2F2'}
-                                >
-                                  <XCircle size={13} /> Reject
-                                </button>
-                              )}
-
-                              {isApproved && (
-                                <span style={{ fontSize: '0.76rem', color: '#059669', fontWeight: 700, background: '#F0FDF4', padding: '4px 8px', borderRadius: '6px' }}>
-                                  Verified
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td colSpan="6" style={{ padding: '60px 20px', textAlign: 'center', color: '#64748B' }}>
-                        <Stethoscope size={40} color="#CBD5E1" style={{ margin: '0 auto 12px' }} />
-                        <h4 style={{ margin: '0 0 6px 0', fontSize: '1rem', fontWeight: 800, color: '#17324D' }}>
-                          No doctors found
-                        </h4>
-                        <p style={{ margin: 0, fontSize: '0.85rem' }}>
-                          No clinicians match your search filter "{search}".
-                        </p>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-
         </motion.div>
 
-      </motion.div>
+        {/* Doctor Roster Grid / Cards */}
+        <motion.div variants={item} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
+          {isLoading ? (
+            <div className="card" style={{ gridColumn: '1 / -1', padding: '48px 20px', textAlign: 'center', color: '#64748B', borderRadius: '16px' }}>
+              <RefreshCw size={24} className="spin-icon" style={{ margin: '0 auto 12px', display: 'block', color: '#00A6A6' }} />
+              Loading practitioner credentials from MongoDB...
+            </div>
+          ) : doctors.length === 0 ? (
+            <div className="card" style={{ gridColumn: '1 / -1', padding: '48px 20px', textAlign: 'center', color: '#64748B', borderRadius: '16px' }}>
+              No doctor applications found matching the selected filter.
+            </div>
+          ) : (
+            doctors.map(doc => {
+              const statusBadge = getStatusBadge(doc.verificationStatus);
+              const isApproved = doc.verificationStatus === 'Approved';
 
-      {/* 5. CONFIRMATION DIALOG MODAL */}
-      <AnimatePresence>
-        {confirmModal && (
-          <div 
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: 'rgba(15, 23, 42, 0.45)',
-              backdropFilter: 'blur(6px)',
-              zIndex: 9999,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '20px'
-            }}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              style={{
-                background: '#FFFFFF',
-                borderRadius: '24px',
-                border: '1px solid #BFD4E5',
-                padding: '28px 32px',
-                maxWidth: '460px',
-                width: '100%',
-                boxShadow: '0 20px 40px rgba(7, 26, 51, 0.15)'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
+              return (
                 <div 
-                  style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '14px',
-                    background: confirmModal.targetStatus === 'Approved' ? '#ECFDF5' : '#FEF2F2',
-                    color: confirmModal.targetStatus === 'Approved' ? '#059669' : '#DC2626',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}
-                >
-                  {confirmModal.targetStatus === 'Approved' ? <CheckCircle2 size={24} /> : <AlertTriangle size={24} />}
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#17324D' }}>
-                    {confirmModal.targetStatus === 'Approved' ? 'Approve Medical Credentials' : 'Reject Practitioner Application'}
-                  </h3>
-                  <p style={{ margin: '2px 0 0 0', fontSize: '0.84rem', color: '#64748B' }}>
-                    Practitioner Verification Action
-                  </p>
-                </div>
-              </div>
-
-              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '14px 16px', marginBottom: '20px' }}>
-                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#17324D' }}>
-                  {confirmModal.doctor.name}
-                </div>
-                <div style={{ fontSize: '0.8rem', color: '#64748B', marginTop: '2px' }}>
-                  {confirmModal.doctor.specialization || 'General Dentistry'} &bull; License: {confirmModal.doctor.licenseNumber || 'PENDING-LIC'}
-                </div>
-              </div>
-
-              <p style={{ fontSize: '0.88rem', color: '#475569', lineHeight: 1.5, margin: '0 0 24px 0' }}>
-                {confirmModal.targetStatus === 'Approved' ? (
-                  <>
-                    Approving will grant <strong>{confirmModal.doctor.name}</strong> official verified credentials, enabling them to review patient AI screenings and accept tele-consultations.
-                  </>
-                ) : (
-                  <>
-                    Are you sure you want to reject this doctor's application? Their verification status will be updated to <strong>Rejected</strong>.
-                  </>
-                )}
-              </p>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                <button
-                  type="button"
-                  disabled={isUpdating}
-                  onClick={() => setConfirmModal(null)}
-                  style={{
-                    padding: '10px 18px',
-                    borderRadius: '12px',
+                  key={doc._id || doc.id} 
+                  className="card" 
+                  style={{ 
+                    padding: '22px', 
+                    borderRadius: '18px', 
+                    border: isApproved ? '1px solid #86EFAC' : '1px solid #BFD4E5',
                     background: '#FFFFFF',
-                    border: '1px solid #CBD5E1',
-                    color: '#475569',
-                    fontSize: '0.86rem',
-                    fontWeight: 700,
-                    cursor: 'pointer'
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    boxShadow: '0 4px 16px rgba(7, 26, 51, 0.04)'
                   }}
                 >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  disabled={isUpdating}
-                  onClick={() => handleStatusUpdate(confirmModal.doctor._id, confirmModal.targetStatus)}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '10px 20px',
-                    borderRadius: '12px',
-                    background: confirmModal.targetStatus === 'Approved' ? '#059669' : '#DC2626',
-                    border: 'none',
-                    color: '#FFFFFF',
-                    fontSize: '0.86rem',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    boxShadow: confirmModal.targetStatus === 'Approved' 
-                      ? '0 4px 12px rgba(5, 150, 105, 0.25)' 
-                      : '0 4px 12px rgba(220, 38, 38, 0.25)'
-                  }}
-                >
-                  {isUpdating ? (
-                    <>
-                      <Activity className="spin-anim" size={16} /> Updating...
-                    </>
-                  ) : confirmModal.targetStatus === 'Approved' ? (
-                    <>
-                      <CheckCircle2 size={16} /> Confirm Approval
-                    </>
-                  ) : (
-                    <>
-                      <XCircle size={16} /> Confirm Rejection
-                    </>
-                  )}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+                  <div>
+                    {/* Header: Photo + Name + Status */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#F0FDFA', color: '#00A6A6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1rem', border: '1px solid #99F6E4', flexShrink: 0 }}>
+                          {doc.profileImage ? (
+                            <img src={doc.profileImage} alt={doc.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '14px' }} />
+                          ) : (
+                            getInitials(doc.name)
+                          )}
+                        </div>
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: '1.02rem', fontWeight: 800, color: '#17324D', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {doc.name}
+                          </h4>
+                          <span style={{ fontSize: '0.78rem', color: '#00A6A6', fontWeight: 700 }}>
+                            {doc.qualifications || 'BDS'} • {doc.specialization || 'General Dentistry'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
 
+                    {/* Verified Dentist Badge */}
+                    <div style={{ marginBottom: '14px' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: statusBadge.bg, color: statusBadge.text, border: `1px solid ${statusBadge.border}`, padding: '4px 10px', borderRadius: '999px', fontSize: '0.74rem', fontWeight: 800 }}>
+                        {statusBadge.icon} {statusBadge.label}
+                      </span>
+                    </div>
+
+                    {/* Metadata Specs */}
+                    <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '12px', border: '1px solid #E2E8F0', marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#64748B' }}>DCI Reg #:</span>
+                        <strong style={{ color: '#17324D', fontFamily: 'monospace' }}>{doc.dentalCouncilNumber || 'Not submitted'}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#64748B' }}>State Council:</span>
+                        <strong style={{ color: '#17324D' }}>{doc.stateDentalCouncil || 'State Council Pending'}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#64748B' }}>Clinic:</span>
+                        <strong style={{ color: '#17324D' }}>{doc.clinic || 'Private Practice'}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#64748B' }}>Account:</span>
+                        <strong style={{ color: doc.accountStatus === 'Blocked' ? '#DC2626' : '#059669' }}>
+                          {doc.accountStatus || 'Active'}
+                        </strong>
+                      </div>
+                    </div>
+
+                    {/* Audit note preview if rejected or verified */}
+                    {doc.rejectionReason && (
+                      <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px', padding: '8px 10px', marginBottom: '14px', fontSize: '0.76rem', color: '#991B1B' }}>
+                        <strong>Rejection Reason:</strong> {doc.rejectionReason}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                    <button
+                      onClick={() => setSelectedDoctor(doc)}
+                      style={{ flex: 1, background: '#FFFFFF', border: '1px solid #BFD4E5', padding: '8px 12px', borderRadius: '10px', fontSize: '0.82rem', fontWeight: 700, color: '#17324D', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                    >
+                      <Eye size={13} /> View Dossier
+                    </button>
+
+                    {!isApproved ? (
+                      <button
+                        onClick={() => {
+                          setActionModal({ doctor: doc, targetStatus: 'Approved' });
+                          setActionReason('');
+                          setActionNotes('');
+                        }}
+                        style={{ background: '#059669', border: 'none', padding: '8px 14px', borderRadius: '10px', fontSize: '0.82rem', fontWeight: 800, color: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        <Check size={14} /> Approve
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setActionModal({ doctor: doc, targetStatus: 'Under Review' });
+                          setActionReason('');
+                          setActionNotes('');
+                        }}
+                        style={{ background: '#F1F5F9', border: '1px solid #CBD5E1', padding: '8px 12px', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#475569', cursor: 'pointer' }}
+                      >
+                        Re-evaluate
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </motion.div>
+
+        {/* FULL DOCTOR CREDENTIAL DOSSIER MODAL */}
+        <AnimatePresence>
+          {selectedDoctor && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(7, 26, 51, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '20px' }}>
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="card" style={{ width: '100%', maxWidth: '720px', maxHeight: '90vh', overflowY: 'auto', padding: '28px', borderRadius: '22px', position: 'relative' }}>
+                <button
+                  onClick={() => setSelectedDoctor(null)}
+                  style={{ position: 'absolute', top: '20px', right: '20px', background: '#F1F5F9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748B' }}
+                >
+                  <X size={16} />
+                </button>
+
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#F0FDFA', color: '#00A6A6', padding: '4px 12px', borderRadius: '999px', fontSize: '0.74rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '8px' }}>
+                  Practitioner Credential Dossier
+                </div>
+                <h3 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#17324D', margin: '4px 0 16px' }}>
+                  {selectedDoctor.name}
+                </h3>
+
+                {/* Primary Info Strip */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '20px' }}>
+                  <div style={{ background: '#F8FAFC', padding: '12px 14px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                    <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 800, textTransform: 'uppercase' }}>Email</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#17324D', marginTop: '2px' }}>{selectedDoctor.email}</div>
+                  </div>
+                  <div style={{ background: '#F8FAFC', padding: '12px 14px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                    <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 800, textTransform: 'uppercase' }}>Phone</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#17324D', marginTop: '2px' }}>{selectedDoctor.phone || 'Not provided'}</div>
+                  </div>
+                  <div style={{ background: '#F8FAFC', padding: '12px 14px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                    <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 800, textTransform: 'uppercase' }}>Degree & Qualifications</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#17324D', marginTop: '2px' }}>{selectedDoctor.qualifications || 'BDS'}</div>
+                  </div>
+                  <div style={{ background: '#F8FAFC', padding: '12px 14px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                    <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 800, textTransform: 'uppercase' }}>Dental Council Number</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#00A6A6', marginTop: '2px', fontFamily: 'monospace' }}>
+                      {selectedDoctor.dentalCouncilNumber || 'Awaiting entry'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Clinic and Address */}
+                <div style={{ background: '#F8FAFC', padding: '14px', borderRadius: '12px', border: '1px solid #E2E8F0', marginBottom: '20px' }}>
+                  <div style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: 800, textTransform: 'uppercase' }}>Clinic & Location</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#17324D', marginTop: '2px' }}>{selectedDoctor.clinic || 'Practice Clinic'} • {selectedDoctor.location || 'Location Not Specified'}</div>
+                  {selectedDoctor.clinicAddress && (
+                    <div style={{ fontSize: '0.82rem', color: '#64748B', marginTop: '4px' }}>{selectedDoctor.clinicAddress}</div>
+                  )}
+                </div>
+
+                {/* Uploaded Professional Certificates */}
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#17324D', marginBottom: '10px' }}>
+                    Uploaded Professional Certificates & Degrees
+                  </div>
+                  {(selectedDoctor.certificates || []).length === 0 ? (
+                    <div style={{ background: '#F8FAFC', border: '1px dashed #CBD5E1', borderRadius: '12px', padding: '16px', textAlign: 'center', color: '#64748B', fontSize: '0.84rem' }}>
+                      No digital certificate uploads attached. Verify credentials directly through state council register.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {selectedDoctor.certificates.map((cert, idx) => (
+                        <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#F0FDFA', border: '1px solid #CCFBF1', borderRadius: '10px' }}>
+                          <span style={{ fontSize: '0.86rem', fontWeight: 700, color: '#0F766E' }}>{cert.title || `Certificate #${idx + 1}`}</span>
+                          <a href={cert.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', fontWeight: 700, color: '#00A6A6', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <ExternalLink size={13} /> View Document
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Official Council Verification Cross-Check Helper */}
+                <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '12px', padding: '14px', marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#1E40AF', fontSize: '0.82rem', fontWeight: 800, marginBottom: '4px' }}>
+                    <ShieldCheck size={16} /> Official Dental Council Verification Requirement
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: '#1E3A8A', lineHeight: 1.5 }}>
+                    Never treat document uploads alone as verification. Cross-check the practitioner&apos;s registration number (<strong>{selectedDoctor.dentalCouncilNumber || 'N/A'}</strong>) against the Dental Council of India register before finalizing approval.
+                  </p>
+                  <a
+                    href="https://dciindia.gov.in/DentistCouncil.aspx"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '8px', color: '#2563EB', fontSize: '0.82rem', fontWeight: 700, textDecoration: 'none' }}
+                  >
+                    Open DCI National Dentist Register <ExternalLink size={13} />
+                  </a>
+                </div>
+
+                {/* Verification History & Audit Trail */}
+                {(selectedDoctor.verificationHistory || []).length > 0 && (
+                  <div style={{ marginBottom: '24px' }}>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#17324D', marginBottom: '8px' }}>
+                      Verification Audit Trail
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {selectedDoctor.verificationHistory.map((hist, i) => (
+                        <div key={i} style={{ fontSize: '0.78rem', background: '#F8FAFC', padding: '8px 12px', borderRadius: '8px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>
+                            <strong>{hist.status}</strong> by {hist.adminName || 'Admin'}
+                            {hist.reason && <span style={{ color: '#B91C1C' }}> — {hist.reason}</span>}
+                          </span>
+                          <span style={{ color: '#94A3B8' }}>{new Date(hist.date).toLocaleDateString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Workflow Actions */}
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => {
+                      setActionModal({ doctor: selectedDoctor, targetStatus: 'Requires Resubmission' });
+                      setActionReason('');
+                      setActionNotes('');
+                    }}
+                    style={{ background: '#FFF7ED', border: '1px solid #FDBA74', color: '#C2410C', padding: '9px 16px', borderRadius: '10px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Request Resubmission
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setActionModal({ doctor: selectedDoctor, targetStatus: 'Rejected' });
+                      setActionReason('');
+                      setActionNotes('');
+                    }}
+                    style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#B91C1C', padding: '9px 16px', borderRadius: '10px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Reject Application
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setActionModal({ doctor: selectedDoctor, targetStatus: 'Approved' });
+                      setActionReason('');
+                      setActionNotes('');
+                    }}
+                    style={{ background: '#059669', border: 'none', color: '#FFFFFF', padding: '9px 18px', borderRadius: '10px', fontSize: '0.84rem', fontWeight: 800, cursor: 'pointer' }}
+                  >
+                    Approve Genuine Credentials
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* DECISION ACTION MODAL (APPROVE / REJECT / RESUBMIT) */}
+        <AnimatePresence>
+          {actionModal && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(7, 26, 51, 0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: '20px' }}>
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="card" style={{ width: '100%', maxWidth: '520px', padding: '26px', borderRadius: '20px' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#17324D', margin: '0 0 8px' }}>
+                  Confirm Verification: {actionModal.targetStatus}
+                </h3>
+                <p style={{ fontSize: '0.86rem', color: '#64748B', margin: '0 0 16px', lineHeight: 1.5 }}>
+                  Setting status for <strong>{actionModal.doctor.name}</strong> to <strong>{actionModal.targetStatus}</strong>.
+                </p>
+
+                {['Rejected', 'Requires Resubmission'].includes(actionModal.targetStatus) && (
+                  <div style={{ marginBottom: '14px' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: '#17324D', marginBottom: '6px' }}>
+                      Reason for Decision <span style={{ color: '#EF4444' }}>*</span>
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={actionReason}
+                      onChange={(e) => setActionReason(e.target.value)}
+                      placeholder="Specify why the application was rejected or what certificates need resubmission..."
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.86rem', color: '#17324D', outline: 'none', resize: 'vertical' }}
+                    />
+                  </div>
+                )}
+
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: '#17324D', marginBottom: '6px' }}>
+                    Internal Administrative Audit Notes (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={actionNotes}
+                    onChange={(e) => setActionNotes(e.target.value)}
+                    placeholder="e.g., Verified against DCI Maharashtra state register volume 2024"
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.86rem', color: '#17324D', outline: 'none' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                  <button
+                    onClick={() => setActionModal(null)}
+                    disabled={isUpdating}
+                    style={{ background: '#F1F5F9', border: '1px solid #CBD5E1', padding: '9px 16px', borderRadius: '10px', fontSize: '0.84rem', fontWeight: 700, color: '#475569', cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleStatusSubmit}
+                    disabled={isUpdating}
+                    style={{
+                      background: actionModal.targetStatus === 'Approved' ? '#059669' : actionModal.targetStatus === 'Rejected' ? '#DC2626' : '#D97706',
+                      border: 'none',
+                      color: '#FFFFFF',
+                      padding: '9px 20px',
+                      borderRadius: '10px',
+                      fontSize: '0.84rem',
+                      fontWeight: 800,
+                      cursor: isUpdating ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    {isUpdating ? <RefreshCw size={14} className="spin-icon" /> : null}
+                    Confirm Status Change
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+      </motion.div>
     </div>
   );
 };

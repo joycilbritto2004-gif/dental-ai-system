@@ -1,44 +1,102 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Users, UserCheck, ShieldCheck, Search, ArrowLeft, X, 
-  Calendar, Mail, Activity, Eye, ChevronRight, FileText, Ban
+  Calendar, Mail, Activity, Eye, ChevronRight, ChevronLeft, 
+  FileText, Ban, CheckCircle2, Phone, RefreshCw, AlertTriangle
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import '../Dashboard.css';
 import { API_BASE } from '../../config';
 
 const AdminPatients = () => {
   const [patients, setPatients] = useState([]);
+  const [pagination, setPagination] = useState({ page: 1, limit: 15, total: 0, pages: 1 });
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All'); // 'All' | 'Active' | 'Blocked'
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [confirmStatusModal, setConfirmStatusModal] = useState(null); // { patient, targetStatus }
+  const [statusReason, setStatusReason] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
+
+  const fetchPatients = useCallback(async (pageToLoad = 1) => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('dentaai_token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+      const params = new URLSearchParams({
+        page: pageToLoad,
+        limit: 15,
+        search,
+        status: statusFilter
+      });
+
+      const res = await fetch(`${API_BASE}/api/admin/patients?${params.toString()}`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        setPatients(data.patients || []);
+        if (data.pagination) setPagination(data.pagination);
+      }
+    } catch (err) {
+      console.error("Failed to fetch patients", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [search, statusFilter]);
 
   useEffect(() => {
-    const fetchPatients = async () => {
-      try {
-        const userStr = localStorage.getItem('dentaai_user');
-        if (!userStr) return;
-        const user = JSON.parse(userStr);
-        const userId = user._id || user.id;
+    const timer = setTimeout(() => {
+      fetchPatients(1);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [fetchPatients]);
 
-        const token = localStorage.getItem('dentaai_token');
-        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+  const showToast = (msg, type = 'success') => {
+    setToastMessage({ text: msg, type });
+    setTimeout(() => setToastMessage(null), 4000);
+  };
 
-        const res = await fetch(`${API_BASE}/api/admin/users?userId=${userId}`, { headers });
-        if (res.ok) {
-          const data = await res.json();
-          setPatients((Array.isArray(data) ? data : []).filter(u => u.role === 'patient'));
-        }
-      } catch (err) {
-        console.error("Failed to fetch patients", err);
-      } finally {
-        setIsLoading(false);
+  const handleAccountStatusChange = async () => {
+    if (!confirmStatusModal) return;
+    const { patient, targetStatus } = confirmStatusModal;
+    setIsUpdating(true);
+
+    try {
+      const token = localStorage.getItem('dentaai_token');
+      const headers = { 
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      };
+
+      const res = await fetch(`${API_BASE}/api/admin/users/${patient._id || patient.id}/account-status`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ 
+          status: targetStatus,
+          reason: statusReason.trim()
+        })
+      });
+
+      if (res.ok) {
+        showToast(`Patient account marked as ${targetStatus}.`, 'success');
+        setConfirmStatusModal(null);
+        setSelectedPatient(null);
+        setStatusReason('');
+        await fetchPatients(pagination.page);
+      } else {
+        const data = await res.json();
+        showToast(`Error: ${data.message || 'Failed to update status'}`, 'error');
       }
-    };
-
-    fetchPatients();
-  }, []);
+    } catch (err) {
+      console.error("Error updating account status:", err);
+      showToast("Network error updating account status.", 'error');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   const getInitials = (name) => {
     if (!name) return 'PT';
@@ -48,521 +106,374 @@ const AdminPatients = () => {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   };
 
-  const stats = useMemo(() => {
-    let active = 0;
-    let blocked = 0;
-    let newThisMonth = 0;
-
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-
-    patients.forEach(p => {
-      if (p.accountStatus === 'Blocked') blocked++;
-      else active++;
-
-      if (p.createdAt) {
-        const d = new Date(p.createdAt);
-        if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
-          newThisMonth++;
-        }
-      }
-    });
-
-    return {
-      total: patients.length,
-      active,
-      blocked,
-      newThisMonth
-    };
-  }, [patients]);
-
-  const filteredPatients = useMemo(() => {
-    return patients.filter(u => {
-      const q = search.toLowerCase().trim();
-      const name = (u.name || '').toLowerCase();
-      const email = (u.email || '').toLowerCase();
-      const uid = (u._id || '').toLowerCase();
-
-      const matchesSearch = !q || name.includes(q) || email.includes(q) || uid.includes(q);
-      const userStatus = u.accountStatus || 'Active';
-      const matchesStatus = statusFilter === 'All' || userStatus === statusFilter;
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [patients, search, statusFilter]);
-
   const stagger = {
     hidden: { opacity: 0 },
-    show: { opacity: 1, transition: { staggerChildren: 0.08 } }
+    show: { opacity: 1, transition: { staggerChildren: 0.06 } }
   };
-  const item = { hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0 } };
+  const item = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } };
 
   return (
-    <div className="screening-history-wrapper" style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 16px 48px' }}>
+    <div className="screening-history-wrapper" style={{ maxWidth: '1440px', margin: '0 auto', padding: '0 16px 48px' }}>
       <motion.div initial="hidden" animate="show" variants={stagger}>
         
-        {/* 1. CLINICAL HEADER CARD */}
-        <motion.div variants={item} className="screening-header-card" style={{ marginBottom: '24px' }}>
-          <div className="screening-header-stripe"></div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
-            <div>
-              <div className="screening-badge">
-                <UserCheck size={14} /> Intake & Patient Care
-              </div>
-              <h1 className="screening-title">Patient Management</h1>
-              <p className="screening-subtitle">
-                Monitor patient accounts, intake registrations, AI scan activities, and institutional access statuses.
-              </p>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-              <Link 
-                to="/dashboard/admin" 
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '10px 18px',
-                  borderRadius: '12px',
-                  background: '#FFFFFF',
-                  border: '1px solid #BFD4E5',
-                  color: '#17324D',
-                  fontWeight: 700,
-                  fontSize: '0.86rem',
-                  textDecoration: 'none',
-                  boxShadow: '0 2px 8px rgba(7, 26, 51, 0.04)',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <ArrowLeft size={16} /> Back to Dashboard
-              </Link>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#F0FDFA', border: '1px solid #99E3D8', padding: '8px 14px', borderRadius: '12px', color: '#0F766E', fontSize: '0.82rem', fontWeight: 700 }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10B981', boxShadow: '0 0 6px #10B981' }} />
-                HIPAA Compliance Active
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* 2. TOP 4 MASTER KPI SUMMARY STRIP (100% EQUAL & BALANCED) */}
-        <motion.div variants={item} className="doctor-kpi-grid" style={{ marginBottom: '24px' }}>
-          
-          {/* Card 1: Total Patients */}
-          <div 
-            className="doctor-kpi-card"
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'flex-start', 
-              gap: '16px',
-              borderLeft: '4px solid #00A6A6',
-              padding: '20px 22px'
-            }}
-          >
-            <div style={{ width: '52px', height: '52px', borderRadius: '16px', background: 'rgba(0, 166, 166, 0.12)', color: '#00A6A6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Users size={26} />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '1.9rem', fontWeight: 900, color: '#17324D', lineHeight: 1.1 }}>
-                {stats.total}
-              </div>
-              <div style={{ fontSize: '0.84rem', color: '#64748B', fontWeight: 700, marginTop: '4px' }}>
-                Total Patients
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2: Active Accounts */}
-          <div 
-            className="doctor-kpi-card"
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'flex-start', 
-              gap: '16px',
-              borderLeft: '4px solid #10B981',
-              padding: '20px 22px'
-            }}
-          >
-            <div style={{ width: '52px', height: '52px', borderRadius: '16px', background: 'rgba(16, 185, 129, 0.12)', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <UserCheck size={26} />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '1.9rem', fontWeight: 900, color: '#17324D', lineHeight: 1.1 }}>
-                {stats.active}
-              </div>
-              <div style={{ fontSize: '0.84rem', color: '#64748B', fontWeight: 700, marginTop: '4px' }}>
-                Active Accounts
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3: New Intake This Month */}
-          <div 
-            className="doctor-kpi-card"
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'flex-start', 
-              gap: '16px',
-              borderLeft: '4px solid #2563EB',
-              padding: '20px 22px'
-            }}
-          >
-            <div style={{ width: '52px', height: '52px', borderRadius: '16px', background: 'rgba(37, 99, 235, 0.12)', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Calendar size={26} />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '1.9rem', fontWeight: 900, color: '#17324D', lineHeight: 1.1 }}>
-                +{stats.newThisMonth}
-              </div>
-              <div style={{ fontSize: '0.84rem', color: '#64748B', fontWeight: 700, marginTop: '4px' }}>
-                New This Month
-              </div>
-            </div>
-          </div>
-
-          {/* Card 4: Restricted / Blocked Patients */}
-          <div 
-            className="doctor-kpi-card"
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'flex-start', 
-              gap: '16px',
-              borderLeft: `4px solid ${stats.blocked > 0 ? '#DC2626' : '#94A3B8'}`,
-              padding: '20px 22px'
-            }}
-          >
-            <div 
-              style={{ 
-                width: '52px', 
-                height: '52px', 
-                borderRadius: '16px', 
-                background: stats.blocked > 0 ? 'rgba(220, 38, 38, 0.12)' : 'rgba(148, 163, 184, 0.12)', 
-                color: stats.blocked > 0 ? '#DC2626' : '#64748B', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                flexShrink: 0 
+        {/* Toast Notification */}
+        <AnimatePresence>
+          {toastMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              style={{
+                position: 'fixed',
+                top: '24px',
+                right: '24px',
+                zIndex: 2000,
+                background: toastMessage.type === 'error' ? '#EF4444' : '#10B981',
+                color: '#FFFFFF',
+                padding: '12px 22px',
+                borderRadius: '12px',
+                boxShadow: '0 8px 24px rgba(7, 26, 51, 0.2)',
+                fontWeight: 700,
+                fontSize: '0.9rem'
               }}
             >
-              <Ban size={26} />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '1.9rem', fontWeight: 900, color: '#17324D', lineHeight: 1.1 }}>
-                {stats.blocked}
-              </div>
-              <div style={{ fontSize: '0.84rem', color: '#64748B', fontWeight: 700, marginTop: '4px' }}>
-                Restricted Access
-              </div>
-            </div>
+              {toastMessage.text}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Top Breadcrumb */}
+        <motion.div variants={item} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Link to="/dashboard/admin" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748B', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 600 }}>
+              <ArrowLeft size={16} /> Admin Console
+            </Link>
+            <span style={{ color: '#CBD5E1' }}>/</span>
+            <span style={{ color: '#17324D', fontWeight: 800, fontSize: '0.95rem' }}>Patient Management</span>
           </div>
 
+          <button 
+            onClick={() => fetchPatients(pagination.page)} 
+            disabled={isLoading}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#FFFFFF', border: '1px solid #BFD4E5', padding: '7px 14px', borderRadius: '10px', fontSize: '0.84rem', fontWeight: 700, color: '#17324D', cursor: 'pointer' }}
+          >
+            <RefreshCw size={14} className={isLoading ? 'spin-icon' : ''} /> Refresh Patients
+          </button>
         </motion.div>
 
-        {/* 3. MASTER PATIENT DIRECTORY CARD */}
-        <motion.div 
-          variants={item}
-          style={{
-            background: '#FFFFFF',
-            borderRadius: '24px',
-            border: '1px solid #BFD4E5',
-            padding: '28px',
-            boxShadow: '0 6px 24px rgba(7, 26, 51, 0.04)'
-          }}
-        >
-          {/* Filter Bar */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
-            
-            {/* Search Input */}
-            <div style={{ position: 'relative', width: '100%', maxWidth: '380px' }}>
-              <Search size={18} color="#94A3B8" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
-              <input 
+        {/* Title Header Card */}
+        <motion.div variants={item} className="screening-header-card" style={{ marginBottom: '24px', background: 'linear-gradient(135deg, #0F2942 0%, #17324D 100%)', color: '#FFFFFF', padding: '28px', borderRadius: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.12)', padding: '5px 12px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '8px' }}>
+                <Users size={13} color="#38BDF8" /> Patient Intake & Registry
+              </div>
+              <h2 style={{ fontSize: '1.8rem', fontWeight: 900, margin: '4px 0 6px', color: '#FFFFFF' }}>
+                Patient Management
+              </h2>
+              <p style={{ color: '#93C5FD', margin: 0, fontSize: '0.92rem', maxWidth: '640px' }}>
+                View registered patient profiles, registration dates, diagnostic scan history, appointment activity, and activate or suspend accounts.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Search & Status Filter Strip */}
+        <motion.div variants={item} className="card" style={{ padding: '18px 20px', borderRadius: '16px', border: '1px solid #BFD4E5', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '1 1 320px', background: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: '12px', padding: '8px 14px' }}>
+              <Search size={16} color="#64748B" />
+              <input
                 type="text"
-                placeholder="Search patients by name, email, or UID..."
+                placeholder="Search patient by name, email, or phone number..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '11px 40px 11px 42px',
-                  background: '#F8FAFC',
-                  border: '1px solid #CBD5E1',
-                  borderRadius: '14px',
-                  fontSize: '0.88rem',
-                  fontWeight: 600,
-                  color: '#17324D',
-                  outline: 'none',
-                  boxSizing: 'border-box'
-                }}
+                style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: '0.88rem', color: '#17324D', fontWeight: 500 }}
               />
               {search && (
-                <button 
-                  onClick={() => setSearch('')}
-                  style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    color: '#94A3B8',
-                    cursor: 'pointer',
-                    padding: '4px',
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}
-                  title="Clear search"
-                >
-                  <X size={16} />
+                <button onClick={() => setSearch('')} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94A3B8' }}>
+                  <X size={14} />
                 </button>
               )}
             </div>
 
-            {/* Status Tabs */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Status:
-              </span>
-              {[
-                { id: 'All', label: 'All Patients', count: stats.total },
-                { id: 'Active', label: 'Active', count: stats.active },
-                { id: 'Blocked', label: 'Restricted', count: stats.blocked }
-              ].map(st => {
-                const isActive = statusFilter === st.id;
-                return (
-                  <button
-                    key={st.id}
-                    onClick={() => setStatusFilter(st.id)}
-                    style={{
-                      padding: '7px 14px',
-                      borderRadius: '10px',
-                      fontSize: '0.8rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      border: '1px solid',
-                      background: isActive 
-                        ? (st.id === 'Active' ? '#ECFDF5' : st.id === 'Blocked' ? '#FEF2F2' : '#17324D')
-                        : '#FFFFFF',
-                      color: isActive 
-                        ? (st.id === 'Active' ? '#059669' : st.id === 'Blocked' ? '#DC2626' : '#FFFFFF')
-                        : '#64748B',
-                      borderColor: isActive 
-                        ? (st.id === 'Active' ? '#A7F3D0' : st.id === 'Blocked' ? '#FECACA' : '#17324D')
-                        : '#CBD5E1',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    {st.label} ({st.count})
-                  </button>
-                );
-              })}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {['All', 'Active', 'Blocked'].map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setStatusFilter(tab)}
+                  style={{
+                    background: statusFilter === tab ? '#17324D' : '#FFFFFF',
+                    color: statusFilter === tab ? '#FFFFFF' : '#475569',
+                    border: statusFilter === tab ? '1px solid #17324D' : '1px solid #CBD5E1',
+                    padding: '7px 16px',
+                    borderRadius: '999px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {tab}
+                </button>
+              ))}
             </div>
+          </div>
+        </motion.div>
 
+        {/* Patients Table Card */}
+        <motion.div variants={item} className="card" style={{ padding: '0', borderRadius: '18px', border: '1px solid #BFD4E5', overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <thead>
+                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                  <th style={{ padding: '14px 20px', fontSize: '0.78rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase' }}>Patient Name</th>
+                  <th style={{ padding: '14px 20px', fontSize: '0.78rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase' }}>Contact Info</th>
+                  <th style={{ padding: '14px 20px', fontSize: '0.78rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase' }}>Registration Date</th>
+                  <th style={{ padding: '14px 20px', fontSize: '0.78rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase' }}>Scans & Appts</th>
+                  <th style={{ padding: '14px 20px', fontSize: '0.78rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase' }}>Account Status</th>
+                  <th style={{ padding: '14px 20px', fontSize: '0.78rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '48px 20px', color: '#64748B' }}>
+                      <RefreshCw size={24} className="spin-icon" style={{ margin: '0 auto 12px', display: 'block', color: '#00A6A6' }} />
+                      Loading patient records from MongoDB...
+                    </td>
+                  </tr>
+                ) : patients.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '48px 20px', color: '#64748B' }}>
+                      No registered patients found matching the active search.
+                    </td>
+                  </tr>
+                ) : (
+                  patients.map((p) => {
+                    const isBlocked = p.accountStatus === 'Blocked';
+                    return (
+                      <tr key={p._id || p.id} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.2s' }}>
+                        <td style={{ padding: '16px 20px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: '#EFF6FF', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.85rem', flexShrink: 0 }}>
+                              {getInitials(p.name)}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 800, color: '#17324D', fontSize: '0.92rem' }}>{p.name}</div>
+                              <div style={{ fontSize: '0.74rem', color: '#64748B' }}>ID: #{String(p._id).slice(-8)}</div>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td style={{ padding: '16px 20px' }}>
+                          <div style={{ fontSize: '0.86rem', color: '#17324D', fontWeight: 600 }}>{p.email}</div>
+                          <div style={{ fontSize: '0.76rem', color: '#64748B' }}>{p.phone || 'No phone recorded'}</div>
+                        </td>
+
+                        <td style={{ padding: '16px 20px', fontSize: '0.84rem', color: '#64748B' }}>
+                          {p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recorded'}
+                        </td>
+
+                        <td style={{ padding: '16px 20px' }}>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <span style={{ background: '#F0FDFA', color: '#0F766E', border: '1px solid #99E3D8', padding: '2px 8px', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 700 }}>
+                              {p.totalScans || 0} Scans
+                            </span>
+                            <span style={{ background: '#F5F3FF', color: '#6D28D9', border: '1px solid #DDD6FE', padding: '2px 8px', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 700 }}>
+                              {p.totalAppointments || 0} Appts
+                            </span>
+                          </div>
+                        </td>
+
+                        <td style={{ padding: '16px 20px' }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: isBlocked ? '#FEE2E2' : '#DCFCE7', color: isBlocked ? '#B91C1C' : '#15803D', border: `1px solid ${isBlocked ? '#FCA5A5' : '#86EFAC'}`, padding: '4px 10px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 800 }}>
+                            {isBlocked ? <Ban size={12} /> : <CheckCircle2 size={12} />}
+                            {isBlocked ? 'Suspended' : 'Active'}
+                          </span>
+                        </td>
+
+                        <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                          <div style={{ display: 'inline-flex', gap: '6px' }}>
+                            <button
+                              onClick={() => setSelectedPatient(p)}
+                              style={{ background: '#F8FAFC', border: '1px solid #CBD5E1', padding: '6px 12px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 700, color: '#17324D', cursor: 'pointer' }}
+                            >
+                              <Eye size={13} /> Details
+                            </button>
+
+                            {isBlocked ? (
+                              <button
+                                onClick={() => setConfirmStatusModal({ patient: p, targetStatus: 'Active' })}
+                                style={{ background: '#059669', border: 'none', padding: '6px 12px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 800, color: '#FFFFFF', cursor: 'pointer' }}
+                              >
+                                Activate
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => setConfirmStatusModal({ patient: p, targetStatus: 'Blocked' })}
+                                style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', padding: '6px 12px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 800, color: '#B91C1C', cursor: 'pointer' }}
+                              >
+                                Block
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
 
-          {/* Table Container */}
-          {isLoading ? (
-            <div style={{ padding: '80px 20px', textAlign: 'center' }}>
-              <Activity className="spin-anim" size={38} color="#00A6A6" style={{ margin: '0 auto 16px' }} />
-              <p style={{ margin: 0, color: '#64748B', fontWeight: 600, fontSize: '0.95rem' }}>
-                Loading registered patient registry...
-              </p>
-            </div>
-          ) : (
-            <div className="table-scroll-container" style={{ maxHeight: '620px', overflowY: 'auto', border: '1px solid #E2E8F0', borderRadius: '16px' }}>
-              <table className="modern-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead>
-                  <tr style={{ background: '#F8FAFC' }}>
-                    <th style={{ padding: '14px 18px', fontSize: '0.78rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #E2E8F0', position: 'sticky', top: 0, background: '#F8FAFC', zIndex: 2 }}>
-                      Patient Details
-                    </th>
-                    <th style={{ padding: '14px 18px', fontSize: '0.78rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #E2E8F0', position: 'sticky', top: 0, background: '#F8FAFC', zIndex: 2 }}>
-                      Email Address
-                    </th>
-                    <th style={{ padding: '14px 18px', fontSize: '0.78rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #E2E8F0', position: 'sticky', top: 0, background: '#F8FAFC', zIndex: 2 }}>
-                      Account Role
-                    </th>
-                    <th style={{ padding: '14px 18px', fontSize: '0.78rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #E2E8F0', position: 'sticky', top: 0, background: '#F8FAFC', zIndex: 2 }}>
-                      Registered Date
-                    </th>
-                    <th style={{ padding: '14px 18px', fontSize: '0.78rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #E2E8F0', position: 'sticky', top: 0, background: '#F8FAFC', zIndex: 2 }}>
-                      Access Status
-                    </th>
-                    <th style={{ padding: '14px 18px', fontSize: '0.78rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #E2E8F0', position: 'sticky', top: 0, background: '#F8FAFC', zIndex: 2, textAlign: 'right' }}>
-                      Profile
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredPatients.length > 0 ? (
-                    filteredPatients.map(u => {
-                      const isBlocked = u.accountStatus === 'Blocked';
-
-                      return (
-                        <tr 
-                          key={u._id} 
-                          style={{ 
-                            borderBottom: '1px solid #F1F5F9',
-                            transition: 'background 0.15s ease'
-                          }}
-                        >
-                          {/* Patient Details */}
-                          <td style={{ padding: '14px 18px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                              <div 
-                                style={{
-                                  width: '42px',
-                                  height: '42px',
-                                  borderRadius: '50%',
-                                  background: 'linear-gradient(135deg, #00A6A6 0%, #06C6E8 100%)',
-                                  color: '#FFFFFF',
-                                  fontWeight: 800,
-                                  fontSize: '0.88rem',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  flexShrink: 0,
-                                  boxShadow: '0 2px 8px rgba(0, 166, 166, 0.15)'
-                                }}
-                              >
-                                {getInitials(u.name)}
-                              </div>
-                              <div style={{ minWidth: 0 }}>
-                                <div style={{ fontWeight: 800, color: '#17324D', fontSize: '0.92rem' }}>
-                                  {u.name || 'Unnamed Patient'}
-                                </div>
-                                <div style={{ fontSize: '0.74rem', color: '#94A3B8', fontWeight: 600, marginTop: '2px', fontFamily: 'monospace' }}>
-                                  UID: {u._id ? `${u._id.substring(0, 8)}...${u._id.slice(-4)}` : 'N/A'}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-
-                          {/* Email */}
-                          <td style={{ padding: '14px 18px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <Mail size={14} color="#94A3B8" />
-                              <span style={{ fontSize: '0.86rem', color: '#475569', fontWeight: 600 }}>
-                                {u.email}
-                              </span>
-                            </div>
-                          </td>
-
-                          {/* Role */}
-                          <td style={{ padding: '14px 18px' }}>
-                            <span 
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '5px',
-                                background: '#F0FDFA',
-                                color: '#0D9488',
-                                border: '1px solid #99E3D8',
-                                borderRadius: '8px',
-                                padding: '4px 10px',
-                                fontSize: '0.78rem',
-                                fontWeight: 700
-                              }}
-                            >
-                              <UserCheck size={13} />
-                              Patient
-                            </span>
-                          </td>
-
-                          {/* Registered Date */}
-                          <td style={{ padding: '14px 18px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <Calendar size={14} color="#94A3B8" />
-                              <span style={{ fontSize: '0.84rem', color: '#475569', fontWeight: 600 }}>
-                                {u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'}
-                              </span>
-                            </div>
-                          </td>
-
-                          {/* Access Status */}
-                          <td style={{ padding: '14px 18px' }}>
-                            <span 
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                background: isBlocked ? '#FEF2F2' : '#ECFDF5',
-                                color: isBlocked ? '#DC2626' : '#059669',
-                                border: `1px solid ${isBlocked ? '#FECACA' : '#A7F3D0'}`,
-                                borderRadius: '8px',
-                                padding: '4px 10px',
-                                fontSize: '0.78rem',
-                                fontWeight: 700
-                              }}
-                            >
-                              <div 
-                                style={{ 
-                                  width: '7px', 
-                                  height: '7px', 
-                                  borderRadius: '50%', 
-                                  background: isBlocked ? '#DC2626' : '#10B981',
-                                  boxShadow: isBlocked ? 'none' : '0 0 6px #10B981'
-                                }} 
-                              />
-                              {isBlocked ? 'Restricted' : 'Active'}
-                            </span>
-                          </td>
-
-                          {/* Profile action */}
-                          <td style={{ padding: '14px 18px', textAlign: 'right' }}>
-                            <Link
-                              to="/dashboard/admin/users"
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                width: '32px',
-                                height: '32px',
-                                borderRadius: '8px',
-                                background: '#F8FAFC',
-                                border: '1px solid #E2E8F0',
-                                color: '#64748B',
-                                textDecoration: 'none',
-                                transition: 'all 0.15s ease'
-                              }}
-                              title="Manage patient credentials"
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.background = '#F0FDFA';
-                                e.currentTarget.style.color = '#00A6A6';
-                                e.currentTarget.style.borderColor = '#99E3D8';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.background = '#F8FAFC';
-                                e.currentTarget.style.color = '#64748B';
-                                e.currentTarget.style.borderColor = '#E2E8F0';
-                              }}
-                            >
-                              <ChevronRight size={16} />
-                            </Link>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td colSpan="6" style={{ padding: '60px 20px', textAlign: 'center', color: '#64748B' }}>
-                        <Users size={40} color="#CBD5E1" style={{ margin: '0 auto 12px' }} />
-                        <h4 style={{ margin: '0 0 6px 0', fontSize: '1rem', fontWeight: 800, color: '#17324D' }}>
-                          No patients found
-                        </h4>
-                        <p style={{ margin: 0, fontSize: '0.85rem' }}>
-                          No patients match your search filter "{search}".
-                        </p>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+          {/* Pagination */}
+          {pagination.pages > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', flexWrap: 'wrap', gap: '12px' }}>
+              <span style={{ fontSize: '0.84rem', color: '#64748B', fontWeight: 600 }}>
+                Showing page {pagination.page} of {pagination.pages} ({pagination.total} patients)
+              </span>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  disabled={pagination.page <= 1}
+                  onClick={() => fetchPatients(pagination.page - 1)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', border: '1px solid #CBD5E1', padding: '6px 12px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, color: pagination.page <= 1 ? '#94A3B8' : '#17324D', cursor: pagination.page <= 1 ? 'not-allowed' : 'pointer' }}
+                >
+                  <ChevronLeft size={14} /> Prev
+                </button>
+                <button
+                  disabled={pagination.page >= pagination.pages}
+                  onClick={() => fetchPatients(pagination.page + 1)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', border: '1px solid #CBD5E1', padding: '6px 12px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, color: pagination.page >= pagination.pages ? '#94A3B8' : '#17324D', cursor: pagination.page >= pagination.pages ? 'not-allowed' : 'pointer' }}
+                >
+                  Next <ChevronRight size={14} />
+                </button>
+              </div>
             </div>
           )}
-
         </motion.div>
+
+        {/* PATIENT DETAIL MODAL */}
+        <AnimatePresence>
+          {selectedPatient && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(7, 26, 51, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '20px' }}>
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="card" style={{ width: '100%', maxWidth: '580px', padding: '28px', borderRadius: '22px', position: 'relative' }}>
+                <button
+                  onClick={() => setSelectedPatient(null)}
+                  style={{ position: 'absolute', top: '20px', right: '20px', background: '#F1F5F9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748B' }}
+                >
+                  <X size={16} />
+                </button>
+
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#EFF6FF', color: '#2563EB', padding: '4px 12px', borderRadius: '999px', fontSize: '0.74rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '8px' }}>
+                  Patient Identity Dossier
+                </div>
+                <h3 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#17324D', margin: '4px 0 16px' }}>
+                  {selectedPatient.name}
+                </h3>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '20px' }}>
+                  <div style={{ background: '#F8FAFC', padding: '12px 14px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                    <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 800, textTransform: 'uppercase' }}>Email</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#17324D', marginTop: '2px' }}>{selectedPatient.email}</div>
+                  </div>
+                  <div style={{ background: '#F8FAFC', padding: '12px 14px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                    <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 800, textTransform: 'uppercase' }}>Phone</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#17324D', marginTop: '2px' }}>{selectedPatient.phone || 'Not recorded'}</div>
+                  </div>
+                  <div style={{ background: '#F8FAFC', padding: '12px 14px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                    <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 800, textTransform: 'uppercase' }}>Registration Date</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#17324D', marginTop: '2px' }}>
+                      {selectedPatient.createdAt ? new Date(selectedPatient.createdAt).toLocaleDateString() : 'N/A'}
+                    </div>
+                  </div>
+                  <div style={{ background: '#F8FAFC', padding: '12px 14px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                    <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 800, textTransform: 'uppercase' }}>Account Status</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 800, color: selectedPatient.accountStatus === 'Blocked' ? '#DC2626' : '#059669', marginTop: '2px' }}>
+                      {selectedPatient.accountStatus || 'Active'}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ background: '#F0FDFA', border: '1px solid #99E3D8', borderRadius: '14px', padding: '16px', marginBottom: '20px', display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0F766E' }}>{selectedPatient.totalScans || 0}</div>
+                    <div style={{ fontSize: '0.76rem', color: '#0F766E', fontWeight: 700 }}>AI Intraoral Scans</div>
+                  </div>
+                  <div style={{ width: '1px', background: '#99E3D8' }}></div>
+                  <div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0F766E' }}>{selectedPatient.totalAppointments || 0}</div>
+                    <div style={{ fontSize: '0.76rem', color: '#0F766E', fontWeight: 700 }}>Booked Consultations</div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                  <button
+                    onClick={() => setSelectedPatient(null)}
+                    style={{ background: '#17324D', color: '#FFFFFF', border: 'none', padding: '9px 18px', borderRadius: '10px', fontSize: '0.84rem', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Close Dossier
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* STATUS CONFIRMATION DIALOG (BLOCK / ACTIVATE) */}
+        <AnimatePresence>
+          {confirmStatusModal && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(7, 26, 51, 0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: '20px' }}>
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="card" style={{ width: '100%', maxWidth: '480px', padding: '26px', borderRadius: '20px' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#17324D', margin: '0 0 8px' }}>
+                  {confirmStatusModal.targetStatus === 'Blocked' ? 'Suspend Patient Account?' : 'Activate Patient Account?'}
+                </h3>
+                <p style={{ fontSize: '0.86rem', color: '#64748B', margin: '0 0 16px', lineHeight: 1.5 }}>
+                  Are you sure you want to mark <strong>{confirmStatusModal.patient.name}</strong> as <strong>{confirmStatusModal.targetStatus}</strong>? Suspended accounts cannot book new consultations or upload diagnostic scans.
+                </p>
+
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: '#17324D', marginBottom: '6px' }}>
+                    Reason for Status Action
+                  </label>
+                  <input
+                    type="text"
+                    value={statusReason}
+                    onChange={(e) => setStatusReason(e.target.value)}
+                    placeholder="e.g., Requested by user or violation of terms"
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.86rem', color: '#17324D', outline: 'none' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                  <button
+                    onClick={() => setConfirmStatusModal(null)}
+                    disabled={isUpdating}
+                    style={{ background: '#F1F5F9', border: '1px solid #CBD5E1', padding: '9px 16px', borderRadius: '10px', fontSize: '0.84rem', fontWeight: 700, color: '#475569', cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAccountStatusChange}
+                    disabled={isUpdating}
+                    style={{
+                      background: confirmStatusModal.targetStatus === 'Blocked' ? '#DC2626' : '#059669',
+                      border: 'none',
+                      color: '#FFFFFF',
+                      padding: '9px 20px',
+                      borderRadius: '10px',
+                      fontSize: '0.84rem',
+                      fontWeight: 800,
+                      cursor: isUpdating ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    {isUpdating ? 'Saving...' : 'Confirm Action'}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
       </motion.div>
     </div>

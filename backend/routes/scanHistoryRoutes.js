@@ -15,7 +15,8 @@ const {
 router.get('/all', protect, restrictTo('admin'), getAllScans);
 router.get('/pending', protect, restrictTo('doctor', 'admin'), getPendingScans);
 router.get('/detail/:id', protect, getScanById);
-router.put('/verify/:id', protect, restrictTo('doctor', 'admin'), verifyScan);
+// Clinical verification is strictly limited to authorized licensed practitioners (admins cannot verify diagnoses)
+router.put('/verify/:id', protect, restrictTo('doctor'), verifyScan);
 router.get('/image/:filename', protect, getScanImage);
 router.get('/:patientId', protect, getPatientScanHistory);
 

@@ -15,6 +15,9 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminDoctors from './pages/admin/AdminDoctors';
 import AdminPatients from './pages/admin/AdminPatients';
+import AdminAppointments from './pages/admin/AdminAppointments';
+import AdminPayments from './pages/admin/AdminPayments';
+import AdminNotifications from './pages/admin/AdminNotifications';
 import AdminAIModel from './pages/admin/AdminAIModel';
 import AdminPredictions from './pages/admin/AdminPredictions';
 import AdminActivity from './pages/admin/AdminActivity';
@@ -117,6 +120,9 @@ function App() {
             <Route path="/dashboard/admin/users" element={<AdminUsers />} />
             <Route path="/dashboard/admin/doctors" element={<AdminDoctors />} />
             <Route path="/dashboard/admin/patients" element={<AdminPatients />} />
+            <Route path="/dashboard/admin/appointments" element={<AdminAppointments />} />
+            <Route path="/dashboard/admin/payments" element={<AdminPayments />} />
+            <Route path="/dashboard/admin/notifications" element={<AdminNotifications />} />
             <Route path="/dashboard/admin/ai-model" element={<AdminAIModel />} />
             <Route path="/dashboard/admin/predictions" element={<AdminPredictions />} />
             <Route path="/dashboard/admin/activity" element={<AdminActivity />} />

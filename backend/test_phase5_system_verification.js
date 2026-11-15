@@ -9,10 +9,13 @@ const ScanHistory = require('./models/ScanHistory');
 const Consultation = require('./models/Consultation');
 const Notification = require('./models/Notification');
 const DoctorSlot = require('./models/DoctorSlot');
+const AuditLog = require('./models/AuditLog');
 
-// Mock Notification and DoctorSlot to avoid mongoose buffering timeouts when MongoDB daemon is offline
+// Mock Notification, DoctorSlot, and AuditLog to avoid mongoose buffering timeouts when MongoDB daemon is offline
 Notification.create = () => Promise.resolve({});
 Notification.insertMany = () => Promise.resolve([]);
+AuditLog.create = () => Promise.resolve({});
+AuditLog.insertMany = () => Promise.resolve([]);
 const Message = require('./models/Message');
 DoctorSlot.findOne = () => Promise.resolve(null);
 DoctorSlot.create = (doc) => Promise.resolve({ _id: new mongoose.Types.ObjectId(), ...doc });

@@ -5,8 +5,12 @@ const User = require('../models/User');
 // @access  Public
 const getDoctors = async (req, res) => {
   try {
-    // Only return users who are doctors and approved
-    const doctors = await User.find({ role: 'doctor', verificationStatus: 'Approved' }).select('-password');
+    // Only return users who are verified approved doctors and actively in service (not blocked)
+    const doctors = await User.find({ 
+      role: 'doctor', 
+      verificationStatus: 'Approved',
+      accountStatus: { $ne: 'Blocked' }
+    }).select('-password');
     res.json(doctors);
   } catch (error) {
     res.status(500).json({ message: error.message });
