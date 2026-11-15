@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  BrainCircuit, Activity, Search, ArrowLeft, X, 
-  Calendar, CheckCircle2, Clock, Sparkles, Filter, 
+import {
+  BrainCircuit, Activity, Search, ArrowLeft, X,
+  Calendar, CheckCircle2, Clock, Sparkles, Filter,
   Layers, User, Eye, ShieldCheck, AlertCircle, RefreshCw,
   XCircle, ChevronRight, ChevronLeft, ShieldAlert
 } from 'lucide-react';
@@ -90,7 +90,7 @@ const AdminPredictions = () => {
   return (
     <div className="screening-history-wrapper" style={{ maxWidth: '1440px', margin: '0 auto', padding: '0 16px 48px' }}>
       <motion.div initial="hidden" animate="show" variants={stagger}>
-        
+
         {/* Navigation Breadcrumb */}
         <motion.div variants={item} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -101,8 +101,8 @@ const AdminPredictions = () => {
             <span style={{ color: '#17324D', fontWeight: 800, fontSize: '0.95rem' }}>Dental Scan Management</span>
           </div>
 
-          <button 
-            onClick={() => fetchScans(pagination.page)} 
+          <button
+            onClick={() => fetchScans(pagination.page)}
             disabled={isLoading}
             style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#FFFFFF', border: '1px solid #BFD4E5', padding: '7px 14px', borderRadius: '10px', fontSize: '0.84rem', fontWeight: 700, color: '#17324D', cursor: 'pointer' }}
           >

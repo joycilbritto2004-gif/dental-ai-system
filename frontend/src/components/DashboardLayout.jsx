@@ -108,7 +108,7 @@ const DashboardLayout = () => {
       const res = await fetch(`${API_BASE}/api/notifications/${userId}`);
       if (res.ok) {
         const data = await res.json();
-        setNotifications(data);
+        setNotifications(Array.isArray(data) ? data : []);
       }
     } catch (err) {
       console.error('Error fetching notifications:', err);
@@ -179,7 +179,7 @@ const DashboardLayout = () => {
     }
   };
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = Array.isArray(notifications) ? notifications.filter(n => n && !n.isRead).length : 0;
 
   const todayFormatted = new Date().toLocaleDateString('en-US', { 
     weekday: 'short', 
@@ -506,13 +506,13 @@ const DashboardLayout = () => {
                   </div>
                   
                   <div style={{ maxHeight: '340px', overflowY: 'auto' }}>
-                    {notifications.length === 0 ? (
+                    {(!Array.isArray(notifications) || notifications.length === 0) ? (
                       <div style={{ padding: '36px 16px', textAlign: 'center', color: '#64748B' }}>
                         <Bell size={28} color="#CBD5E1" style={{ margin: '0 auto 8px' }} />
                         <p style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600 }}>All caught up! No notifications.</p>
                       </div>
                     ) : (
-                      notifications.map(notif => (
+                      notifications.filter(Boolean).map(notif => (
                         <div 
                           key={notif._id || notif.id}
                           onClick={() => handleNotificationClick(notif)}

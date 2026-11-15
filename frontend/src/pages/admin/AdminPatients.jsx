@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Users, UserCheck, ShieldCheck, Search, ArrowLeft, X, 
-  Calendar, Mail, Activity, Eye, ChevronRight, ChevronLeft, 
+import {
+  Users, UserCheck, ShieldCheck, Search, ArrowLeft, X,
+  Calendar, Mail, Activity, Eye, ChevronRight, ChevronLeft,
   FileText, Ban, CheckCircle2, Phone, RefreshCw, AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -66,7 +66,7 @@ const AdminPatients = () => {
 
     try {
       const token = localStorage.getItem('dentaai_token');
-      const headers = { 
+      const headers = {
         'Content-Type': 'application/json',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       };
@@ -74,7 +74,7 @@ const AdminPatients = () => {
       const res = await fetch(`${API_BASE}/api/admin/users/${patient._id || patient.id}/account-status`, {
         method: 'PUT',
         headers,
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           status: targetStatus,
           reason: statusReason.trim()
         })
@@ -115,7 +115,7 @@ const AdminPatients = () => {
   return (
     <div className="screening-history-wrapper" style={{ maxWidth: '1440px', margin: '0 auto', padding: '0 16px 48px' }}>
       <motion.div initial="hidden" animate="show" variants={stagger}>
-        
+
         {/* Toast Notification */}
         <AnimatePresence>
           {toastMessage && (
@@ -152,8 +152,8 @@ const AdminPatients = () => {
             <span style={{ color: '#17324D', fontWeight: 800, fontSize: '0.95rem' }}>Patient Management</span>
           </div>
 
-          <button 
-            onClick={() => fetchPatients(pagination.page)} 
+          <button
+            onClick={() => fetchPatients(pagination.page)}
             disabled={isLoading}
             style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#FFFFFF', border: '1px solid #BFD4E5', padding: '7px 14px', borderRadius: '10px', fontSize: '0.84rem', fontWeight: 700, color: '#17324D', cursor: 'pointer' }}
           >

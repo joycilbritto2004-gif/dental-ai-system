@@ -110,12 +110,12 @@ const AdminDashboard = () => {
   // Max value calculation for bar chart scaling
   const maxRegTrend = Math.max(
     1,
-    ...((stats.registrationTrends || []).map(t => Math.max(t.patients, t.doctors)))
+    ...((Array.isArray(stats.registrationTrends) ? stats.registrationTrends : []).map(t => Math.max(t?.patients || 0, t?.doctors || 0)))
   );
 
   const maxRevenueTrend = Math.max(
     1,
-    ...((stats.revenueTrends || []).map(r => r.revenue))
+    ...((Array.isArray(stats.revenueTrends) ? stats.revenueTrends : []).map(r => r?.revenue || 0))
   );
 
   return (
@@ -421,8 +421,8 @@ const AdminDashboard = () => {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {SUPPORTED_CONDITIONS.map(cond => {
-                const match = (stats.scanConditionDistribution || []).find(c => 
-                  c._id && c._id.toLowerCase().replace('_', ' ') === cond.name.toLowerCase()
+                const match = (Array.isArray(stats.scanConditionDistribution) ? stats.scanConditionDistribution : []).find(c => 
+                  c && typeof c._id === 'string' && c._id.toLowerCase().replace('_', ' ') === cond.name.toLowerCase()
                 );
                 const count = match ? match.count : 0;
                 const percentage = stats.totalScans > 0 ? Math.round((count / stats.totalScans) * 100) : 0;
@@ -588,23 +588,23 @@ const AdminDashboard = () => {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {(stats.recentActivity || []).length === 0 ? (
+              {(!Array.isArray(stats.recentActivity) || stats.recentActivity.length === 0) ? (
                 <div style={{ textAlign: 'center', padding: '24px', color: '#64748B', fontSize: '0.86rem' }}>
                   No consultations booked yet.
                 </div>
               ) : (
-                stats.recentActivity.slice(0, 5).map((act, i) => (
+                stats.recentActivity.filter(Boolean).slice(0, 5).map((act, i) => (
                   <div key={act._id || i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
                     <div>
                       <div style={{ fontWeight: 700, color: '#17324D', fontSize: '0.86rem' }}>
-                        {act.patientName} → {act.doctorName}
+                        {act.patientName || 'Patient'} → {act.doctorName || 'Doctor'}
                       </div>
                       <div style={{ fontSize: '0.74rem', color: '#64748B' }}>
                         {act.consultationType || 'Consultation'} • {act.date || 'Scheduled'}
                       </div>
                     </div>
                     <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '3px 8px', borderRadius: '999px', background: act.status === 'Completed' ? '#DCFCE7' : act.status === 'Accepted' ? '#DBEAFE' : '#FEF3C7', color: act.status === 'Completed' ? '#15803D' : act.status === 'Accepted' ? '#1D4ED8' : '#B45309' }}>
-                      {act.status}
+                      {act.status || 'Pending'}
                     </span>
                   </div>
                 ))
@@ -624,19 +624,19 @@ const AdminDashboard = () => {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {(stats.recentAuditLogs || []).length === 0 ? (
+              {(!Array.isArray(stats.recentAuditLogs) || stats.recentAuditLogs.length === 0) ? (
                 <div style={{ textAlign: 'center', padding: '24px', color: '#64748B', fontSize: '0.86rem' }}>
                   No administrative events recorded yet.
                 </div>
               ) : (
-                stats.recentAuditLogs.slice(0, 5).map((log, i) => (
+                stats.recentAuditLogs.filter(Boolean).slice(0, 5).map((log, i) => (
                   <div key={log._id || log.id || i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
                     <div>
                       <div style={{ fontWeight: 700, color: '#17324D', fontSize: '0.86rem' }}>
-                        {log.action?.replace(/_/g, ' ')}
+                        {log.action ? log.action.replace(/_/g, ' ') : 'Audit Action'}
                       </div>
                       <div style={{ fontSize: '0.74rem', color: '#64748B' }}>
-                        By {log.adminName} on {log.targetName || log.targetType}
+                        By {log.adminName || 'Admin'} on {log.targetName || log.targetType || 'System'}
                       </div>
                     </div>
                     <span style={{ fontSize: '0.72rem', color: '#94A3B8' }}>
