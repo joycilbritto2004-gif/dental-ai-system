@@ -1,13 +1,41 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { UserPlus, User, Stethoscope, BriefcaseMedical, AlertCircle } from 'lucide-react';
+import { UserPlus, User, Stethoscope, BriefcaseMedical, AlertCircle, Info } from 'lucide-react';
 import { api } from '../services/api';
 import './Auth.css';
 
+export const validatePasswordSecurity = (password) => {
+  if (!password || typeof password !== 'string') {
+    return 'Password is required.';
+  }
+  if (password.length < 8) {
+    return 'Password must be at least 8 characters long.';
+  }
+  if (!/[A-Z]/.test(password)) {
+    return 'Password must contain at least one uppercase letter.';
+  }
+  if (!/[a-z]/.test(password)) {
+    return 'Password must contain at least one lowercase letter.';
+  }
+  if (!/[0-9]/.test(password)) {
+    return 'Password must contain at least one number.';
+  }
+  if (!/[^A-Za-z0-9]/.test(password)) {
+    return 'Password must contain at least one special character or symbol.';
+  }
+  return null;
+};
+
 const Register = () => {
   const [role, setRole] = useState('patient');
-  const [formData, setFormData] = useState({ name: '', email: '', password: '', phone: '' });
+  const [formData, setFormData] = useState({ 
+    name: '', 
+    email: '', 
+    password: '', 
+    confirmPassword: '', 
+    phone: '' 
+  });
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -19,6 +47,24 @@ const Register = () => {
   const handleRegister = async (e) => {
     e.preventDefault();
     setError(null);
+
+    // 1. Validate password strength
+    const pwdError = validatePasswordSecurity(formData.password);
+    if (pwdError) {
+      setError(pwdError);
+      return;
+    }
+
+    // 2. Validate password confirmation
+    if (!formData.confirmPassword) {
+      setError('Please confirm your password.');
+      return;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match. Please verify your password confirmation.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -109,9 +155,17 @@ const Register = () => {
               <label className="form-label">Phone Number</label>
               <input type="text" name="phone" className="form-input" placeholder="Enter phone number" value={formData.phone} onChange={handleChange} required disabled={isLoading} />
             </div>
-            <div className="form-group mb-6">
+            <div className="form-group mb-4">
               <label className="form-label">Password</label>
               <input type="password" name="password" className="form-input" placeholder="Create password" value={formData.password} onChange={handleChange} required disabled={isLoading} />
+              <div className="password-recommendation-box">
+                <Info size={15} className="info-icon" />
+                <span>Recommended: Use at least 8 characters with a mix of uppercase and lowercase letters, numbers, and symbols for maximum security.</span>
+              </div>
+            </div>
+            <div className="form-group mb-6">
+              <label className="form-label">Confirm Password</label>
+              <input type="password" name="confirmPassword" className="form-input" placeholder="Confirm your password" value={formData.confirmPassword} onChange={handleChange} required disabled={isLoading} />
             </div>
             
             <button type="submit" className={`btn btn-primary auth-submit w-full ${!isLoading ? 'pulse-glow' : ''}`} disabled={isLoading}>

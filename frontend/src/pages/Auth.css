@@ -224,6 +224,27 @@
   font-weight: 600;
 }
 
+.password-recommendation-box {
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  background-color: rgba(6, 182, 212, 0.08);
+  border: 1px solid rgba(6, 182, 212, 0.25);
+  border-radius: var(--radius-md, 10px);
+  padding: 0.65rem 0.85rem;
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.password-recommendation-box .info-icon {
+  flex-shrink: 0;
+  color: var(--color-cyan, #06b6d4);
+  margin-top: 2px;
+}
+
 @keyframes pulseScan {
   0% { transform: scale(1); opacity: 0.5; }
   100% { transform: scale(1.1); opacity: 1; }

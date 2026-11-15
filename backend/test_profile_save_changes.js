@@ -46,8 +46,16 @@ function computeChangeDetection(formData, initialData) {
       validationError = 'Please confirm your new password.';
     } else if (formData.password !== formData.confirmPassword) {
       validationError = 'Passwords do not match. Please verify your new password.';
-    } else if (formData.password.length < 6) {
-      validationError = 'New password must be at least 6 characters long.';
+    } else if (formData.password.length < 8) {
+      validationError = 'New password must be at least 8 characters long.';
+    } else if (!/[A-Z]/.test(formData.password)) {
+      validationError = 'New password must contain at least one uppercase letter.';
+    } else if (!/[a-z]/.test(formData.password)) {
+      validationError = 'New password must contain at least one lowercase letter.';
+    } else if (!/[0-9]/.test(formData.password)) {
+      validationError = 'New password must contain at least one number.';
+    } else if (!/[^A-Za-z0-9]/.test(formData.password)) {
+      validationError = 'New password must contain at least one special character or symbol.';
     }
   }
 
@@ -116,12 +124,12 @@ async function runAllTests() {
   // 5. Enter a new password with matching confirmation
   await runTest('5. Enter a new password with matching confirmation (Validates and includes password)', () => {
     const initial = { name: 'Joycil Britto', phone: '+91 9876543210' };
-    const current = { name: 'Joycil Britto', phone: '+91 9876543210', password: 'NewSecurePassword123', confirmPassword: 'NewSecurePassword123' };
+    const current = { name: 'Joycil Britto', phone: '+91 9876543210', password: 'NewSecurePassword123!', confirmPassword: 'NewSecurePassword123!' };
     const state = computeChangeDetection(current, initial);
 
     assert.strictEqual(state.isModified, true);
     assert.strictEqual(state.validationError, null, 'Validation error should be null');
-    assert.strictEqual(state.payload.password, 'NewSecurePassword123');
+    assert.strictEqual(state.payload.password, 'NewSecurePassword123!');
   });
 
   // 6. Enter mismatched passwords

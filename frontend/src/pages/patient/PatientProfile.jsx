@@ -128,8 +128,24 @@ const PatientProfile = () => {
         setMessage({ type: 'error', text: 'Passwords do not match. Please verify your new password.' });
         return;
       }
-      if (formData.password.length < 6) {
-        setMessage({ type: 'error', text: 'New password must be at least 6 characters long.' });
+      if (formData.password.length < 8) {
+        setMessage({ type: 'error', text: 'New password must be at least 8 characters long.' });
+        return;
+      }
+      if (!/[A-Z]/.test(formData.password)) {
+        setMessage({ type: 'error', text: 'New password must contain at least one uppercase letter.' });
+        return;
+      }
+      if (!/[a-z]/.test(formData.password)) {
+        setMessage({ type: 'error', text: 'New password must contain at least one lowercase letter.' });
+        return;
+      }
+      if (!/[0-9]/.test(formData.password)) {
+        setMessage({ type: 'error', text: 'New password must contain at least one number.' });
+        return;
+      }
+      if (!/[^A-Za-z0-9]/.test(formData.password)) {
+        setMessage({ type: 'error', text: 'New password must contain at least one special character or symbol.' });
         return;
       }
     }
@@ -589,7 +605,7 @@ const PatientProfile = () => {
               >
                 <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00A6A6', flexShrink: 0 }}></div>
                 <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: 500 }}>
-                  Recommended: Use at least 8 characters with a mix of letters, numbers, and symbols for maximum security.
+                  Recommended: Use at least 8 characters with a mix of uppercase and lowercase letters, numbers, and symbols for maximum security.
                 </span>
               </div>
             </div>

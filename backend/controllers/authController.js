@@ -37,12 +37,42 @@ const sendNotification = (options) => {
   });
 };
 
+// Password security validation policy:
+// Enforce minimum 8 characters, at least 1 uppercase, 1 lowercase, 1 number, and 1 special character
+const validatePasswordSecurity = (password) => {
+  if (!password || typeof password !== 'string') {
+    return 'Password is required.';
+  }
+  if (password.length < 8) {
+    return 'Password must be at least 8 characters long.';
+  }
+  if (!/[A-Z]/.test(password)) {
+    return 'Password must contain at least one uppercase letter.';
+  }
+  if (!/[a-z]/.test(password)) {
+    return 'Password must contain at least one lowercase letter.';
+  }
+  if (!/[0-9]/.test(password)) {
+    return 'Password must contain at least one number.';
+  }
+  if (!/[^A-Za-z0-9]/.test(password)) {
+    return 'Password must contain at least one special character or symbol.';
+  }
+  return null;
+};
+
 // @desc    Register a new user
 // @route   POST /api/auth/register
 // @access  Public
 const registerUser = async (req, res) => {
   try {
     const { name, email, password, phone } = req.body;
+
+    // Enforce password security policy
+    const passwordError = validatePasswordSecurity(password);
+    if (passwordError) {
+      return res.status(400).json({ message: passwordError });
+    }
 
     // Public registration may only create patient or doctor accounts.
     // Admin accounts are provisioned out-of-band by seedAdmin.js — never from a request body,
@@ -328,8 +358,9 @@ const updateUserProfile = async (req, res) => {
       
       if (req.body.password !== undefined && String(req.body.password).trim() !== '') {
         const pwd = String(req.body.password);
-        if (pwd.length < 6) {
-          return res.status(400).json({ message: 'New password must be at least 6 characters long' });
+        const passwordError = validatePasswordSecurity(pwd);
+        if (passwordError) {
+          return res.status(400).json({ message: passwordError });
         }
         user.password = pwd;
         hasModifications = true;
@@ -424,5 +455,6 @@ module.exports = {
   registerUser,
   loginUser,
   getUserProfile,
-  updateUserProfile
+  updateUserProfile,
+  validatePasswordSecurity
 };
