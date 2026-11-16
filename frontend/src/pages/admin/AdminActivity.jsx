@@ -102,17 +102,16 @@ const AdminActivity = () => {
         </motion.div>
 
         {/* Title Header Card */}
-        <motion.div variants={item} className="screening-header-card" style={{ marginBottom: '24px' }}>
-          <div className="screening-header-stripe"></div>
+        <motion.div variants={item} className="screening-header-card admin-dark-header" style={{ marginBottom: '24px', background: 'linear-gradient(135deg, #0F2942 0%, #17324D 100%)', color: '#FFFFFF', padding: '28px', borderRadius: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', justifyContent: 'space-between' }}>
             <div>
-              <div className="screening-badge">
-                <ShieldCheck size={14} /> Immutable Audit Ledger
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.12)', padding: '5px 12px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '8px' }}>
+                <ShieldCheck size={13} color="#38BDF8" /> Immutable Audit Ledger
               </div>
-              <h1 className="screening-title">
+              <h2 style={{ fontSize: '1.8rem', fontWeight: 900, margin: '4px 0 6px', color: '#FFFFFF' }}>
                 System Activity & Audit Logs
-              </h1>
-              <p className="screening-subtitle">
+              </h2>
+              <p style={{ color: '#93C5FD', margin: 0, fontSize: '0.92rem', maxWidth: '680px' }}>
                 Permanent audit trail recording all practitioner approvals, rejections, account suspensions, and administrative actions. Records are immutable and tamper-resistant.
               </p>
             </div>

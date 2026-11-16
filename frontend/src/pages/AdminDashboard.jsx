@@ -123,31 +123,30 @@ const AdminDashboard = () => {
       <motion.div initial="hidden" animate="show" variants={stagger}>
         
         {/* TOP HEADER BANNER */}
-        <motion.div variants={item} className="screening-header-card" style={{ marginBottom: '24px' }}>
-          <div className="screening-header-stripe"></div>
+        <motion.div variants={item} className="screening-header-card admin-dark-header" style={{ marginBottom: '24px', background: 'linear-gradient(135deg, #0F2942 0%, #17324D 100%)', color: '#FFFFFF', padding: '30px', borderRadius: '22px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px' }}>
             <div>
-              <div className="screening-badge">
-                <ShieldCheck size={14} /> Central Administrative Authority
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(255, 255, 255, 0.12)', padding: '5px 14px', borderRadius: '999px', fontSize: '0.76rem', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '10px' }}>
+                <ShieldCheck size={14} color="#38BDF8" /> Central Administrative Authority
               </div>
-              <h1 className="screening-title">
-                System Executive Dashboard
-              </h1>
-              <p className="screening-subtitle">
+              <h2 style={{ fontSize: '1.95rem', fontWeight: 900, margin: '2px 0 6px', color: '#FFFFFF', letterSpacing: '-0.5px' }}>
+                DentaAI System Executive Dashboard
+              </h2>
+              <p style={{ color: '#93C5FD', margin: 0, fontSize: '0.94rem', maxWidth: '680px', lineHeight: 1.5 }}>
                 Real-time MongoDB analytics, institutional credential verification, clinical triage monitoring, and transactional accounting.
               </p>
             </div>
 
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               <button
                 onClick={fetchAdminData}
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#FFFFFF', color: '#17324D', border: '1px solid #BFD4E5', padding: '9px 16px', borderRadius: '12px', fontSize: '0.84rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 6px rgba(7, 26, 51, 0.04)' }}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.15)', color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.25)', padding: '9px 16px', borderRadius: '12px', fontSize: '0.84rem', fontWeight: 700, cursor: 'pointer' }}
               >
                 <RefreshCw size={14} /> Refresh Data
               </button>
               <Link
                 to="/dashboard/admin/doctors"
-                style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#00A6A6', color: '#FFFFFF', textDecoration: 'none', padding: '9px 18px', borderRadius: '12px', fontSize: '0.84rem', fontWeight: 800, boxShadow: '0 4px 14px rgba(0, 166, 166, 0.25)' }}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#00A6A6', color: '#FFFFFF', textDecoration: 'none', padding: '9px 18px', borderRadius: '12px', fontSize: '0.84rem', fontWeight: 800, boxShadow: '0 4px 14px rgba(0, 166, 166, 0.35)' }}
               >
                 <Stethoscope size={15} /> Verify Practitioners {stats.pendingDoctors > 0 && `(${stats.pendingDoctors})`}
               </Link>

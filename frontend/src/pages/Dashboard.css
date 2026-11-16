@@ -6384,6 +6384,17 @@
   margin-bottom: 24px;
 }
 
+.screening-header-card.admin-dark-header {
+  background: linear-gradient(135deg, #0F2942 0%, #17324D 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 8px 30px rgba(7, 26, 51, 0.25) !important;
+}
+
+.screening-header-card.admin-dark-header.appointment-gradient {
+  background: linear-gradient(135deg, #17324D 0%, #1A4B75 100%) !important;
+}
+
 .screening-header-stripe {
   position: absolute;
   top: 0;
